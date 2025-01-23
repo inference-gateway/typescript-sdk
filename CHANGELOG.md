@@ -1,3 +1,9 @@
+## [0.1.2](https://github.com/inference-gateway/typescript-sdk/compare/v0.1.1...v0.1.2) (2025-01-23)
+
+### 👷 CI
+
+* Update permissions in release workflow for issues and pull requests ([ae1a835](https://github.com/inference-gateway/typescript-sdk/commit/ae1a83586b211a7b468fa2fc1b07f30eb02effb2))
+
 ## [0.1.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.1.0...v0.1.1) (2025-01-23)
 
 ### ♻️ Improvements
