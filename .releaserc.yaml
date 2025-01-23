@@ -55,5 +55,8 @@ plugins:
         'releaseNameTemplate': '🚀 Version ${nextRelease.version}',
       },
     ]
-  - ['@semantic-release/git', { 'assets': ['CHANGELOG.md'] }]
+  - [
+      '@semantic-release/git',
+      { 'assets': ['CHANGELOG.md', 'package.json', 'package-lock.json'] },
+    ]
 repositoryUrl: 'https://github.com/inference-gateway/typescript-sdk'
