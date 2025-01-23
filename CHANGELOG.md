@@ -1,3 +1,9 @@
+## [0.1.3](https://github.com/inference-gateway/typescript-sdk/compare/v0.1.2...v0.1.3) (2025-01-23)
+
+### 🐛 Bug Fixes
+
+* Update release workflow environment variable and package.json repository URL format ([8ea1290](https://github.com/inference-gateway/typescript-sdk/commit/8ea1290ed6e2c122cbce7c311478e9814d09e36d))
+
 ## [0.1.2](https://github.com/inference-gateway/typescript-sdk/compare/v0.1.1...v0.1.2) (2025-01-23)
 
 ### 👷 CI
