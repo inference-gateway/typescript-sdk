@@ -30,7 +30,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/inference-gateway/typescript-sdk"
+    "url": "git+https://github.com/inference-gateway/typescript-sdk.git"
   },
   "bugs": {
     "url": "https://github.com/inference-gateway/typescript-sdk/issues"
@@ -68,6 +68,7 @@
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
-    "tag": "latest"
+    "tag": "latest",
+    "access": "public"
   }
 }
