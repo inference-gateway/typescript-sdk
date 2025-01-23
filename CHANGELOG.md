@@ -1,3 +1,9 @@
+## [0.1.6](https://github.com/inference-gateway/typescript-sdk/compare/v0.1.5...v0.1.6) (2025-01-23)
+
+### 🐛 Bug Fixes
+
+* update main and types paths in package.json ([f1faad3](https://github.com/inference-gateway/typescript-sdk/commit/f1faad3e257891ae8f2a10729c396e1d30d1af96))
+
 ## [0.1.5](https://github.com/inference-gateway/typescript-sdk/compare/v0.1.4...v0.1.5) (2025-01-23)
 
 ### 🐛 Bug Fixes
