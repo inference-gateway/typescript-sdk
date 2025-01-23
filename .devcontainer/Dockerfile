@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye
+FROM mcr.microsoft.com/devcontainers/typescript-node:22-bookworm
 
 ENV ZSH_CUSTOM=/home/node/.oh-my-zsh/custom \
     TASK_VERSION=v3.41.0
@@ -11,9 +11,6 @@ RUN apt-get update && \
 
 # Install global npm packages for TypeScript development
 RUN npm install -g \
-    typescript \
-    ts-node \
-    @types/node \
     semantic-release \
     @semantic-release/changelog \
     @semantic-release/git \
