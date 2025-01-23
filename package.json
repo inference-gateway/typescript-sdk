@@ -4,18 +4,45 @@
   "description": "An SDK written in Typescript for the [Inference Gateway](https://github.com/inference-gateway/inference-gateway).",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "type": "commonjs",
   "keywords": [
     "inference",
+    "inference-gateway",
     "gateway",
-    "sdk"
+    "sdk",
+    "llm",
+    "ai",
+    "openai",
+    "anthropic",
+    "ollama",
+    "cloudflare",
+    "cohere",
+    "typescript"
   ],
   "author": "Eden Reich <eden.reich@gmail.com>",
   "license": "MIT",
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/inference-gateway/typescript-sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/inference-gateway/typescript-sdk/issues"
+  },
+  "homepage": "https://github.com/inference-gateway/typescript-sdk#README.md",
+  "peerDependencies": {
+    "node-fetch": "^2.7.0"
+  },
+  "peerDependenciesMeta": {
+    "node-fetch": {
+      "optional": true
+    }
+  },
   "scripts": {
     "build": "tsc",
     "test": "jest",
@@ -25,14 +52,17 @@
   "devDependencies": {
     "@eslint/js": "^9.18.0",
     "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.9",
+    "@typescript-eslint/eslint-plugin": "^8.21.0",
+    "@typescript-eslint/parser": "^8.21.0",
     "eslint": "^9.18.0",
-    "eslint-config-prettier": "^10.0.1",
-    "eslint-plugin-jest": "^28.11.0",
     "eslint-plugin-prettier": "^5.2.3",
-    "globals": "^15.14.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.21.0"
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20.18.1",
+    "npm": ">=10.8.2"
   }
 }

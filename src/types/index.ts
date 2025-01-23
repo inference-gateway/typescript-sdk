@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 export enum Provider {
   Ollama = 'ollama',
   Groq = 'groq',
@@ -8,7 +7,6 @@ export enum Provider {
   Cohere = 'cohere',
   Anthropic = 'anthropic',
 }
-/* eslint-enable no-unused-vars */
 
 export interface Message {
   role: 'system' | 'user' | 'assistant';
@@ -36,7 +34,7 @@ export interface GenerateContentRequest {
 export interface GenerateContentResponse {
   provider: string;
   response: {
-    role: string;
+    role: 'assistant';
     model: string;
     content: string;
   };

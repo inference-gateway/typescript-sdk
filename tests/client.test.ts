@@ -1,9 +1,5 @@
-import { InferenceGatewayClient } from '../src/client';
-import {
-  GenerateContentResponse,
-  Provider,
-  ProviderModels,
-} from '../src/types';
+import { InferenceGatewayClient } from '@/client';
+import { GenerateContentResponse, Provider, ProviderModels } from '@/types';
 
 describe('InferenceGatewayClient', () => {
   let client: InferenceGatewayClient;

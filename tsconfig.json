@@ -1,14 +1,22 @@
 {
+  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "target": "ES2024",
+    "lib": ["ES2024", "DOM"],
+    "module": "Node16",
+    "moduleResolution": "node16",
     "outDir": "./dist",
-    "module": "CommonJS",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "skipLibCheck": false,
-    "declaration": true
+    "skipLibCheck": true,
+    "declaration": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@tests/*": ["./tests/*"]
+    },
+    "types": ["@types/node", "@types/jest"]
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
