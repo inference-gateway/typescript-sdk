@@ -1,3 +1,9 @@
+## [0.1.4](https://github.com/inference-gateway/typescript-sdk/compare/v0.1.3...v0.1.4) (2025-01-23)
+
+### 🔧 Miscellaneous
+
+* **release:** bump version to 0.1.2 in package.json ([ae64176](https://github.com/inference-gateway/typescript-sdk/commit/ae641767f3ba44edef0e9073d42421c2df05f36b))
+
 ## [0.1.3](https://github.com/inference-gateway/typescript-sdk/compare/v0.1.2...v0.1.3) (2025-01-23)
 
 ### 🐛 Bug Fixes
