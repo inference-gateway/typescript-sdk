@@ -1,9 +1,9 @@
 branches:
   - main
-tagFormat: ${version}
+tagFormat: v${version}
 plugins:
+  - '@semantic-release/npm'
   - [
-      '@semantic-release/npm',
       '@semantic-release/commit-analyzer',
       {
         preset: 'conventionalcommits',
