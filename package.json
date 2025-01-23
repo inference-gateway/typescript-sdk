@@ -1,5 +1,5 @@
 {
-  "name": "inference-gateway-sdk",
+  "name": "@inference-gateway/sdk",
   "version": "0.1.0",
   "description": "An SDK written in Typescript for the [Inference Gateway](https://github.com/inference-gateway/inference-gateway).",
   "main": "dist/index.js",

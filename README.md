@@ -13,7 +13,7 @@ An SDK written in Typescript for the [Inference Gateway](https://github.com/eden
 
 ## Installation
 
-Run `npm i @inference-gateway-sdk`.
+Run `npm i @inference-gateway/sdk`.
 
 ## Usage
 
@@ -24,7 +24,7 @@ import {
   InferenceGatewayClient,
   Message,
   Provider,
-} from '@inference-gateway-sdk';
+} from '@inference-gateway/sdk';
 
 async function main() {
   const client = new InferenceGatewayClient('http://localhost:8080');
