@@ -3,6 +3,7 @@ branches:
 tagFormat: ${version}
 plugins:
   - [
+      '@semantic-release/npm',
       '@semantic-release/commit-analyzer',
       {
         preset: 'conventionalcommits',

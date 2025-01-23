@@ -12,6 +12,7 @@ RUN apt-get update && \
 # Install global npm packages for TypeScript development
 RUN npm install -g \
     semantic-release \
+    @semantic-release/npm \
     @semantic-release/changelog \
     @semantic-release/git \
     @semantic-release/github \
