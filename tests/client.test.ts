@@ -1,5 +1,10 @@
 import { InferenceGatewayClient } from '@/client';
-import { GenerateContentResponse, Provider, ProviderModels } from '@/types';
+import {
+  GenerateContentResponse,
+  MessageRole,
+  Provider,
+  ProviderModels,
+} from '@/types';
 
 describe('InferenceGatewayClient', () => {
   let client: InferenceGatewayClient;
@@ -17,10 +22,7 @@ describe('InferenceGatewayClient', () => {
           provider: Provider.Ollama,
           models: [
             {
-              id: 'llama2',
-              object: 'model',
-              owned_by: 'ollama',
-              created: 1234567890,
+              name: 'llama2',
             },
           ],
         },
@@ -42,21 +44,61 @@ describe('InferenceGatewayClient', () => {
     });
   });
 
+  describe('listModelsByProvider', () => {
+    it('should fetch models for a specific provider', async () => {
+      const mockResponse: ProviderModels = {
+        provider: Provider.OpenAI,
+        models: [
+          {
+            name: 'gpt-4',
+          },
+        ],
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await client.listModelsByProvider(Provider.OpenAI);
+      expect(result).toEqual(mockResponse);
+      expect(global.fetch).toHaveBeenCalledWith(
+        `${mockBaseUrl}/llms/${Provider.OpenAI}`,
+        expect.objectContaining({
+          headers: expect.any(Headers),
+        })
+      );
+    });
+
+    it('should throw error when provider request fails', async () => {
+      const errorMessage = 'Provider not found';
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: () => Promise.resolve({ error: errorMessage }),
+      });
+
+      await expect(
+        client.listModelsByProvider(Provider.OpenAI)
+      ).rejects.toThrow(errorMessage);
+    });
+  });
+
   describe('generateContent', () => {
     it('should generate content with the specified provider', async () => {
       const mockRequest = {
         provider: Provider.Ollama,
         model: 'llama2',
         messages: [
-          { role: 'system' as const, content: 'You are a helpful assistant' },
-          { role: 'user' as const, content: 'Hello' },
+          { role: MessageRole.System, content: 'You are a helpful assistant' },
+          { role: MessageRole.User, content: 'Hello' },
         ],
       };
 
       const mockResponse: GenerateContentResponse = {
         provider: Provider.Ollama,
         response: {
-          role: 'assistant',
+          role: MessageRole.Assistant,
           model: 'llama2',
           content: 'Hi there!',
         },

@@ -1,6 +1,7 @@
 import {
   GenerateContentRequest,
   GenerateContentResponse,
+  Provider,
   ProviderModels,
 } from './types';
 
@@ -41,6 +42,10 @@ export class InferenceGatewayClient {
 
   async listModels(): Promise<ProviderModels[]> {
     return this.request<ProviderModels[]>('/llms');
+  }
+
+  async listModelsByProvider(provider: Provider): Promise<ProviderModels> {
+    return this.request<ProviderModels>(`/llms/${provider}`);
   }
 
   async generateContent(

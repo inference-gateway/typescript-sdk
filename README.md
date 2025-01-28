@@ -6,7 +6,8 @@ An SDK written in Typescript for the [Inference Gateway](https://github.com/eden
   - [Installation](#installation)
   - [Usage](#usage)
     - [Creating a Client](#creating-a-client)
-    - [Listing Models](#listing-models)
+    - [Listing All Models](#listing-all-models)
+    - [List Models by Provider](#list-models-by-provider)
     - [Generating Content](#generating-content)
     - [Health Check](#health-check)
   - [License](#license)
@@ -39,16 +40,17 @@ async function main() {
       });
     });
 
+    // Generate content
     const response = await client.generateContent({
       provider: Provider.Ollama,
       model: 'llama2',
       messages: [
         {
-          role: 'system',
+          role: MessageRole.System,
           content: 'You are a helpful llama',
         },
         {
-          role: 'user',
+          role: MessageRole.User,
           content: 'Tell me a joke',
         },
       ],
@@ -63,9 +65,9 @@ async function main() {
 main();
 ```
 
-### Listing Models
+### Listing All Models
 
-To list available models, use the `listModels` method:
+To list all available models from all providers, use the `listModels` method:
 
 ```typescript
 try {
@@ -81,22 +83,46 @@ try {
 }
 ```
 
+### List Models by Provider
+
+To list all available models from a specific provider, use the `listModelsByProvider` method:
+
+```typescript
+try {
+  const providerModels = await client.listModelsByProvider(Provider.OpenAI);
+  console.log(`Provider: ${providerModels.provider}`);
+  providerModels.models.forEach((model) => {
+    console.log(`Model: ${model.name}`);
+  });
+} catch (error) {
+  console.error('Error:', error);
+}
+```
+
 ### Generating Content
 
 To generate content using a model, use the `generateContent` method:
 
 ```typescript
-try {
+import {
+  InferenceGatewayClient,
+  Message,
+  MessageRole,
+  Provider,
+} from '@inference-gateway/sdk';
+
+const client = new InferenceGatewayClient('http://localhost:8080');
+
   const response = await client.generateContent({
     provider: Provider.Ollama,
     model: 'llama2',
     messages: [
       {
-        role: 'system',
+        role: MessageRole.System,
         content: 'You are a helpful llama',
       },
       {
-        role: 'user',
+        role: MessageRole.User,
         content: 'Tell me a joke',
       },
     ],

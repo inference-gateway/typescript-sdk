@@ -8,16 +8,18 @@ export enum Provider {
   Anthropic = 'anthropic',
 }
 
+export enum MessageRole {
+  System = 'system',
+  User = 'user',
+  Assistant = 'assistant',
+}
 export interface Message {
-  role: 'system' | 'user' | 'assistant';
+  role: MessageRole;
   content: string;
 }
 
 export interface Model {
-  id: string;
-  object: string;
-  owned_by: string;
-  created: number;
+  name: string;
 }
 
 export interface ProviderModels {
