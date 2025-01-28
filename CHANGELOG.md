@@ -1,3 +1,15 @@
+## [0.2.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.1.6...v0.2.0) (2025-01-28)
+
+### ✨ Features
+
+* add listModelsByProvider method and update README with new model listing features ([a8d7cd9](https://github.com/inference-gateway/typescript-sdk/commit/a8d7cd9e9332f6455271f4d8f2832631b46d2c3d))
+
+### 📚 Documentation
+
+* add Contributing section to README with reference to CONTRIBUTING.md ([322baae](https://github.com/inference-gateway/typescript-sdk/commit/322baae9110f270615597e647835ed22e4fdbc65))
+* add CONTRIBUTING.md with guidelines for contributing to the project ([d36b08f](https://github.com/inference-gateway/typescript-sdk/commit/d36b08f1647500795d279dcd5612d5a81c9c4a74))
+* **openapi:** Download the latest openapi spec from inference-gateway ([733ee1e](https://github.com/inference-gateway/typescript-sdk/commit/733ee1e57d9fc6669bb2ec0197db1c2c772a0283))
+
 ## [0.1.6](https://github.com/inference-gateway/typescript-sdk/compare/v0.1.5...v0.1.6) (2025-01-23)
 
 ### 🐛 Bug Fixes
