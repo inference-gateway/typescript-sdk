@@ -10,6 +10,7 @@ An SDK written in Typescript for the [Inference Gateway](https://github.com/eden
     - [List Models by Provider](#list-models-by-provider)
     - [Generating Content](#generating-content)
     - [Health Check](#health-check)
+  - [Contributing](#contributing)
   - [License](#license)
 
 ## Installation
@@ -147,6 +148,10 @@ try {
   console.error('Error:', error);
 }
 ```
+
+## Contributing
+
+Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file for information about how to get involved. We welcome issues, questions, and pull requests.
 
 ## License
 
