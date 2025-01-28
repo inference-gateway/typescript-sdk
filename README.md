@@ -37,7 +37,7 @@ async function main() {
     models.forEach((providerModels) => {
       console.log(`Provider: ${providerModels.provider}`);
       providerModels.models.forEach((model) => {
-        console.log(`Model: ${model.id}`);
+        console.log(`Model: ${model.name}`);
       });
     });
 
@@ -76,7 +76,7 @@ try {
   models.forEach((providerModels) => {
     console.log(`Provider: ${providerModels.provider}`);
     providerModels.models.forEach((model) => {
-      console.log(`Model: ${model.id}`);
+      console.log(`Model: ${model.name}`);
     });
   });
 } catch (error) {
