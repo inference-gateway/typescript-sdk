@@ -1,3 +1,14 @@
+## [0.3.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.2.0...v0.3.0) (2025-02-02)
+
+### ✨ Features
+
+* add streaming content functionality to InferenceGatewayClient and update README ([ba41d2d](https://github.com/inference-gateway/typescript-sdk/commit/ba41d2dc136b83372820af2aefa63969932e16f0))
+
+### 📚 Documentation
+
+* **fix:** Update examples in README.md ([4e972fc](https://github.com/inference-gateway/typescript-sdk/commit/4e972fc2c577f41b0b443f1c87cde7561717b577))
+* Update OpenAPI spec - download it from Inference-gateway ([9816b15](https://github.com/inference-gateway/typescript-sdk/commit/9816b151db6b48b04723f93b988daf83239a09df))
+
 ## [0.2.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.1.6...v0.2.0) (2025-01-28)
 
 ### ✨ Features
