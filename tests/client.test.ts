@@ -159,4 +159,150 @@ describe('InferenceGatewayClient', () => {
       await expect(client.listModels()).rejects.toThrow(errorMessage);
     });
   });
+
+  describe('generateContentStream', () => {
+    it('should handle SSE events correctly', async () => {
+      const mockRequest = {
+        provider: Provider.Ollama,
+        model: 'llama2',
+        messages: [
+          { role: MessageRole.System, content: 'You are a helpful assistant' },
+          { role: MessageRole.User, content: 'Hello' },
+        ],
+      };
+
+      const mockStream = new TransformStream();
+      const writer = mockStream.writable.getWriter();
+      const encoder = new TextEncoder();
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        body: mockStream.readable,
+      });
+
+      const callbacks = {
+        onMessageStart: jest.fn(),
+        onStreamStart: jest.fn(),
+        onContentStart: jest.fn(),
+        onContentDelta: jest.fn(),
+        onContentEnd: jest.fn(),
+        onMessageEnd: jest.fn(),
+        onStreamEnd: jest.fn(),
+      };
+
+      const streamPromise = client.generateContentStream(
+        mockRequest,
+        callbacks
+      );
+
+      await writer.write(
+        encoder.encode(
+          'event: message-start\ndata: {"role": "assistant"}\n\n' +
+            'event: stream-start\ndata: {}\n\n' +
+            'event: content-start\ndata: {}\n\n' +
+            'event: content-delta\ndata: {"content": "Hello"}\n\n' +
+            'event: content-delta\ndata: {"content": " there!"}\n\n' +
+            'event: content-end\ndata: {}\n\n' +
+            'event: message-end\ndata: {}\n\n' +
+            'event: stream-end\ndata: {}\n\n'
+        )
+      );
+
+      await writer.close();
+      await streamPromise;
+
+      expect(callbacks.onMessageStart).toHaveBeenCalledWith('assistant');
+      expect(callbacks.onStreamStart).toHaveBeenCalledTimes(1);
+      expect(callbacks.onContentStart).toHaveBeenCalledTimes(1);
+      expect(callbacks.onContentDelta).toHaveBeenCalledWith('Hello');
+      expect(callbacks.onContentDelta).toHaveBeenCalledWith(' there!');
+      expect(callbacks.onContentEnd).toHaveBeenCalledTimes(1);
+      expect(callbacks.onMessageEnd).toHaveBeenCalledTimes(1);
+      expect(callbacks.onStreamEnd).toHaveBeenCalledTimes(1);
+      expect(global.fetch).toHaveBeenCalledWith(
+        `${mockBaseUrl}/llms/${mockRequest.provider}/generate`,
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            model: mockRequest.model,
+            messages: mockRequest.messages,
+            stream: true,
+            ssevents: true,
+          }),
+        })
+      );
+    });
+
+    it('should handle errors in the stream response', async () => {
+      const mockRequest = {
+        provider: Provider.Ollama,
+        model: 'llama2',
+        messages: [{ role: MessageRole.User, content: 'Hello' }],
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: () => Promise.resolve({ error: 'Bad Request' }),
+      });
+
+      await expect(
+        client.generateContentStream(mockRequest, {})
+      ).rejects.toThrow('Bad Request');
+    });
+
+    it('should handle non-readable response body', async () => {
+      const mockRequest = {
+        provider: Provider.Ollama,
+        model: 'llama2',
+        messages: [{ role: MessageRole.User, content: 'Hello' }],
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        body: null,
+      });
+
+      await expect(
+        client.generateContentStream(mockRequest, {})
+      ).rejects.toThrow('Response body is not readable');
+    });
+
+    it('should handle empty events in the stream', async () => {
+      const mockRequest = {
+        provider: Provider.Ollama,
+        model: 'llama2',
+        messages: [{ role: MessageRole.User, content: 'Hello' }],
+      };
+
+      const mockStream = new TransformStream();
+      const writer = mockStream.writable.getWriter();
+      const encoder = new TextEncoder();
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        body: mockStream.readable,
+      });
+
+      const callbacks = {
+        onContentDelta: jest.fn(),
+      };
+
+      const streamPromise = client.generateContentStream(
+        mockRequest,
+        callbacks
+      );
+
+      await writer.write(encoder.encode('\n\n'));
+      await writer.write(
+        encoder.encode('event: content-delta\ndata: {"content": "Hello"}\n\n')
+      );
+
+      await writer.close();
+      await streamPromise;
+
+      expect(callbacks.onContentDelta).toHaveBeenCalledTimes(1);
+      expect(callbacks.onContentDelta).toHaveBeenCalledWith('Hello');
+    });
+  });
 });

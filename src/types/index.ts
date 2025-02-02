@@ -41,3 +41,13 @@ export interface GenerateContentResponse {
     content: string;
   };
 }
+
+export interface GenerateContentOptions {
+  onMessageStart?: (role: string) => void;
+  onStreamStart?: () => void;
+  onContentStart?: () => void;
+  onContentDelta?: (content: string) => void;
+  onContentEnd?: () => void;
+  onMessageEnd?: () => void;
+  onStreamEnd?: () => void;
+}

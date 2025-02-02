@@ -9,6 +9,7 @@ An SDK written in Typescript for the [Inference Gateway](https://github.com/eden
     - [Listing All Models](#listing-all-models)
     - [List Models by Provider](#list-models-by-provider)
     - [Generating Content](#generating-content)
+    - [Streaming Content](#streaming-content)
     - [Health Check](#health-check)
   - [Contributing](#contributing)
   - [License](#license)
@@ -134,6 +135,32 @@ const client = new InferenceGatewayClient('http://localhost:8080');
 } catch (error) {
   console.error('Error:', error);
 }
+```
+
+### Streaming Content
+
+To stream content using a model, use the `streamContent` method:
+
+```typescript
+const client = new InferenceGatewayClient('http://localhost:8080');
+
+await client.generateContentStream(
+  {
+    provider: Provider.Groq,
+    model: 'deepseek-r1-distill-llama-70b',
+    messages: [
+      {
+        role: MessageRole.User,
+        content: 'Tell me a story',
+      },
+    ],
+  },
+  {
+    onMessageStart: (role) => console.log('Message started:', role),
+    onContentDelta: (content) => process.stdout.write(content),
+    onStreamEnd: () => console.log('\nStream completed'),
+  }
+);
 ```
 
 ### Health Check
