@@ -2,7 +2,7 @@
 repositoryUrl: 'https://github.com/inference-gateway/typescript-sdk'
 branches:
   - { name: main, prerelease: false, channel: latest }
-  - { name: 'rc/.*', prerelease: rc, channel: rc }
+  - { name: 'rc/*', prerelease: rc, channel: rc }
 tagFormat: 'v${version}'
 
 verifyConditions:
