@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.3.4...v0.4.0) (2025-03-31)
+
+### ✨ Features
+
+* Add reasoning_content to streaming deltas if they exists ([#5](https://github.com/inference-gateway/typescript-sdk/issues/5)) ([2a2c546](https://github.com/inference-gateway/typescript-sdk/commit/2a2c546fe50e35e2a0f8ef076c0251867b959e38))
+
 ## [0.4.0-rc.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.3.5-rc.1...v0.4.0-rc.1) (2025-03-31)
 
 ### ✨ Features
