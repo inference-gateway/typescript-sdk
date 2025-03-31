@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.4](https://github.com/inference-gateway/typescript-sdk/compare/v0.3.3...v0.3.4) (2025-03-31)
+
+### ♻️ Improvements
+
+* Add optional fields for reasoning in Message interface ([#3](https://github.com/inference-gateway/typescript-sdk/issues/3)) ([9a4c1fd](https://github.com/inference-gateway/typescript-sdk/commit/9a4c1fdc50e6e6e3dd4ce53058d1164754fe8c9d))
+
 ## [0.3.3](https://github.com/inference-gateway/typescript-sdk/compare/v0.3.2...v0.3.3) (2025-03-31)
 
 ### 🐛 Bug Fixes
