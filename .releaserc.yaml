@@ -8,6 +8,7 @@ tagFormat: 'v${version}'
 verifyConditions:
   - '@semantic-release/github'
   - '@semantic-release/git'
+  - '@semantic-release/npm'
 
 plugins:
   - - '@semantic-release/commit-analyzer'
@@ -53,10 +54,11 @@ plugins:
       releaseNameTemplate: '🚀 Version ${nextRelease.version}'
       successCommentCondition: 'false'
 
+  - - '@semantic-release/npm'
+    - npmPublish: true
+
   - - '@semantic-release/git'
     - assets:
         - CHANGELOG.md
+        - package.json
       message: "chore(release): 🔖 ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
-
-  - - '@semantic-release/npm'
-    - npmPublish: true
