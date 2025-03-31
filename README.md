@@ -1,16 +1,18 @@
-# Inference Gateway Typescript SDK
+# Inference Gateway TypeScript SDK
 
-An SDK written in Typescript for the [Inference Gateway](https://github.com/edenreich/inference-gateway).
+An SDK written in TypeScript for the [Inference Gateway](https://github.com/edenreich/inference-gateway).
 
-- [Inference Gateway Typescript SDK](#inference-gateway-typescript-sdk)
+- [Inference Gateway TypeScript SDK](#inference-gateway-typescript-sdk)
   - [Installation](#installation)
   - [Usage](#usage)
     - [Creating a Client](#creating-a-client)
-    - [Listing All Models](#listing-all-models)
-    - [List Models by Provider](#list-models-by-provider)
-    - [Generating Content](#generating-content)
-    - [Streaming Content](#streaming-content)
+    - [Listing Models](#listing-models)
+    - [Creating Chat Completions](#creating-chat-completions)
+    - [Streaming Chat Completions](#streaming-chat-completions)
+    - [Tool Calls](#tool-calls)
+    - [Proxying Requests](#proxying-requests)
     - [Health Check](#health-check)
+    - [Creating a Client with Custom Options](#creating-a-client-with-custom-options)
   - [Contributing](#contributing)
   - [License](#license)
 
@@ -23,157 +25,240 @@ Run `npm i @inference-gateway/sdk`.
 ### Creating a Client
 
 ```typescript
+import { InferenceGatewayClient } from '@inference-gateway/sdk';
+
+// Create a client with default options
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+  apiKey: 'your-api-key', // Optional
+});
+```
+
+### Listing Models
+
+To list all available models:
+
+```typescript
+import { InferenceGatewayClient, Provider } from '@inference-gateway/sdk';
+
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
+
+try {
+  // List all models
+  const models = await client.listModels();
+  console.log('All models:', models);
+
+  // List models from a specific provider
+  const openaiModels = await client.listModels(Provider.OpenAI);
+  console.log('OpenAI models:', openaiModels);
+} catch (error) {
+  console.error('Error:', error);
+}
+```
+
+### Creating Chat Completions
+
+To generate content using a model:
+
+```typescript
 import {
   InferenceGatewayClient,
-  Message,
+  MessageRole,
   Provider,
 } from '@inference-gateway/sdk';
 
-async function main() {
-  const client = new InferenceGatewayClient('http://localhost:8080');
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
 
-  try {
-    // List available models
-    const models = await client.listModels();
-    models.forEach((providerModels) => {
-      console.log(`Provider: ${providerModels.provider}`);
-      providerModels.models.forEach((model) => {
-        console.log(`Model: ${model.name}`);
-      });
-    });
-
-    // Generate content
-    const response = await client.generateContent({
-      provider: Provider.Ollama,
-      model: 'llama2',
+try {
+  const response = await client.createChatCompletion(
+    {
+      model: 'gpt-4o',
       messages: [
         {
           role: MessageRole.System,
-          content: 'You are a helpful llama',
+          content: 'You are a helpful assistant',
         },
         {
           role: MessageRole.User,
           content: 'Tell me a joke',
         },
       ],
-    });
+    },
+    Provider.OpenAI
+  ); // Provider is optional
 
-    console.log('Response:', response);
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
-
-main();
-```
-
-### Listing All Models
-
-To list all available models from all providers, use the `listModels` method:
-
-```typescript
-try {
-  const models = await client.listModels();
-  models.forEach((providerModels) => {
-    console.log(`Provider: ${providerModels.provider}`);
-    providerModels.models.forEach((model) => {
-      console.log(`Model: ${model.name}`);
-    });
-  });
+  console.log('Response:', response.choices[0].message.content);
 } catch (error) {
   console.error('Error:', error);
 }
 ```
 
-### List Models by Provider
+### Streaming Chat Completions
 
-To list all available models from a specific provider, use the `listModelsByProvider` method:
-
-```typescript
-try {
-  const providerModels = await client.listModelsByProvider(Provider.OpenAI);
-  console.log(`Provider: ${providerModels.provider}`);
-  providerModels.models.forEach((model) => {
-    console.log(`Model: ${model.name}`);
-  });
-} catch (error) {
-  console.error('Error:', error);
-}
-```
-
-### Generating Content
-
-To generate content using a model, use the `generateContent` method:
+To stream content from a model:
 
 ```typescript
 import {
   InferenceGatewayClient,
-  Message,
   MessageRole,
   Provider,
 } from '@inference-gateway/sdk';
 
-const client = new InferenceGatewayClient('http://localhost:8080');
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
 
-  const response = await client.generateContent({
-    provider: Provider.Ollama,
-    model: 'llama2',
-    messages: [
-      {
-        role: MessageRole.System,
-        content: 'You are a helpful llama',
-      },
-      {
-        role: MessageRole.User,
-        content: 'Tell me a joke',
-      },
-    ],
-  });
-
-  console.log('Provider:', response.provider);
-  console.log('Response:', response.response);
+try {
+  await client.streamChatCompletion(
+    {
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: MessageRole.User,
+          content: 'Tell me a story',
+        },
+      ],
+    },
+    {
+      onOpen: () => console.log('Stream opened'),
+      onContent: (content) => process.stdout.write(content),
+      onChunk: (chunk) => console.log('Received chunk:', chunk.id),
+      onFinish: () => console.log('\nStream completed'),
+      onError: (error) => console.error('Stream error:', error),
+    },
+    Provider.Groq // Provider is optional
+  );
 } catch (error) {
   console.error('Error:', error);
 }
 ```
 
-### Streaming Content
+### Tool Calls
 
-To stream content using a model, use the `streamContent` method:
+To use tool calls with models that support them:
 
 ```typescript
-const client = new InferenceGatewayClient('http://localhost:8080');
+import {
+  InferenceGatewayClient,
+  MessageRole,
+  Provider,
+} from '@inference-gateway/sdk';
 
-await client.generateContentStream(
-  {
-    provider: Provider.Groq,
-    model: 'deepseek-r1-distill-llama-70b',
-    messages: [
-      {
-        role: MessageRole.User,
-        content: 'Tell me a story',
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
+
+try {
+  await client.streamChatCompletion(
+    {
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: MessageRole.User,
+          content: 'What's the weather in San Francisco?',
+        },
+      ],
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'get_weather',
+            parameters: {
+              type: 'object',
+              properties: {
+                location: {
+                  type: 'string',
+                  description: 'The city and state, e.g. San Francisco, CA',
+                },
+              },
+              required: ['location'],
+            },
+          },
+        },
+      ],
+    },
+    {
+      onTool: (toolCall) => {
+        console.log('Tool call:', toolCall.function.name);
+        console.log('Arguments:', toolCall.function.arguments);
       },
-    ],
-  },
-  {
-    onMessageStart: (role) => console.log('Message started:', role),
-    onContentDelta: (content) => process.stdout.write(content),
-    onStreamEnd: () => console.log('\nStream completed'),
-  }
-);
+      onContent: (content) => process.stdout.write(content),
+      onFinish: () => console.log('\nStream completed'),
+    },
+    Provider.OpenAI
+  );
+} catch (error) {
+  console.error('Error:', error);
+}
+```
+
+### Proxying Requests
+
+To proxy requests directly to a provider:
+
+```typescript
+import { InferenceGatewayClient, Provider } from '@inference-gateway/sdk';
+
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
+
+try {
+  const response = await client.proxy(Provider.OpenAI, 'embeddings', {
+    method: 'POST',
+    body: JSON.stringify({
+      model: 'text-embedding-ada-002',
+      input: 'Hello world',
+    }),
+  });
+
+  console.log('Embeddings:', response);
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ### Health Check
 
-To check if the Inference Gateway is running, use the `healthCheck` method:
+To check if the Inference Gateway is running:
 
 ```typescript
+import { InferenceGatewayClient } from '@inference-gateway/sdk';
+
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
+
 try {
   const isHealthy = await client.healthCheck();
   console.log('API is healthy:', isHealthy);
 } catch (error) {
   console.error('Error:', error);
 }
+```
+
+### Creating a Client with Custom Options
+
+You can create a new client with custom options using the `withOptions` method:
+
+```typescript
+import { InferenceGatewayClient } from '@inference-gateway/sdk';
+
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
+
+// Create a new client with custom headers
+const clientWithHeaders = client.withOptions({
+  defaultHeaders: {
+    'X-Custom-Header': 'value',
+  },
+  timeout: 60000, // 60 seconds
+});
 ```
 
 ## Contributing

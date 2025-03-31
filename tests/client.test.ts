@@ -1,123 +1,378 @@
 import { InferenceGatewayClient } from '@/client';
 import {
-  GenerateContentResponse,
+  ChatCompletionResponse,
+  ListModelsResponse,
   MessageRole,
   Provider,
-  ProviderModels,
 } from '@/types';
+import { TransformStream } from 'node:stream/web';
+import { TextEncoder } from 'node:util';
 
 describe('InferenceGatewayClient', () => {
   let client: InferenceGatewayClient;
-  const mockBaseUrl = 'http://localhost:8080';
+  const mockFetch = jest.fn();
 
   beforeEach(() => {
-    client = new InferenceGatewayClient(mockBaseUrl);
-    global.fetch = jest.fn();
+    client = new InferenceGatewayClient({
+      baseURL: 'http://localhost:8080/v1',
+      fetch: mockFetch,
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('listModels', () => {
     it('should fetch available models', async () => {
-      const mockResponse: ProviderModels[] = [
-        {
-          provider: Provider.Ollama,
-          models: [
-            {
-              name: 'llama2',
-            },
-          ],
-        },
-      ];
+      const mockResponse: ListModelsResponse = {
+        object: 'list',
+        data: [
+          {
+            id: 'gpt-4o',
+            object: 'model',
+            created: 1686935002,
+            owned_by: 'openai',
+          },
+          {
+            id: 'llama-3.3-70b-versatile',
+            object: 'model',
+            created: 1723651281,
+            owned_by: 'groq',
+          },
+        ],
+      };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 
       const result = await client.listModels();
       expect(result).toEqual(mockResponse);
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${mockBaseUrl}/llms`,
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/models',
         expect.objectContaining({
+          method: 'GET',
           headers: expect.any(Headers),
         })
       );
     });
-  });
 
-  describe('listModelsByProvider', () => {
     it('should fetch models for a specific provider', async () => {
-      const mockResponse: ProviderModels = {
-        provider: Provider.OpenAI,
-        models: [
+      const mockResponse: ListModelsResponse = {
+        object: 'list',
+        data: [
           {
-            name: 'gpt-4',
+            id: 'gpt-4o',
+            object: 'model',
+            created: 1686935002,
+            owned_by: 'openai',
           },
         ],
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 
-      const result = await client.listModelsByProvider(Provider.OpenAI);
+      const result = await client.listModels(Provider.OpenAI);
       expect(result).toEqual(mockResponse);
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${mockBaseUrl}/llms/${Provider.OpenAI}`,
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/models?provider=openai',
         expect.objectContaining({
+          method: 'GET',
           headers: expect.any(Headers),
         })
       );
     });
 
-    it('should throw error when provider request fails', async () => {
+    it('should throw error when request fails', async () => {
       const errorMessage = 'Provider not found';
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 404,
         json: () => Promise.resolve({ error: errorMessage }),
       });
 
-      await expect(
-        client.listModelsByProvider(Provider.OpenAI)
-      ).rejects.toThrow(errorMessage);
+      await expect(client.listModels(Provider.OpenAI)).rejects.toThrow(
+        errorMessage
+      );
     });
   });
 
-  describe('generateContent', () => {
-    it('should generate content with the specified provider', async () => {
+  describe('createChatCompletion', () => {
+    it('should create a chat completion', async () => {
       const mockRequest = {
-        provider: Provider.Ollama,
-        model: 'llama2',
+        model: 'gpt-4o',
         messages: [
           { role: MessageRole.System, content: 'You are a helpful assistant' },
           { role: MessageRole.User, content: 'Hello' },
         ],
       };
 
-      const mockResponse: GenerateContentResponse = {
-        provider: Provider.Ollama,
-        response: {
-          role: MessageRole.Assistant,
-          model: 'llama2',
-          content: 'Hi there!',
+      const mockResponse: ChatCompletionResponse = {
+        id: 'chatcmpl-123',
+        object: 'chat.completion',
+        created: 1677652288,
+        model: 'gpt-4o',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: MessageRole.Assistant,
+              content: 'Hello! How can I help you today?',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 8,
+          total_tokens: 18,
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 
-      const result = await client.generateContent(mockRequest);
+      const result = await client.createChatCompletion(mockRequest);
       expect(result).toEqual(mockResponse);
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${mockBaseUrl}/llms/${mockRequest.provider}/generate`,
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/chat/completions',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify(mockRequest),
+        })
+      );
+    });
+
+    it('should create a chat completion with a specific provider', async () => {
+      const mockRequest = {
+        model: 'claude-3-opus-20240229',
+        messages: [{ role: MessageRole.User, content: 'Hello' }],
+      };
+
+      const mockResponse: ChatCompletionResponse = {
+        id: 'chatcmpl-456',
+        object: 'chat.completion',
+        created: 1677652288,
+        model: 'claude-3-opus-20240229',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: MessageRole.Assistant,
+              content: 'Hello! How can I assist you today?',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 5,
+          completion_tokens: 8,
+          total_tokens: 13,
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await client.createChatCompletion(
+        mockRequest,
+        Provider.Anthropic
+      );
+      expect(result).toEqual(mockResponse);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/chat/completions?provider=anthropic',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify(mockRequest),
+        })
+      );
+    });
+  });
+
+  describe('streamChatCompletion', () => {
+    it('should handle streaming chat completions', async () => {
+      const mockRequest = {
+        model: 'gpt-4o',
+        messages: [{ role: MessageRole.User, content: 'Hello' }],
+      };
+
+      const mockStream = new TransformStream();
+      const writer = mockStream.writable.getWriter();
+      const encoder = new TextEncoder();
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: mockStream.readable,
+      });
+
+      const callbacks = {
+        onOpen: jest.fn(),
+        onChunk: jest.fn(),
+        onContent: jest.fn(),
+        onFinish: jest.fn(),
+        onError: jest.fn(),
+      };
+
+      const streamPromise = client.streamChatCompletion(mockRequest, callbacks);
+
+      // Simulate SSE events
+      await writer.write(
+        encoder.encode(
+          'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n' +
+            'data: [DONE]\n\n'
+        )
+      );
+
+      await writer.close();
+      await streamPromise;
+
+      expect(callbacks.onOpen).toHaveBeenCalledTimes(1);
+      expect(callbacks.onChunk).toHaveBeenCalledTimes(4);
+      expect(callbacks.onContent).toHaveBeenCalledWith('Hello');
+      expect(callbacks.onContent).toHaveBeenCalledWith('!');
+      expect(callbacks.onFinish).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/chat/completions',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({
-            model: mockRequest.model,
-            messages: mockRequest.messages,
+            ...mockRequest,
+            stream: true,
+          }),
+        })
+      );
+    });
+
+    it('should handle tool calls in streaming chat completions', async () => {
+      const mockRequest = {
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: MessageRole.User,
+            content: 'What is the weather in San Francisco?',
+          },
+        ],
+        tools: [
+          {
+            type: 'function' as const,
+            function: {
+              name: 'get_weather',
+              parameters: {
+                type: 'object',
+                properties: {
+                  location: {
+                    type: 'string',
+                    description: 'The city and state, e.g. San Francisco, CA',
+                  },
+                },
+                required: ['location'],
+              },
+            },
+          },
+        ],
+      };
+
+      const mockStream = new TransformStream();
+      const writer = mockStream.writable.getWriter();
+      const encoder = new TextEncoder();
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: mockStream.readable,
+      });
+
+      const callbacks = {
+        onOpen: jest.fn(),
+        onChunk: jest.fn(),
+        onTool: jest.fn(),
+        onFinish: jest.fn(),
+      };
+
+      const streamPromise = client.streamChatCompletion(mockRequest, callbacks);
+
+      // Simulate SSE events with tool calls
+      await writer.write(
+        encoder.encode(
+          'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_123","type":"function","function":{"name":"get_weather"}}]},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"location\\""}}]},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":":\\"San Francisco, CA\\""}}]},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"}"}}]},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n' +
+            'data: [DONE]\n\n'
+        )
+      );
+
+      await writer.close();
+      await streamPromise;
+
+      expect(callbacks.onOpen).toHaveBeenCalledTimes(1);
+      expect(callbacks.onChunk).toHaveBeenCalledTimes(6);
+      expect(callbacks.onTool).toHaveBeenCalledTimes(4); // Called for each chunk with tool_calls
+      expect(callbacks.onFinish).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle errors in streaming chat completions', async () => {
+      const mockRequest = {
+        model: 'gpt-4o',
+        messages: [{ role: MessageRole.User, content: 'Hello' }],
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: () => Promise.resolve({ error: 'Bad Request' }),
+      });
+
+      const callbacks = {
+        onError: jest.fn(),
+      };
+
+      await expect(
+        client.streamChatCompletion(mockRequest, callbacks)
+      ).rejects.toThrow('Bad Request');
+
+      expect(callbacks.onError).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('proxy', () => {
+    it('should proxy requests to a specific provider', async () => {
+      const mockResponse = { result: 'success' };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await client.proxy(Provider.OpenAI, 'embeddings', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'text-embedding-ada-002',
+          input: 'Hello world',
+        }),
+      });
+
+      expect(result).toEqual(mockResponse);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/proxy/openai/embeddings',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            model: 'text-embedding-ada-002',
+            input: 'Hello world',
           }),
         })
       );
@@ -126,183 +381,52 @@ describe('InferenceGatewayClient', () => {
 
   describe('healthCheck', () => {
     it('should return true when API is healthy', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({}),
       });
 
       const result = await client.healthCheck();
       expect(result).toBe(true);
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${mockBaseUrl}/health`,
-        expect.any(Object)
-      );
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/health');
     });
 
     it('should return false when API is unhealthy', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('API error'));
+      mockFetch.mockRejectedValueOnce(new Error('API error'));
 
       const result = await client.healthCheck();
       expect(result).toBe(false);
     });
   });
 
-  describe('error handling', () => {
-    it('should throw error when API request fails', async () => {
-      const errorMessage = 'Bad Request';
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        json: () => Promise.resolve({ error: errorMessage }),
+  describe('withOptions', () => {
+    it('should create a new client with merged options', () => {
+      const originalClient = new InferenceGatewayClient({
+        baseURL: 'http://localhost:8080/v1',
+        apiKey: 'test-key',
+        fetch: mockFetch,
       });
 
-      await expect(client.listModels()).rejects.toThrow(errorMessage);
-    });
-  });
+      const newClient = originalClient.withOptions({
+        defaultHeaders: { 'X-Custom-Header': 'value' },
+      });
 
-  describe('generateContentStream', () => {
-    it('should handle SSE events correctly', async () => {
-      const mockRequest = {
-        provider: Provider.Ollama,
-        model: 'llama2',
-        messages: [
-          { role: MessageRole.System, content: 'You are a helpful assistant' },
-          { role: MessageRole.User, content: 'Hello' },
-        ],
-      };
+      expect(newClient).toBeInstanceOf(InferenceGatewayClient);
+      expect(newClient).not.toBe(originalClient);
 
-      const mockStream = new TransformStream();
-      const writer = mockStream.writable.getWriter();
-      const encoder = new TextEncoder();
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      // We can't directly test private properties, but we can test behavior
+      mockFetch.mockResolvedValueOnce({
         ok: true,
-        body: mockStream.readable,
+        json: () => Promise.resolve({}),
       });
 
-      const callbacks = {
-        onMessageStart: jest.fn(),
-        onStreamStart: jest.fn(),
-        onContentStart: jest.fn(),
-        onContentDelta: jest.fn(),
-        onContentEnd: jest.fn(),
-        onMessageEnd: jest.fn(),
-        onStreamEnd: jest.fn(),
-      };
+      newClient.listModels();
 
-      const streamPromise = client.generateContentStream(
-        mockRequest,
-        callbacks
-      );
-
-      await writer.write(
-        encoder.encode(
-          'event: message-start\ndata: {"role": "assistant"}\n\n' +
-            'event: stream-start\ndata: {}\n\n' +
-            'event: content-start\ndata: {}\n\n' +
-            'event: content-delta\ndata: {"content": "Hello"}\n\n' +
-            'event: content-delta\ndata: {"content": " there!"}\n\n' +
-            'event: content-end\ndata: {}\n\n' +
-            'event: message-end\ndata: {}\n\n' +
-            'event: stream-end\ndata: {}\n\n'
-        )
-      );
-
-      await writer.close();
-      await streamPromise;
-
-      expect(callbacks.onMessageStart).toHaveBeenCalledWith('assistant');
-      expect(callbacks.onStreamStart).toHaveBeenCalledTimes(1);
-      expect(callbacks.onContentStart).toHaveBeenCalledTimes(1);
-      expect(callbacks.onContentDelta).toHaveBeenCalledWith('Hello');
-      expect(callbacks.onContentDelta).toHaveBeenCalledWith(' there!');
-      expect(callbacks.onContentEnd).toHaveBeenCalledTimes(1);
-      expect(callbacks.onMessageEnd).toHaveBeenCalledTimes(1);
-      expect(callbacks.onStreamEnd).toHaveBeenCalledTimes(1);
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${mockBaseUrl}/llms/${mockRequest.provider}/generate`,
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/models',
         expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify({
-            model: mockRequest.model,
-            messages: mockRequest.messages,
-            stream: true,
-            ssevents: true,
-          }),
+          headers: expect.any(Headers),
         })
       );
-    });
-
-    it('should handle errors in the stream response', async () => {
-      const mockRequest = {
-        provider: Provider.Ollama,
-        model: 'llama2',
-        messages: [{ role: MessageRole.User, content: 'Hello' }],
-      };
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        json: () => Promise.resolve({ error: 'Bad Request' }),
-      });
-
-      await expect(
-        client.generateContentStream(mockRequest, {})
-      ).rejects.toThrow('Bad Request');
-    });
-
-    it('should handle non-readable response body', async () => {
-      const mockRequest = {
-        provider: Provider.Ollama,
-        model: 'llama2',
-        messages: [{ role: MessageRole.User, content: 'Hello' }],
-      };
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        body: null,
-      });
-
-      await expect(
-        client.generateContentStream(mockRequest, {})
-      ).rejects.toThrow('Response body is not readable');
-    });
-
-    it('should handle empty events in the stream', async () => {
-      const mockRequest = {
-        provider: Provider.Ollama,
-        model: 'llama2',
-        messages: [{ role: MessageRole.User, content: 'Hello' }],
-      };
-
-      const mockStream = new TransformStream();
-      const writer = mockStream.writable.getWriter();
-      const encoder = new TextEncoder();
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        body: mockStream.readable,
-      });
-
-      const callbacks = {
-        onContentDelta: jest.fn(),
-      };
-
-      const streamPromise = client.generateContentStream(
-        mockRequest,
-        callbacks
-      );
-
-      await writer.write(encoder.encode('\n\n'));
-      await writer.write(
-        encoder.encode('event: content-delta\ndata: {"content": "Hello"}\n\n')
-      );
-
-      await writer.close();
-      await streamPromise;
-
-      expect(callbacks.onContentDelta).toHaveBeenCalledTimes(1);
-      expect(callbacks.onContentDelta).toHaveBeenCalledWith('Hello');
     });
   });
 });
