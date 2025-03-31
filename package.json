@@ -18,7 +18,8 @@
     "ollama",
     "cloudflare",
     "cohere",
-    "typescript"
+    "typescript",
+    "deepseek"
   ],
   "author": "Eden Reich <eden.reich@gmail.com>",
   "license": "MIT",
