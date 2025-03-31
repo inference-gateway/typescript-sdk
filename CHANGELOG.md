@@ -1,3 +1,18 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [0.3.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.3.0...v0.3.1) (2025-03-31)
+
+### ♻️ Improvements
+
+* Make the SDK OpenAI compatible ([#2](https://github.com/inference-gateway/typescript-sdk/issues/2)) ([31657b3](https://github.com/inference-gateway/typescript-sdk/commit/31657b358f34ccc39acc5994248a95127f1ea46a))
+
+### 👷 CI
+
+* Update GitHub Actions release workflow to use GitHub App token and improve release handling ([14835e8](https://github.com/inference-gateway/typescript-sdk/commit/14835e8f9289314f34e711c02faf865ad9af6d66))
+* Update release configuration for semantic-release plugins and rules to be consistent with other repos ([20bd3f8](https://github.com/inference-gateway/typescript-sdk/commit/20bd3f82c68d0b1ee1d07b4fa75eb67524db4fb8))
+
 ## [0.3.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.2.0...v0.3.0) (2025-02-02)
 
 ### ✨ Features
