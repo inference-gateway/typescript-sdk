@@ -1,10 +1,14 @@
 import { InferenceGatewayClient } from '@/client';
+import type {
+  SchemaCreateChatCompletionResponse,
+  SchemaListModelsResponse,
+} from '@/types/generated';
 import {
-  ChatCompletionResponse,
-  ListModelsResponse,
+  ChatCompletionChoiceFinish_reason,
+  ChatCompletionToolType,
   MessageRole,
   Provider,
-} from '@/types';
+} from '@/types/generated';
 import { TransformStream } from 'node:stream/web';
 import { TextEncoder } from 'node:util';
 
@@ -25,7 +29,7 @@ describe('InferenceGatewayClient', () => {
 
   describe('listModels', () => {
     it('should fetch available models', async () => {
-      const mockResponse: ListModelsResponse = {
+      const mockResponse: SchemaListModelsResponse = {
         object: 'list',
         data: [
           {
@@ -33,12 +37,14 @@ describe('InferenceGatewayClient', () => {
             object: 'model',
             created: 1686935002,
             owned_by: 'openai',
+            served_by: Provider.openai,
           },
           {
             id: 'llama-3.3-70b-versatile',
             object: 'model',
             created: 1723651281,
             owned_by: 'groq',
+            served_by: Provider.groq,
           },
         ],
       };
@@ -60,7 +66,7 @@ describe('InferenceGatewayClient', () => {
     });
 
     it('should fetch models for a specific provider', async () => {
-      const mockResponse: ListModelsResponse = {
+      const mockResponse: SchemaListModelsResponse = {
         object: 'list',
         data: [
           {
@@ -77,7 +83,7 @@ describe('InferenceGatewayClient', () => {
         json: () => Promise.resolve(mockResponse),
       });
 
-      const result = await client.listModels(Provider.OpenAI);
+      const result = await client.listModels(Provider.openai);
       expect(result).toEqual(mockResponse);
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:8080/v1/models?provider=openai',
@@ -96,7 +102,7 @@ describe('InferenceGatewayClient', () => {
         json: () => Promise.resolve({ error: errorMessage }),
       });
 
-      await expect(client.listModels(Provider.OpenAI)).rejects.toThrow(
+      await expect(client.listModels(Provider.openai)).rejects.toThrow(
         errorMessage
       );
     });
@@ -107,12 +113,13 @@ describe('InferenceGatewayClient', () => {
       const mockRequest = {
         model: 'gpt-4o',
         messages: [
-          { role: MessageRole.System, content: 'You are a helpful assistant' },
-          { role: MessageRole.User, content: 'Hello' },
+          { role: MessageRole.system, content: 'You are a helpful assistant' },
+          { role: MessageRole.user, content: 'Hello' },
         ],
+        stream: false,
       };
 
-      const mockResponse: ChatCompletionResponse = {
+      const mockResponse: SchemaCreateChatCompletionResponse = {
         id: 'chatcmpl-123',
         object: 'chat.completion',
         created: 1677652288,
@@ -121,10 +128,10 @@ describe('InferenceGatewayClient', () => {
           {
             index: 0,
             message: {
-              role: MessageRole.Assistant,
+              role: MessageRole.assistant,
               content: 'Hello! How can I help you today?',
             },
-            finish_reason: 'stop',
+            finish_reason: ChatCompletionChoiceFinish_reason.stop,
           },
         ],
         usage: {
@@ -153,10 +160,11 @@ describe('InferenceGatewayClient', () => {
     it('should create a chat completion with a specific provider', async () => {
       const mockRequest = {
         model: 'claude-3-opus-20240229',
-        messages: [{ role: MessageRole.User, content: 'Hello' }],
+        messages: [{ role: MessageRole.user, content: 'Hello' }],
+        stream: false,
       };
 
-      const mockResponse: ChatCompletionResponse = {
+      const mockResponse: SchemaCreateChatCompletionResponse = {
         id: 'chatcmpl-456',
         object: 'chat.completion',
         created: 1677652288,
@@ -165,10 +173,10 @@ describe('InferenceGatewayClient', () => {
           {
             index: 0,
             message: {
-              role: MessageRole.Assistant,
+              role: MessageRole.assistant,
               content: 'Hello! How can I assist you today?',
             },
-            finish_reason: 'stop',
+            finish_reason: ChatCompletionChoiceFinish_reason.stop,
           },
         ],
         usage: {
@@ -185,7 +193,7 @@ describe('InferenceGatewayClient', () => {
 
       const result = await client.createChatCompletion(
         mockRequest,
-        Provider.Anthropic
+        Provider.anthropic
       );
       expect(result).toEqual(mockResponse);
       expect(mockFetch).toHaveBeenCalledWith(
@@ -202,7 +210,8 @@ describe('InferenceGatewayClient', () => {
     it('should handle streaming chat completions', async () => {
       const mockRequest = {
         model: 'gpt-4o',
-        messages: [{ role: MessageRole.User, content: 'Hello' }],
+        messages: [{ role: MessageRole.user, content: 'Hello' }],
+        stream: true,
       };
 
       const mockStream = new TransformStream();
@@ -224,7 +233,6 @@ describe('InferenceGatewayClient', () => {
 
       const streamPromise = client.streamChatCompletion(mockRequest, callbacks);
 
-      // Simulate SSE events
       await writer.write(
         encoder.encode(
           'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}\n\n' +
@@ -260,28 +268,20 @@ describe('InferenceGatewayClient', () => {
         model: 'gpt-4o',
         messages: [
           {
-            role: MessageRole.User,
+            role: MessageRole.user,
             content: 'What is the weather in San Francisco?',
           },
         ],
         tools: [
           {
-            type: 'function' as const,
+            type: ChatCompletionToolType.function,
             function: {
               name: 'get_weather',
-              parameters: {
-                type: 'object',
-                properties: {
-                  location: {
-                    type: 'string',
-                    description: 'The city and state, e.g. San Francisco, CA',
-                  },
-                },
-                required: ['location'],
-              },
+              strict: true,
             },
           },
         ],
+        stream: true,
       };
 
       const mockStream = new TransformStream();
@@ -320,14 +320,15 @@ describe('InferenceGatewayClient', () => {
 
       expect(callbacks.onOpen).toHaveBeenCalledTimes(1);
       expect(callbacks.onChunk).toHaveBeenCalledTimes(6);
-      expect(callbacks.onTool).toHaveBeenCalledTimes(4); // Called for each chunk with tool_calls
+      expect(callbacks.onTool).toHaveBeenCalledTimes(4);
       expect(callbacks.onFinish).toHaveBeenCalledTimes(1);
     });
 
     it('should handle errors in streaming chat completions', async () => {
       const mockRequest = {
         model: 'gpt-4o',
-        messages: [{ role: MessageRole.User, content: 'Hello' }],
+        messages: [{ role: MessageRole.user, content: 'Hello' }],
+        stream: true,
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -357,7 +358,7 @@ describe('InferenceGatewayClient', () => {
         json: () => Promise.resolve(mockResponse),
       });
 
-      const result = await client.proxy(Provider.OpenAI, 'embeddings', {
+      const result = await client.proxy(Provider.openai, 'embeddings', {
         method: 'POST',
         body: JSON.stringify({
           model: 'text-embedding-ada-002',
@@ -413,7 +414,6 @@ describe('InferenceGatewayClient', () => {
       expect(newClient).toBeInstanceOf(InferenceGatewayClient);
       expect(newClient).not.toBe(originalClient);
 
-      // We can't directly test private properties, but we can test behavior
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({}),

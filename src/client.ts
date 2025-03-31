@@ -1,13 +1,24 @@
-import {
-  Error as ApiError,
-  ChatCompletionMessageToolCall,
-  ChatCompletionRequest,
-  ChatCompletionResponse,
-  ChatCompletionStreamCallbacks,
-  ChatCompletionStreamResponse,
-  ListModelsResponse,
+import type {
   Provider,
-} from './types';
+  SchemaChatCompletionMessageToolCall,
+  SchemaCreateChatCompletionRequest,
+  SchemaCreateChatCompletionResponse,
+  SchemaCreateChatCompletionStreamResponse,
+  SchemaError,
+  SchemaListModelsResponse,
+} from './types/generated';
+import { ChatCompletionToolType } from './types/generated';
+
+interface ChatCompletionStreamCallbacks {
+  onOpen?: () => void;
+  onChunk?: (chunk: SchemaCreateChatCompletionStreamResponse) => void;
+  onContent?: (content: string) => void;
+  onTool?: (toolCall: SchemaChatCompletionMessageToolCall) => void;
+  onFinish?: (
+    response: SchemaCreateChatCompletionStreamResponse | null
+  ) => void;
+  onError?: (error: SchemaError) => void;
+}
 
 export interface ClientOptions {
   baseURL?: string;
@@ -90,7 +101,7 @@ export class InferenceGatewayClient {
       });
 
       if (!response.ok) {
-        const error = (await response.json()) as ApiError;
+        const error: SchemaError = await response.json();
         throw new Error(
           error.error || `HTTP error! status: ${response.status}`
         );
@@ -105,12 +116,12 @@ export class InferenceGatewayClient {
   /**
    * Lists the currently available models.
    */
-  async listModels(provider?: Provider): Promise<ListModelsResponse> {
+  async listModels(provider?: Provider): Promise<SchemaListModelsResponse> {
     const query: Record<string, string> = {};
     if (provider) {
       query.provider = provider;
     }
-    return this.request<ListModelsResponse>(
+    return this.request<SchemaListModelsResponse>(
       '/models',
       { method: 'GET' },
       query
@@ -121,14 +132,14 @@ export class InferenceGatewayClient {
    * Creates a chat completion.
    */
   async createChatCompletion(
-    request: ChatCompletionRequest,
+    request: SchemaCreateChatCompletionRequest,
     provider?: Provider
-  ): Promise<ChatCompletionResponse> {
+  ): Promise<SchemaCreateChatCompletionResponse> {
     const query: Record<string, string> = {};
     if (provider) {
       query.provider = provider;
     }
-    return this.request<ChatCompletionResponse>(
+    return this.request<SchemaCreateChatCompletionResponse>(
       '/chat/completions',
       {
         method: 'POST',
@@ -142,7 +153,7 @@ export class InferenceGatewayClient {
    * Creates a streaming chat completion.
    */
   async streamChatCompletion(
-    request: ChatCompletionRequest,
+    request: SchemaCreateChatCompletionRequest,
     callbacks: ChatCompletionStreamCallbacks,
     provider?: Provider
   ): Promise<void> {
@@ -186,7 +197,7 @@ export class InferenceGatewayClient {
       });
 
       if (!response.ok) {
-        const error = (await response.json()) as ApiError;
+        const error: SchemaError = await response.json();
         throw new Error(
           error.error || `HTTP error! status: ${response.status}`
         );
@@ -215,14 +226,13 @@ export class InferenceGatewayClient {
             const data = line.slice(5).trim();
 
             if (data === '[DONE]') {
-              callbacks.onFinish?.(
-                null as unknown as ChatCompletionStreamResponse
-              );
+              callbacks.onFinish?.(null);
               return;
             }
 
             try {
-              const chunk = JSON.parse(data) as ChatCompletionStreamResponse;
+              const chunk: SchemaCreateChatCompletionStreamResponse =
+                JSON.parse(data);
               callbacks.onChunk?.(chunk);
 
               const content = chunk.choices[0]?.delta?.content;
@@ -232,9 +242,9 @@ export class InferenceGatewayClient {
 
               const toolCalls = chunk.choices[0]?.delta?.tool_calls;
               if (toolCalls && toolCalls.length > 0) {
-                const toolCall: ChatCompletionMessageToolCall = {
+                const toolCall: SchemaChatCompletionMessageToolCall = {
                   id: toolCalls[0].id || '',
-                  type: 'function',
+                  type: ChatCompletionToolType.function,
                   function: {
                     name: toolCalls[0].function?.name || '',
                     arguments: toolCalls[0].function?.arguments || '',
@@ -249,7 +259,7 @@ export class InferenceGatewayClient {
         }
       }
     } catch (error) {
-      const apiError: ApiError = {
+      const apiError: SchemaError = {
         error: (error as Error).message || 'Unknown error',
       };
       callbacks.onError?.(apiError);

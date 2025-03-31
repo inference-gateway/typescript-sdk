@@ -1,5 +1,5 @@
 ---
-version: "3"
+version: '3'
 
 tasks:
   oas-download:
@@ -21,3 +21,8 @@ tasks:
     desc: Run tests
     cmds:
       - npm run test
+
+  generate-types:
+    desc: Generate TypeScript types from OpenAPI specification
+    cmds:
+      - npx openapi-typescript openapi.yaml --enum --enum-values --dedupe-enums=true --root-types -o src/types/generated/index.ts
