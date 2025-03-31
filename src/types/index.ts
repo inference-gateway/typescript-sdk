@@ -18,6 +18,8 @@ export enum MessageRole {
 export interface Message {
   role: MessageRole;
   content: string;
+  reasoning_content?: string;
+  reasoning?: string;
   tool_calls?: ChatCompletionMessageToolCall[];
   tool_call_id?: string;
 }
