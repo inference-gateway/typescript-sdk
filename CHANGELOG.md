@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.3](https://github.com/inference-gateway/typescript-sdk/compare/v0.3.2...v0.3.3) (2025-03-31)
+
+### 🐛 Bug Fixes
+
+* Update release configuration to include version bumping of the package.json ([3667690](https://github.com/inference-gateway/typescript-sdk/commit/36676909a923bc29d398ad814f0518fcc12080aa))
+
 ## [0.3.2](https://github.com/inference-gateway/typescript-sdk/compare/v0.3.1...v0.3.2) (2025-03-31)
 
 ### 👷 CI
