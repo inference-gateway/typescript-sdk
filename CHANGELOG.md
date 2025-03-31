@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0-rc.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.3.5-rc.1...v0.4.0-rc.1) (2025-03-31)
+
+### ✨ Features
+
+* Add reasoning_content field to chunk message in OpenAPI specification ([4de08ed](https://github.com/inference-gateway/typescript-sdk/commit/4de08ed46f6078f77838bd9c4bae5e46eb12476c))
+
 ## [0.3.5-rc.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.3.4...v0.3.5-rc.1) (2025-03-31)
 
 ### ♻️ Improvements
