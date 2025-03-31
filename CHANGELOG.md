@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0-rc.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.3.5-rc.1...v0.4.0-rc.1) (2025-03-31)
+
+### ✨ Features
+
+* Add reasoning_content field to chunk message in OpenAPI specification ([4de08ed](https://github.com/inference-gateway/typescript-sdk/commit/4de08ed46f6078f77838bd9c4bae5e46eb12476c))
+
+## [0.3.5-rc.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.3.4...v0.3.5-rc.1) (2025-03-31)
+
+### ♻️ Improvements
+
+* Update type exports and add type generation task ([919679e](https://github.com/inference-gateway/typescript-sdk/commit/919679eac8142e25b5abcefd63ae00bc187f2a67))
+
+### 🐛 Bug Fixes
+
+* Correct regex pattern for release candidate branches in configuration ([33db013](https://github.com/inference-gateway/typescript-sdk/commit/33db013392c8a1a15cc5a3bebb0f4c6d58a73d41))
+* Update release configuration to correctly match release candidate branches ([03d91e1](https://github.com/inference-gateway/typescript-sdk/commit/03d91e1d94d1fc11e50a535ba131ef2ca089653e))
+
+### 🔧 Miscellaneous
+
+* Remove unnecessary line from .gitattributes ([66407b4](https://github.com/inference-gateway/typescript-sdk/commit/66407b4cba0bf96af457dbb66818f48da3a4abda))
+* Update .gitattributes to mark generated types as linguist-generated ([67f3d68](https://github.com/inference-gateway/typescript-sdk/commit/67f3d682ba1e131f9e416c45e097c76dfeec4bf6))
+
 ## [0.3.4](https://github.com/inference-gateway/typescript-sdk/compare/v0.3.3...v0.3.4) (2025-03-31)
 
 ### ♻️ Improvements
