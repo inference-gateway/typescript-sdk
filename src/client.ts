@@ -1,140 +1,281 @@
 import {
-  GenerateContentOptions,
-  GenerateContentRequest,
-  GenerateContentResponse,
+  Error as ApiError,
+  ChatCompletionMessageToolCall,
+  ChatCompletionRequest,
+  ChatCompletionResponse,
+  ChatCompletionStreamCallbacks,
+  ChatCompletionStreamResponse,
+  ListModelsResponse,
   Provider,
-  ProviderModels,
 } from './types';
 
-export class InferenceGatewayClient {
-  private baseUrl: string;
-  private authToken?: string;
+export interface ClientOptions {
+  baseURL?: string;
+  apiKey?: string;
+  defaultHeaders?: Record<string, string>;
+  defaultQuery?: Record<string, string>;
+  timeout?: number;
+  fetch?: typeof globalThis.fetch;
+}
 
-  constructor(baseUrl: string, authToken?: string) {
-    this.baseUrl = baseUrl.replace(/\/$/, '');
-    this.authToken = authToken;
+export class InferenceGatewayClient {
+  private baseURL: string;
+  private apiKey?: string;
+  private defaultHeaders: Record<string, string>;
+  private defaultQuery: Record<string, string>;
+  private timeout: number;
+  private fetchFn: typeof globalThis.fetch;
+
+  constructor(options: ClientOptions = {}) {
+    this.baseURL = options.baseURL || 'http://localhost:8080/v1';
+    this.apiKey = options.apiKey;
+    this.defaultHeaders = options.defaultHeaders || {};
+    this.defaultQuery = options.defaultQuery || {};
+    this.timeout = options.timeout || 30000;
+    this.fetchFn = options.fetch || globalThis.fetch;
   }
 
+  /**
+   * Creates a new instance of the client with the given options merged with the existing options.
+   */
+  withOptions(options: ClientOptions): InferenceGatewayClient {
+    return new InferenceGatewayClient({
+      baseURL: options.baseURL || this.baseURL,
+      apiKey: options.apiKey || this.apiKey,
+      defaultHeaders: { ...this.defaultHeaders, ...options.defaultHeaders },
+      defaultQuery: { ...this.defaultQuery, ...options.defaultQuery },
+      timeout: options.timeout || this.timeout,
+      fetch: options.fetch || this.fetchFn,
+    });
+  }
+
+  /**
+   * Makes a request to the API.
+   */
   private async request<T>(
     path: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    query: Record<string, string> = {}
   ): Promise<T> {
     const headers = new Headers({
       'Content-Type': 'application/json',
+      ...this.defaultHeaders,
       ...(options.headers as Record<string, string>),
     });
 
-    if (this.authToken) {
-      headers.set('Authorization', `Bearer ${this.authToken}`);
+    if (this.apiKey) {
+      headers.set('Authorization', `Bearer ${this.apiKey}`);
     }
 
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      ...options,
-      headers,
+    // Combine default query parameters with provided ones
+    const queryParams = new URLSearchParams({
+      ...this.defaultQuery,
+      ...query,
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || `HTTP error! status: ${response.status}`);
-    }
+    const queryString = queryParams.toString();
+    const url = `${this.baseURL}${path}${queryString ? `?${queryString}` : ''}`;
 
-    return response.json();
-  }
+    const controller = new AbortController();
+    const timeoutId = globalThis.setTimeout(
+      () => controller.abort(),
+      this.timeout
+    );
 
-  async listModels(): Promise<ProviderModels[]> {
-    return this.request<ProviderModels[]>('/llms');
-  }
+    try {
+      const response = await this.fetchFn(url, {
+        ...options,
+        headers,
+        signal: controller.signal,
+      });
 
-  async listModelsByProvider(provider: Provider): Promise<ProviderModels> {
-    return this.request<ProviderModels>(`/llms/${provider}`);
-  }
-
-  async generateContent(
-    params: GenerateContentRequest
-  ): Promise<GenerateContentResponse> {
-    return this.request<GenerateContentResponse>(
-      `/llms/${params.provider}/generate`,
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          model: params.model,
-          messages: params.messages,
-        }),
+      if (!response.ok) {
+        const error = (await response.json()) as ApiError;
+        throw new Error(
+          error.error || `HTTP error! status: ${response.status}`
+        );
       }
+
+      return response.json();
+    } finally {
+      globalThis.clearTimeout(timeoutId);
+    }
+  }
+
+  /**
+   * Lists the currently available models.
+   */
+  async listModels(provider?: Provider): Promise<ListModelsResponse> {
+    const query: Record<string, string> = {};
+    if (provider) {
+      query.provider = provider;
+    }
+    return this.request<ListModelsResponse>(
+      '/models',
+      { method: 'GET' },
+      query
     );
   }
 
-  async generateContentStream(
-    params: GenerateContentRequest,
-    options?: GenerateContentOptions
+  /**
+   * Creates a chat completion.
+   */
+  async createChatCompletion(
+    request: ChatCompletionRequest,
+    provider?: Provider
+  ): Promise<ChatCompletionResponse> {
+    const query: Record<string, string> = {};
+    if (provider) {
+      query.provider = provider;
+    }
+    return this.request<ChatCompletionResponse>(
+      '/chat/completions',
+      {
+        method: 'POST',
+        body: JSON.stringify(request),
+      },
+      query
+    );
+  }
+
+  /**
+   * Creates a streaming chat completion.
+   */
+  async streamChatCompletion(
+    request: ChatCompletionRequest,
+    callbacks: ChatCompletionStreamCallbacks,
+    provider?: Provider
   ): Promise<void> {
-    const response = await fetch(
-      `${this.baseUrl}/llms/${params.provider}/generate`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this.authToken && { Authorization: `Bearer ${this.authToken}` }),
-        },
-        body: JSON.stringify({
-          model: params.model,
-          messages: params.messages,
-          stream: true,
-          ssevents: true,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || `HTTP error! status: ${response.status}`);
+    const query: Record<string, string> = {};
+    if (provider) {
+      query.provider = provider;
     }
 
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error('Response body is not readable');
+    const queryParams = new URLSearchParams({
+      ...this.defaultQuery,
+      ...query,
+    });
 
-    const decoder = new TextDecoder();
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    const queryString = queryParams.toString();
+    const url = `${this.baseURL}/chat/completions${queryString ? `?${queryString}` : ''}`;
 
-      const events = decoder.decode(value).split('\n\n');
-      for (const event of events) {
-        if (!event.trim()) continue;
+    const headers = new Headers({
+      'Content-Type': 'application/json',
+      ...this.defaultHeaders,
+    });
 
-        const [eventType, ...data] = event.split('\n');
-        const eventData = JSON.parse(data.join('\n').replace('data: ', ''));
+    if (this.apiKey) {
+      headers.set('Authorization', `Bearer ${this.apiKey}`);
+    }
 
-        switch (eventType.replace('event: ', '')) {
-          case 'message-start':
-            options?.onMessageStart?.(eventData.role);
-            break;
-          case 'stream-start':
-            options?.onStreamStart?.();
-            break;
-          case 'content-start':
-            options?.onContentStart?.();
-            break;
-          case 'content-delta':
-            options?.onContentDelta?.(eventData.content);
-            break;
-          case 'content-end':
-            options?.onContentEnd?.();
-            break;
-          case 'message-end':
-            options?.onMessageEnd?.();
-            break;
-          case 'stream-end':
-            options?.onStreamEnd?.();
-            break;
+    const controller = new AbortController();
+    const timeoutId = globalThis.setTimeout(
+      () => controller.abort(),
+      this.timeout
+    );
+
+    try {
+      const response = await this.fetchFn(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          ...request,
+          stream: true,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const error = (await response.json()) as ApiError;
+        throw new Error(
+          error.error || `HTTP error! status: ${response.status}`
+        );
+      }
+
+      if (!response.body) {
+        throw new Error('Response body is not readable');
+      }
+
+      callbacks.onOpen?.();
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(5).trim();
+
+            if (data === '[DONE]') {
+              callbacks.onFinish?.(
+                null as unknown as ChatCompletionStreamResponse
+              );
+              return;
+            }
+
+            try {
+              const chunk = JSON.parse(data) as ChatCompletionStreamResponse;
+              callbacks.onChunk?.(chunk);
+
+              const content = chunk.choices[0]?.delta?.content;
+              if (content) {
+                callbacks.onContent?.(content);
+              }
+
+              const toolCalls = chunk.choices[0]?.delta?.tool_calls;
+              if (toolCalls && toolCalls.length > 0) {
+                const toolCall: ChatCompletionMessageToolCall = {
+                  id: toolCalls[0].id || '',
+                  type: 'function',
+                  function: {
+                    name: toolCalls[0].function?.name || '',
+                    arguments: toolCalls[0].function?.arguments || '',
+                  },
+                };
+                callbacks.onTool?.(toolCall);
+              }
+            } catch (e) {
+              globalThis.console.error('Error parsing SSE data:', e);
+            }
+          }
         }
       }
+    } catch (error) {
+      const apiError: ApiError = {
+        error: (error as Error).message || 'Unknown error',
+      };
+      callbacks.onError?.(apiError);
+      throw error;
+    } finally {
+      globalThis.clearTimeout(timeoutId);
     }
   }
 
+  /**
+   * Proxy a request to a specific provider.
+   */
+  async proxy<T = unknown>(
+    provider: Provider,
+    path: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    return this.request<T>(`/proxy/${provider}/${path}`, options);
+  }
+
+  /**
+   * Health check endpoint.
+   */
   async healthCheck(): Promise<boolean> {
     try {
-      await this.request('/health');
+      await this.fetchFn(`${this.baseURL.replace('/v1', '')}/health`);
       return true;
     } catch {
       return false;
