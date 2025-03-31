@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.2](https://github.com/inference-gateway/typescript-sdk/compare/v0.3.1...v0.3.2) (2025-03-31)
+
+### 👷 CI
+
+* Add npm ci step to install project dependencies in release workflow ([84791b1](https://github.com/inference-gateway/typescript-sdk/commit/84791b1e4c319f91798c456c783ded6e22da8f81))
+
 ## [0.3.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.3.0...v0.3.1) (2025-03-31)
 
 ### ♻️ Improvements
