@@ -12,6 +12,7 @@ import { ChatCompletionToolType } from './types/generated';
 interface ChatCompletionStreamCallbacks {
   onOpen?: () => void;
   onChunk?: (chunk: SchemaCreateChatCompletionStreamResponse) => void;
+  onReasoning?: (reasoningContent: string) => void;
   onContent?: (content: string) => void;
   onTool?: (toolCall: SchemaChatCompletionMessageToolCall) => void;
   onFinish?: (
@@ -256,6 +257,12 @@ export class InferenceGatewayClient {
               const chunk: SchemaCreateChatCompletionStreamResponse =
                 JSON.parse(data);
               callbacks.onChunk?.(chunk);
+
+              const reasoning_content =
+                chunk.choices[0]?.delta?.reasoning_content;
+              if (reasoning_content !== undefined) {
+                callbacks.onReasoning?.(reasoning_content);
+              }
 
               const content = chunk.choices[0]?.delta?.content;
               if (content) {
