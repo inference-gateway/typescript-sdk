@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.4.0...v0.4.1) (2025-04-25)
+
+### ♻️ Improvements
+
+* Simplify tool call handling in streaming chat completions ([#6](https://github.com/inference-gateway/typescript-sdk/issues/6)) ([f2d2a5a](https://github.com/inference-gateway/typescript-sdk/commit/f2d2a5a0743b0c1ef4930ef860949f486ee0d5fc))
+
 ## [0.4.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.3.4...v0.4.0) (2025-03-31)
 
 ### ✨ Features
