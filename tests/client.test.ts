@@ -320,7 +320,15 @@ describe('InferenceGatewayClient', () => {
 
       expect(callbacks.onOpen).toHaveBeenCalledTimes(1);
       expect(callbacks.onChunk).toHaveBeenCalledTimes(6);
-      expect(callbacks.onTool).toHaveBeenCalledTimes(4);
+      expect(callbacks.onTool).toHaveBeenCalledTimes(1);
+      expect(callbacks.onTool).toHaveBeenCalledWith({
+        id: 'call_123',
+        type: 'function',
+        function: {
+          name: 'get_weather', 
+          arguments: '{"location":"San Francisco, CA"}'
+        }
+      });
       expect(callbacks.onFinish).toHaveBeenCalledTimes(1);
     });
 
