@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.4.1...v0.5.0) (2025-04-26)
+
+### ✨ Features
+
+* Add on reasoning event callback function handling in streaming chat completions ([#7](https://github.com/inference-gateway/typescript-sdk/issues/7)) ([200eb12](https://github.com/inference-gateway/typescript-sdk/commit/200eb12c5890f46d00e5c9cdaaf40a3a306b4315))
+
+### 📦 Miscellaneous
+
+* Add husky pre-commit hook ([#8](https://github.com/inference-gateway/typescript-sdk/issues/8)) ([5ad49a0](https://github.com/inference-gateway/typescript-sdk/commit/5ad49a083e7767a3b7293328c9cead0769324ff6))
+
 ## [0.4.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.4.0...v0.4.1) (2025-04-25)
 
 ### ♻️ Improvements
