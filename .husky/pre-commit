@@ -5,5 +5,7 @@
 npm run format
 # Lint code
 npm run lint
+# Run build
+npm run build
 # Run tests
 npm test
