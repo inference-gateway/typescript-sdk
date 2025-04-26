@@ -155,11 +155,11 @@ const client = new InferenceGatewayClient({
 try {
   await client.streamChatCompletion(
     {
-      model: 'gpt-4o',
+      model: 'openai/gpt-4o',
       messages: [
         {
           role: MessageRole.User,
-          content: 'What's the weather in San Francisco?',
+          content: "What's the weather in San Francisco?",
         },
       ],
       tools: [
@@ -186,10 +186,14 @@ try {
         console.log('Tool call:', toolCall.function.name);
         console.log('Arguments:', toolCall.function.arguments);
       },
-      onContent: (content) => process.stdout.write(content),
+      onReasoning: (reasoning) => {
+        console.log('Reasoning:', reasoning);
+      },
+      onContent: (content) => {
+        console.log('Content:', content);
+      },
       onFinish: () => console.log('\nStream completed'),
-    },
-    Provider.OpenAI
+    }
   );
 } catch (error) {
   console.error('Error:', error);
