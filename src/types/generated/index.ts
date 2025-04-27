@@ -213,7 +213,7 @@ export interface components {
     /** @description Response structure for listing models */
     ListModelsResponse: {
       provider?: components['schemas']['Provider'];
-      object?: string;
+      object: string;
       /** @default [] */
       data: components['schemas']['Model'][];
     };
@@ -236,12 +236,7 @@ export interface components {
     /** @description The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format.
      *     Omitting `parameters` defines a function with an empty parameter list. */
     FunctionParameters: {
-      /** @description The type of the parameters. Currently, only `object` is supported. */
-      type?: string;
-      /** @description The properties of the parameters. */
-      properties?: Record<string, never>;
-      /** @description The required properties of the parameters. */
-      required?: string[];
+      [key: string]: unknown;
     };
     /**
      * @description The type of the tool. Currently, only `function` is supported.
