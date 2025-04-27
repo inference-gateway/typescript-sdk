@@ -266,9 +266,7 @@ describe('InferenceGatewayClient', () => {
     it('should handle streaming chat completions reasoning and content', async () => {
       const mockRequest = {
         model: 'gpt-4o',
-        messages: [
-          { role: MessageRole.user, content: 'Hello' },
-        ],
+        messages: [{ role: MessageRole.user, content: 'Hello' }],
         stream: true,
       };
       const mockStream = new TransformStream();
