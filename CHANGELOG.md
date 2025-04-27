@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.5.0...v0.5.1) (2025-04-27)
+
+### 🐛 Bug Fixes
+
+* Update FunctionParameters schema to enforce required properties and adjust ListModelsResponse structure ([#9](https://github.com/inference-gateway/typescript-sdk/issues/9)) ([ffa4709](https://github.com/inference-gateway/typescript-sdk/commit/ffa470907a11aca26dd29f63ca70d17954a67d17))
+
+### 📚 Documentation
+
+* Add required fields to Model schema and clean up application settings ([7338c28](https://github.com/inference-gateway/typescript-sdk/commit/7338c28c0b8dd67f2c0faefc758cc3344de5c9d6))
+
+### 🔧 Miscellaneous
+
+* **tests:** Format test ([9f121a7](https://github.com/inference-gateway/typescript-sdk/commit/9f121a742d33cd9fa2776dc5fdc5f229f898ccd0))
+
 ## [0.5.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.4.1...v0.5.0) (2025-04-26)
 
 ### ✨ Features
