@@ -624,6 +624,9 @@ components:
           items:
             $ref: "#/components/schemas/Model"
           default: []
+      required:
+        - object
+        - data
     FunctionObject:
       type: object
       properties:
@@ -1060,11 +1063,6 @@ components:
           - general:
               title: "General settings"
               settings:
-                - name: application_name
-                  env: "APPLICATION_NAME"
-                  type: string
-                  default: "inference-gateway"
-                  description: "The name of the application"
                 - name: environment
                   env: "ENVIRONMENT"
                   type: string
