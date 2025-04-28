@@ -135,7 +135,7 @@ export class InferenceGatewayClient {
    * Creates a chat completion.
    */
   async createChatCompletion(
-    request: SchemaCreateChatCompletionRequest,
+    request: Omit<SchemaCreateChatCompletionRequest, 'stream'>,
     provider?: Provider
   ): Promise<SchemaCreateChatCompletionResponse> {
     const query: Record<string, string> = {};
@@ -146,7 +146,7 @@ export class InferenceGatewayClient {
       '/chat/completions',
       {
         method: 'POST',
-        body: JSON.stringify(request),
+        body: JSON.stringify({ ...request, stream: false }),
       },
       query
     );
@@ -154,9 +154,17 @@ export class InferenceGatewayClient {
 
   /**
    * Creates a streaming chat completion.
+   * This method always sets stream=true internally, so there's no need to specify it in the request.
+   *
+   * @param request - Chat completion request (must include at least model and messages)
+   * @param callbacks - Callbacks for handling streaming events
+   * @param provider - Optional provider to use for this request
    */
   async streamChatCompletion(
-    request: SchemaCreateChatCompletionRequest,
+    request: Omit<
+      SchemaCreateChatCompletionRequest,
+      'stream' | 'stream_options'
+    >,
     callbacks: ChatCompletionStreamCallbacks,
     provider?: Provider
   ): Promise<void> {
@@ -195,6 +203,9 @@ export class InferenceGatewayClient {
         body: JSON.stringify({
           ...request,
           stream: true,
+          stream_options: {
+            include_usage: true,
+          },
         }),
         signal: controller.signal,
       });
