@@ -16,7 +16,8 @@
         "eamodio.gitlens",
         "VisualStudioExptTeam.vscodeintellicode",
         "christian-kohler.path-intellisense",
-        "christian-kohler.npm-intellisense"
+        "christian-kohler.npm-intellisense",
+        "orta.vscode-jest"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "zsh",

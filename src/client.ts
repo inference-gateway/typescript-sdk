@@ -1,6 +1,7 @@
 import type {
   Provider,
   SchemaChatCompletionMessageToolCall,
+  SchemaCompletionUsage,
   SchemaCreateChatCompletionRequest,
   SchemaCreateChatCompletionResponse,
   SchemaCreateChatCompletionStreamResponse,
@@ -15,6 +16,7 @@ interface ChatCompletionStreamCallbacks {
   onReasoning?: (reasoningContent: string) => void;
   onContent?: (content: string) => void;
   onTool?: (toolCall: SchemaChatCompletionMessageToolCall) => void;
+  onUsageMetrics?: (usage: SchemaCompletionUsage) => void;
   onFinish?: (
     response: SchemaCreateChatCompletionStreamResponse | null
   ) => void;
@@ -257,6 +259,10 @@ export class InferenceGatewayClient {
               const chunk: SchemaCreateChatCompletionStreamResponse =
                 JSON.parse(data);
               callbacks.onChunk?.(chunk);
+
+              if (chunk.usage && callbacks.onUsageMetrics) {
+                callbacks.onUsageMetrics(chunk.usage);
+              }
 
               const reasoning_content =
                 chunk.choices[0]?.delta?.reasoning_content;

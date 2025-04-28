@@ -415,6 +415,73 @@ describe('InferenceGatewayClient', () => {
 
       expect(callbacks.onError).toHaveBeenCalledTimes(1);
     });
+
+    it('should handle streaming chat completions with usage metrics', async () => {
+      const mockRequest = {
+        model: 'gpt-4o',
+        messages: [{ role: MessageRole.user, content: 'Hello' }],
+        stream: true,
+        stream_options: {
+          include_usage: true,
+        },
+      };
+
+      const mockStream = new TransformStream();
+      const writer = mockStream.writable.getWriter();
+      const encoder = new TextEncoder();
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: mockStream.readable,
+      });
+
+      const callbacks = {
+        onOpen: jest.fn(),
+        onChunk: jest.fn(),
+        onContent: jest.fn(),
+        onUsageMetrics: jest.fn(),
+        onFinish: jest.fn(),
+        onError: jest.fn(),
+      };
+
+      const streamPromise = client.streamChatCompletion(mockRequest, callbacks);
+
+      await writer.write(
+        encoder.encode(
+          'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"gpt-4o","choices":[],"usage":{"prompt_tokens":10,"completion_tokens":8,"total_tokens":18}}\n\n' +
+            'data: [DONE]\n\n'
+        )
+      );
+
+      await writer.close();
+      await streamPromise;
+
+      expect(callbacks.onOpen).toHaveBeenCalledTimes(1);
+      expect(callbacks.onChunk).toHaveBeenCalledTimes(5);
+      expect(callbacks.onContent).toHaveBeenCalledWith('Hello');
+      expect(callbacks.onContent).toHaveBeenCalledWith('!');
+      expect(callbacks.onUsageMetrics).toHaveBeenCalledTimes(1);
+      expect(callbacks.onUsageMetrics).toHaveBeenCalledWith({
+        prompt_tokens: 10,
+        completion_tokens: 8,
+        total_tokens: 18,
+      });
+      expect(callbacks.onFinish).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/chat/completions',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            ...mockRequest,
+            stream: true,
+          }),
+        })
+      );
+    });
   });
 
   describe('proxy', () => {
