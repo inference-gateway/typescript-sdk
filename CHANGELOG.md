@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.6.0...v0.6.1) (2025-04-28)
+
+### ♻️ Improvements
+
+*  Remove redundant request option ([#11](https://github.com/inference-gateway/typescript-sdk/issues/11)) ([82e34e2](https://github.com/inference-gateway/typescript-sdk/commit/82e34e2ee9782fd224945bff1bd4daf2859a4f79))
+
 ## [0.6.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.5.1...v0.6.0) (2025-04-28)
 
 ### ✨ Features
