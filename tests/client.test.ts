@@ -116,7 +116,6 @@ describe('InferenceGatewayClient', () => {
           { role: MessageRole.system, content: 'You are a helpful assistant' },
           { role: MessageRole.user, content: 'Hello' },
         ],
-        stream: false,
       };
 
       const mockResponse: SchemaCreateChatCompletionResponse = {
@@ -152,7 +151,7 @@ describe('InferenceGatewayClient', () => {
         'http://localhost:8080/v1/chat/completions',
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify(mockRequest),
+          body: JSON.stringify({ ...mockRequest, stream: false }),
         })
       );
     });
@@ -161,7 +160,6 @@ describe('InferenceGatewayClient', () => {
       const mockRequest = {
         model: 'claude-3-opus-20240229',
         messages: [{ role: MessageRole.user, content: 'Hello' }],
-        stream: false,
       };
 
       const mockResponse: SchemaCreateChatCompletionResponse = {
@@ -200,7 +198,7 @@ describe('InferenceGatewayClient', () => {
         'http://localhost:8080/v1/chat/completions?provider=anthropic',
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify(mockRequest),
+          body: JSON.stringify({ ...mockRequest, stream: false }),
         })
       );
     });
@@ -211,7 +209,6 @@ describe('InferenceGatewayClient', () => {
       const mockRequest = {
         model: 'gpt-4o',
         messages: [{ role: MessageRole.user, content: 'Hello' }],
-        stream: true,
       };
 
       const mockStream = new TransformStream();
@@ -258,6 +255,9 @@ describe('InferenceGatewayClient', () => {
           body: JSON.stringify({
             ...mockRequest,
             stream: true,
+            stream_options: {
+              include_usage: true,
+            },
           }),
         })
       );
@@ -267,7 +267,6 @@ describe('InferenceGatewayClient', () => {
       const mockRequest = {
         model: 'gpt-4o',
         messages: [{ role: MessageRole.user, content: 'Hello' }],
-        stream: true,
       };
       const mockStream = new TransformStream();
       const writer = mockStream.writable.getWriter();
@@ -318,6 +317,9 @@ describe('InferenceGatewayClient', () => {
           body: JSON.stringify({
             ...mockRequest,
             stream: true,
+            stream_options: {
+              include_usage: true,
+            },
           }),
         })
       );
@@ -341,7 +343,6 @@ describe('InferenceGatewayClient', () => {
             },
           },
         ],
-        stream: true,
       };
 
       const mockStream = new TransformStream();
@@ -390,13 +391,25 @@ describe('InferenceGatewayClient', () => {
         },
       });
       expect(callbacks.onFinish).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/chat/completions',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            ...mockRequest,
+            stream: true,
+            stream_options: {
+              include_usage: true,
+            },
+          }),
+        })
+      );
     });
 
     it('should handle errors in streaming chat completions', async () => {
       const mockRequest = {
         model: 'gpt-4o',
         messages: [{ role: MessageRole.user, content: 'Hello' }],
-        stream: true,
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -420,10 +433,6 @@ describe('InferenceGatewayClient', () => {
       const mockRequest = {
         model: 'gpt-4o',
         messages: [{ role: MessageRole.user, content: 'Hello' }],
-        stream: true,
-        stream_options: {
-          include_usage: true,
-        },
       };
 
       const mockStream = new TransformStream();
@@ -478,6 +487,9 @@ describe('InferenceGatewayClient', () => {
           body: JSON.stringify({
             ...mockRequest,
             stream: true,
+            stream_options: {
+              include_usage: true,
+            },
           }),
         })
       );
