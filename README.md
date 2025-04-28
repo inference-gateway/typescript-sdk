@@ -127,6 +127,7 @@ try {
       onOpen: () => console.log('Stream opened'),
       onContent: (content) => process.stdout.write(content),
       onChunk: (chunk) => console.log('Received chunk:', chunk.id),
+      onUsageMetrics: (metrics) => console.log('Usage metrics:', metrics),
       onFinish: () => console.log('\nStream completed'),
       onError: (error) => console.error('Stream error:', error),
     },
