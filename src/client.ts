@@ -281,6 +281,11 @@ export class InferenceGatewayClient {
                 callbacks.onReasoning?.(reasoning_content);
               }
 
+              const reasoning = chunk.choices[0]?.delta?.reasoning;
+              if (reasoning !== undefined) {
+                callbacks.onReasoning?.(reasoning);
+              }
+
               const content = chunk.choices[0]?.delta?.content;
               if (content) {
                 callbacks.onContent?.(content);

@@ -74,6 +74,7 @@ describe('InferenceGatewayClient', () => {
             object: 'model',
             created: 1686935002,
             owned_by: 'openai',
+            served_by: Provider.openai,
           },
         ],
       };
@@ -479,6 +480,188 @@ describe('InferenceGatewayClient', () => {
         completion_tokens: 8,
         total_tokens: 18,
       });
+      expect(callbacks.onFinish).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/chat/completions',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            ...mockRequest,
+            stream: true,
+            stream_options: {
+              include_usage: true,
+            },
+          }),
+        })
+      );
+    });
+
+    it('should handle streaming chat completions with reasoning field', async () => {
+      const mockRequest = {
+        model: 'groq/deepseek-distilled-llama-3.1-70b',
+        messages: [{ role: MessageRole.user, content: 'Hello' }],
+      };
+      const mockStream = new TransformStream();
+      const writer = mockStream.writable.getWriter();
+      const encoder = new TextEncoder();
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: mockStream.readable,
+      });
+      const callbacks = {
+        onOpen: jest.fn(),
+        onChunk: jest.fn(),
+        onReasoning: jest.fn(),
+        onContent: jest.fn(),
+        onFinish: jest.fn(),
+      };
+      const streamPromise = client.streamChatCompletion(mockRequest, callbacks);
+      await writer.write(
+        encoder.encode(
+          'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"groq/deepseek-distilled-llama-3.1-70b","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"groq/deepseek-distilled-llama-3.1-70b","choices":[{"index":0,"delta":{"content":"","reasoning":"Let me"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"groq/deepseek-distilled-llama-3.1-70b","choices":[{"index":0,"delta":{"content":"","reasoning":" think"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"groq/deepseek-distilled-llama-3.1-70b","choices":[{"index":0,"delta":{"content":"","reasoning":" about"},"finish_reason":"stop"}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"groq/deepseek-distilled-llama-3.1-70b","choices":[{"index":0,"delta":{"content":"","reasoning":" this"},"finish_reason":"stop"}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"groq/deepseek-distilled-llama-3.1-70b","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"groq/deepseek-distilled-llama-3.1-70b","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":null}]}\n\n' +
+            'data: [DONE]\n\n'
+        )
+      );
+      await writer.close();
+      await streamPromise;
+      expect(callbacks.onOpen).toHaveBeenCalledTimes(1);
+      expect(callbacks.onChunk).toHaveBeenCalledTimes(7);
+      expect(callbacks.onReasoning).toHaveBeenCalledTimes(4);
+      expect(callbacks.onReasoning).toHaveBeenCalledWith('Let me');
+      expect(callbacks.onReasoning).toHaveBeenCalledWith(' think');
+      expect(callbacks.onReasoning).toHaveBeenCalledWith(' about');
+      expect(callbacks.onReasoning).toHaveBeenCalledWith(' this');
+      expect(callbacks.onContent).toHaveBeenCalledTimes(2);
+      expect(callbacks.onContent).toHaveBeenCalledWith('Hello');
+      expect(callbacks.onContent).toHaveBeenCalledWith('!');
+      expect(callbacks.onFinish).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/chat/completions',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            ...mockRequest,
+            stream: true,
+            stream_options: {
+              include_usage: true,
+            },
+          }),
+        })
+      );
+    });
+
+    it('should handle streaming chat completions with reasoning_content (DeepSeek)', async () => {
+      const mockRequest = {
+        model: 'deepseek/deepseek-reasoner',
+        messages: [{ role: MessageRole.user, content: 'Hello' }],
+      };
+      const mockStream = new TransformStream();
+      const writer = mockStream.writable.getWriter();
+      const encoder = new TextEncoder();
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: mockStream.readable,
+      });
+      const callbacks = {
+        onOpen: jest.fn(),
+        onChunk: jest.fn(),
+        onReasoning: jest.fn(),
+        onContent: jest.fn(),
+        onFinish: jest.fn(),
+      };
+      const streamPromise = client.streamChatCompletion(mockRequest, callbacks);
+      await writer.write(
+        encoder.encode(
+          'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"content":"","reasoning_content":"This"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"content":"","reasoning_content":" is"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"content":"","reasoning_content":" a"},"finish_reason":"stop"}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"content":"","reasoning_content":" reasoning"},"finish_reason":"stop"}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"content":"","reasoning_content":" content"},"finish_reason":"stop"}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":null}]}\n\n' +
+            'data: [DONE]\n\n'
+        )
+      );
+      await writer.close();
+      await streamPromise;
+      expect(callbacks.onOpen).toHaveBeenCalledTimes(1);
+      expect(callbacks.onChunk).toHaveBeenCalledTimes(8);
+      expect(callbacks.onReasoning).toHaveBeenCalledTimes(5);
+      expect(callbacks.onReasoning).toHaveBeenCalledWith('This');
+      expect(callbacks.onReasoning).toHaveBeenCalledWith(' is');
+      expect(callbacks.onReasoning).toHaveBeenCalledWith(' a');
+      expect(callbacks.onReasoning).toHaveBeenCalledWith(' reasoning');
+      expect(callbacks.onReasoning).toHaveBeenCalledWith(' content');
+      expect(callbacks.onContent).toHaveBeenCalledTimes(2);
+      expect(callbacks.onContent).toHaveBeenCalledWith('Hello');
+      expect(callbacks.onContent).toHaveBeenCalledWith('!');
+      expect(callbacks.onFinish).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/chat/completions',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            ...mockRequest,
+            stream: true,
+            stream_options: {
+              include_usage: true,
+            },
+          }),
+        })
+      );
+    });
+
+    it('should handle streaming chat completions with reasoning field (Groq)', async () => {
+      const mockRequest = {
+        model: 'llama-3.1-70b-versatile',
+        messages: [{ role: MessageRole.user, content: 'Hello' }],
+      };
+      const mockStream = new TransformStream();
+      const writer = mockStream.writable.getWriter();
+      const encoder = new TextEncoder();
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: mockStream.readable,
+      });
+      const callbacks = {
+        onOpen: jest.fn(),
+        onChunk: jest.fn(),
+        onReasoning: jest.fn(),
+        onContent: jest.fn(),
+        onFinish: jest.fn(),
+      };
+      const streamPromise = client.streamChatCompletion(mockRequest, callbacks);
+      await writer.write(
+        encoder.encode(
+          'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"llama-3.1-70b-versatile","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"llama-3.1-70b-versatile","choices":[{"index":0,"delta":{"content":"","reasoning":"Let me"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"llama-3.1-70b-versatile","choices":[{"index":0,"delta":{"content":"","reasoning":" think"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"llama-3.1-70b-versatile","choices":[{"index":0,"delta":{"content":"","reasoning":" about"},"finish_reason":"stop"}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"llama-3.1-70b-versatile","choices":[{"index":0,"delta":{"content":"","reasoning":" this"},"finish_reason":"stop"}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"llama-3.1-70b-versatile","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"llama-3.1-70b-versatile","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":null}]}\n\n' +
+            'data: [DONE]\n\n'
+        )
+      );
+      await writer.close();
+      await streamPromise;
+      expect(callbacks.onOpen).toHaveBeenCalledTimes(1);
+      expect(callbacks.onChunk).toHaveBeenCalledTimes(7);
+      expect(callbacks.onReasoning).toHaveBeenCalledTimes(4);
+      expect(callbacks.onReasoning).toHaveBeenCalledWith('Let me');
+      expect(callbacks.onReasoning).toHaveBeenCalledWith(' think');
+      expect(callbacks.onReasoning).toHaveBeenCalledWith(' about');
+      expect(callbacks.onReasoning).toHaveBeenCalledWith(' this');
+      expect(callbacks.onContent).toHaveBeenCalledTimes(2);
+      expect(callbacks.onContent).toHaveBeenCalledWith('Hello');
+      expect(callbacks.onContent).toHaveBeenCalledWith('!');
       expect(callbacks.onFinish).toHaveBeenCalledTimes(1);
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:8080/v1/chat/completions',
