@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.2](https://github.com/inference-gateway/typescript-sdk/compare/v0.6.1...v0.6.2) (2025-04-30)
+
+### ♻️ Improvements
+
+* Process also groq reasoning models properly ([#12](https://github.com/inference-gateway/typescript-sdk/issues/12)) ([51ce3bb](https://github.com/inference-gateway/typescript-sdk/commit/51ce3bbbbdf03947bb7928e8edc413b977ea092a))
+
 ## [0.6.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.6.0...v0.6.1) (2025-04-28)
 
 ### ♻️ Improvements
