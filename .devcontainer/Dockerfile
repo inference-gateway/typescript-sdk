@@ -1,7 +1,6 @@
 FROM mcr.microsoft.com/devcontainers/typescript-node:22-bookworm
 
-ENV ZSH_CUSTOM=/home/node/.oh-my-zsh/custom \
-    TASK_VERSION=v3.41.0
+ENV TASK_VERSION=v3.43.3
 
 RUN apt-get update && \
     # Install Task
@@ -25,6 +24,11 @@ RUN npm install -g \
     @semantic-release/github \
     conventional-changelog-conventionalcommits
 
-RUN git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM}/themes/powerlevel10k
-
 USER node
+
+# Use Powerlevel10k theme
+RUN git clone --depth=1 https://github.com/romkatv/powerlevel10k.git /home/node/.powerlevel10k && \
+    echo 'source /home/node/.powerlevel10k/powerlevel10k.zsh-theme' >> /home/node/.zshrc && \
+    echo 'POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true' >> /home/node/.zshrc
+
+RUN echo "source <(task --completion zsh)" >> /home/node/.zshrc 
