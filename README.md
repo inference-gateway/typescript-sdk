@@ -58,6 +58,32 @@ try {
 }
 ```
 
+### Listing MCP Tools
+
+To list available Model Context Protocol (MCP) tools (only available when EXPOSE_MCP is enabled):
+
+```typescript
+import { InferenceGatewayClient } from '@inference-gateway/sdk';
+
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
+
+try {
+  const tools = await client.listTools();
+  console.log('Available MCP tools:', tools.data);
+
+  // Each tool has: name, description, server, and optional input_schema
+  tools.data.forEach((tool) => {
+    console.log(`Tool: ${tool.name}`);
+    console.log(`Description: ${tool.description}`);
+    console.log(`Server: ${tool.server}`);
+  });
+} catch (error) {
+  console.error('Error:', error);
+}
+```
+
 ### Creating Chat Completions
 
 To generate content using a model:

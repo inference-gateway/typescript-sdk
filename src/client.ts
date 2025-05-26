@@ -7,6 +7,7 @@ import type {
   SchemaCreateChatCompletionStreamResponse,
   SchemaError,
   SchemaListModelsResponse,
+  SchemaListToolsResponse,
 } from './types/generated';
 import { ChatCompletionToolType } from './types/generated';
 
@@ -129,6 +130,16 @@ export class InferenceGatewayClient {
       { method: 'GET' },
       query
     );
+  }
+
+  /**
+   * Lists the currently available MCP tools.
+   * Only accessible when EXPOSE_MCP is enabled.
+   */
+  async listTools(): Promise<SchemaListToolsResponse> {
+    return this.request<SchemaListToolsResponse>('/mcp/tools', {
+      method: 'GET',
+    });
   }
 
   /**

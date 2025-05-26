@@ -48,6 +48,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/mcp/tools': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Lists the currently available MCP tools
+     * @description Lists the currently available MCP tools. Only accessible when EXPOSE_MCP is enabled.
+     *
+     */
+    get: operations['listTools'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/proxy/{provider}/{path}': {
     parameters: {
       query?: never;
@@ -218,6 +239,53 @@ export interface components {
       object: string;
       /** @default [] */
       data: components['schemas']['Model'][];
+    };
+    /** @description Response structure for listing MCP tools */
+    ListToolsResponse: {
+      /**
+       * @description Always "list"
+       * @example list
+       */
+      object: string;
+      /**
+       * @description Array of available MCP tools
+       * @default []
+       */
+      data: components['schemas']['MCPTool'][];
+    };
+    /** @description An MCP tool definition */
+    MCPTool: {
+      /**
+       * @description The name of the tool
+       * @example read_file
+       */
+      name: string;
+      /**
+       * @description A description of what the tool does
+       * @example Read content from a file
+       */
+      description: string;
+      /**
+       * @description The MCP server that provides this tool
+       * @example http://mcp-filesystem-server:8083/mcp
+       */
+      server: string;
+      /**
+       * @description JSON schema for the tool's input parameters
+       * @example {
+       *       "type": "object",
+       *       "properties": {
+       *         "file_path": {
+       *           "type": "string",
+       *           "description": "Path to the file to read"
+       *         }
+       *       },
+       *       "required": [
+       *         "file_path"
+       *       ]
+       *     }
+       */
+      input_schema?: Record<string, never>;
     };
     FunctionObject: {
       /** @description A description of what the function does, used by the model to choose when and how to call the function. */
@@ -459,6 +527,18 @@ export interface components {
         'application/json': components['schemas']['Error'];
       };
     };
+    /** @description MCP tools endpoint is not exposed */
+    MCPNotExposed: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /** @example {
+         *       "error": "MCP tools endpoint is not exposed. Set EXPOSE_MCP=true to enable."
+         *     } */
+        'application/json': components['schemas']['Error'];
+      };
+    };
     /** @description ProviderResponse depends on the specific provider and endpoint being called
      *     If you decide to use this approach, please follow the provider-specific documentations.
      *      */
@@ -516,6 +596,9 @@ export type SchemaMessage = components['schemas']['Message'];
 export type SchemaModel = components['schemas']['Model'];
 export type SchemaListModelsResponse =
   components['schemas']['ListModelsResponse'];
+export type SchemaListToolsResponse =
+  components['schemas']['ListToolsResponse'];
+export type SchemaMcpTool = components['schemas']['MCPTool'];
 export type SchemaFunctionObject = components['schemas']['FunctionObject'];
 export type SchemaChatCompletionTool =
   components['schemas']['ChatCompletionTool'];
@@ -551,6 +634,7 @@ export type SchemaConfig = components['schemas']['Config'];
 export type ResponseBadRequest = components['responses']['BadRequest'];
 export type ResponseUnauthorized = components['responses']['Unauthorized'];
 export type ResponseInternalError = components['responses']['InternalError'];
+export type ResponseMcpNotExposed = components['responses']['MCPNotExposed'];
 export type ResponseProviderResponse =
   components['responses']['ProviderResponse'];
 export type RequestBodyProviderRequest =
@@ -608,6 +692,29 @@ export interface operations {
       };
       400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listTools: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ListToolsResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['MCPNotExposed'];
       500: components['responses']['InternalError'];
     };
   };
