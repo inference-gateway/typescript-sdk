@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.6.2...v0.7.0) (2025-05-26)
+
+### ✨ Features
+
+* Implement MCP List Tools ([#13](https://github.com/inference-gateway/typescript-sdk/issues/13)) ([5c0a38c](https://github.com/inference-gateway/typescript-sdk/commit/5c0a38cbe825161c9d5dc1e15f59b31217aebb23))
+
 ## [0.6.2](https://github.com/inference-gateway/typescript-sdk/compare/v0.6.1...v0.6.2) (2025-04-30)
 
 ### ♻️ Improvements
