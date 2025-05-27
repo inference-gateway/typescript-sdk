@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.7.0...v0.7.1) (2025-05-27)
+
+### 🐛 Bug Fixes
+
+* Allow additional properties in input schema for components ([2216600](https://github.com/inference-gateway/typescript-sdk/commit/22166007ec2704884a4f7a2c816d1bb0a6a95efe))
+
+### 🔧 Miscellaneous
+
+* Enable GitHub Copilot and configure authentication ([e590786](https://github.com/inference-gateway/typescript-sdk/commit/e590786c2b3af5cb16ac7dda6dc7f9b0b7e7269c))
+
 ## [0.7.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.6.2...v0.7.0) (2025-05-26)
 
 ### ✨ Features
