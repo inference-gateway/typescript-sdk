@@ -13,10 +13,17 @@ You should have docker installed or use the dev container in VS Code which has a
 2. Start the Inference Gateway locally:
 
    ```bash
-   docker run -p 8080:8080 --env-file .env ghcr.io/inference-gateway/inference-gateway:latest
+   docker run --rm -p 8080:8080 --env-file .env ghcr.io/inference-gateway/inference-gateway:latest
    ```
 
-3. Review the different examples in the specific directories:
+3. On another terminal export the provider and the LLM you intent to use:
+
+   ```bash
+   export PROVIDER=groq
+   export LLM=groq/meta-llama/llama-4-maverick-17b-128e-instruct
+   ```
+
+4. Review the different examples in the specific directories:
 
    - [List](./list): An example of how to use the SDK to list models and MCP tools.
    - [Chat](./chat): An example of how to use the SDK for chat applications.

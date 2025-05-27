@@ -53,7 +53,7 @@ try {
   console.log('All models:', models);
 
   // List models from a specific provider
-  const openaiModels = await client.listModels(Provider.OpenAI);
+  const openaiModels = await client.listModels(Provider.openai);
   console.log('OpenAI models:', openaiModels);
 } catch (error) {
   console.error('Error:', error);

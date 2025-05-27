@@ -1,0 +1,19 @@
+{
+  "name": "list",
+  "version": "1.0.0",
+  "description": "This example demonstrates how to use the Inference Gateway SDK for listing models and MCP tools. It includes making requests to the SDK and handling responses using the Typescript SDK.",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "start": "tsx index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@inference-gateway/sdk": "^0.7.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.4"
+  }
+}
