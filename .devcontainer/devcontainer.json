@@ -41,6 +41,12 @@
         "git.enableCommitSigning": true,
         "dev.containers.copyGitConfig": true,
         "files.insertFinalNewline": true,
+        "github.copilot.enable": {
+          "*": true
+        },
+        "github.copilot.advanced": {
+          "authProvider": "github"
+        },
         "github.copilot.chat.codeGeneration.useInstructionFiles": true,
         "github.copilot.chat.codeGeneration.instructions": [
           {
