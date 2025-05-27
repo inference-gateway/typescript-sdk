@@ -2,6 +2,8 @@
 
 This example demonstrates how to use the Inference Gateway SDK with Model Context Protocol (MCP) tools in a multi-provider architecture. It showcases how to connect to MCP servers, discover available tools, and use them in AI conversations.
 
+Please ensure you have no containers running before starting this example, as it uses Docker Compose to set up the necessary infrastructure.
+
 ## Features Demonstrated
 
 1. **MCP Tool Discovery** - List and explore available MCP tools
