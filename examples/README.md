@@ -20,7 +20,7 @@ You should have docker installed or use the dev container in VS Code which has a
 
    ```bash
    export PROVIDER=groq
-   export LLM=groq/meta-llama/llama-4-maverick-17b-128e-instruct
+   export LLM=meta-llama/llama-4-maverick-17b-128e-instruct
    ```
 
 4. Review the different examples in the specific directories:
@@ -93,7 +93,7 @@ npm start
 All examples support these environment variables:
 
 - `PROVIDER` - AI provider to use (groq, openai, anthropic, etc.)
-- `LLM` - Specific model to use (e.g., groq/meta-llama/llama-3.3-70b-versatile)
+- `LLM` - Specific model to use (e.g., meta-llama/llama-3.3-70b-versatile)
 
 Provider-specific API keys should be set in the `.env` file (see `.env.example`).
 

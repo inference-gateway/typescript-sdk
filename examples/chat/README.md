@@ -23,7 +23,7 @@ This example demonstrates how to use the Inference Gateway SDK for chat applicat
 
    ```bash
    export PROVIDER=groq
-   export LLM=groq/meta-llama/llama-3.3-70b-versatile
+   export LLM=meta-llama/llama-3.3-70b-versatile
    ```
 
    Or for OpenAI:

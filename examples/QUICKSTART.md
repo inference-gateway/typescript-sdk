@@ -56,7 +56,7 @@ npm start
 ```bash
 cd chat
 export PROVIDER=groq
-export LLM=groq/meta-llama/llama-3.3-70b-versatile
+export LLM=meta-llama/llama-3.3-70b-versatile
 npm install
 npm start
 ```
@@ -66,7 +66,7 @@ npm start
 ```bash
 cd mcp
 export PROVIDER=groq
-export LLM=groq/meta-llama/llama-3.3-70b-versatile
+export LLM=meta-llama/llama-3.3-70b-versatile
 npm install
 npm start
 ```
@@ -77,7 +77,7 @@ npm start
 
 ```bash
 export PROVIDER=groq
-export LLM=groq/meta-llama/llama-3.3-70b-versatile
+export LLM=meta-llama/llama-3.3-70b-versatile
 ```
 
 ### OpenAI (High quality)

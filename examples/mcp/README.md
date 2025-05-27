@@ -68,7 +68,7 @@ Set your preferred provider and model:
 
 ```bash
 export PROVIDER=groq
-export LLM=groq/meta-llama/llama-3.3-70b-versatile
+export LLM=meta-llama/llama-3.3-70b-versatile
 ```
 
 Or for OpenAI:
