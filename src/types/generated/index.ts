@@ -285,7 +285,9 @@ export interface components {
        *       ]
        *     }
        */
-      input_schema?: Record<string, never>;
+      input_schema?: {
+        [key: string]: unknown;
+      };
     };
     FunctionObject: {
       /** @description A description of what the function does, used by the model to choose when and how to call the function. */

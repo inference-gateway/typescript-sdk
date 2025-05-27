@@ -722,6 +722,7 @@ components:
                 type: "string"
                 description: "Path to the file to read"
             required: ["file_path"]
+          additionalProperties: true
       required:
         - name
         - description
