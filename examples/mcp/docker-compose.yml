@@ -1,0 +1,213 @@
+version: '3.8'
+
+services:
+  # Inference Gateway
+  inference-gateway:
+    image: ghcr.io/inference-gateway/inference-gateway:latest
+    ports:
+      - '8080:8080'
+    environment:
+      # Enable MCP support
+      MCP_ENABLE: 'true'
+      MCP_EXPOSE: 'true'
+      MCP_SERVERS: 'filesystem=http://mcp-filesystem:3000/mcp,web-search=http://mcp-web-search:3001/mcp'
+
+      # Server settings
+      SERVER_HOST: '0.0.0.0'
+      SERVER_PORT: '8080'
+
+      # Provider settings - Add your API keys here
+      GROQ_API_URL: 'https://api.groq.com/openai/v1'
+      GROQ_API_KEY: '${GROQ_API_KEY:-}'
+
+      OPENAI_API_URL: 'https://api.openai.com/v1'
+      OPENAI_API_KEY: '${OPENAI_API_KEY:-}'
+
+      ANTHROPIC_API_URL: 'https://api.anthropic.com/v1'
+      ANTHROPIC_API_KEY: '${ANTHROPIC_API_KEY:-}'
+
+      # Optional: Ollama for local models
+      OLLAMA_API_URL: 'http://ollama:11434/v1'
+      OLLAMA_API_KEY: ''
+    depends_on:
+      - mcp-filesystem
+      - mcp-web-search
+    networks:
+      - inference-network
+    volumes:
+      - shared-data:/shared
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MCP Filesystem Server
+  mcp-filesystem:
+    image: ghcr.io/modelcontextprotocol/servers/filesystem:latest
+    ports:
+      - '3000:3000'
+    environment:
+      MCP_SERVER_NAME: 'filesystem'
+      MCP_SERVER_VERSION: '1.0.0'
+      ALLOWED_DIRECTORIES: '/shared,/tmp'
+    networks:
+      - inference-network
+    volumes:
+      - shared-data:/shared
+      - ./mcp-data:/tmp
+    command: >
+      sh -c "
+        mkdir -p /tmp &&
+        echo 'Hello from MCP filesystem server!' > /tmp/example.txt &&
+        echo 'This is a sample file for testing MCP file operations.' >> /tmp/example.txt &&
+        echo 'Created at: $(date)' >> /tmp/example.txt &&
+        mcp-server-filesystem --allowed-directories /shared,/tmp
+      "
+
+  # MCP Web Search Server (example using a hypothetical web search MCP server)
+  mcp-web-search:
+    image: node:18-alpine
+    ports:
+      - '3001:3001'
+    working_dir: /app
+    environment:
+      NODE_ENV: 'production'
+      MCP_SERVER_NAME: 'web-search'
+      MCP_SERVER_VERSION: '1.0.0'
+    networks:
+      - inference-network
+    volumes:
+      - ./mcp-servers/web-search:/app
+    command: >
+      sh -c "
+        if [ ! -f package.json ]; then
+          npm init -y &&
+          npm install express cors axios cheerio &&
+          cat > index.js << 'EOF'
+        const express = require('express');
+        const cors = require('cors');
+        const axios = require('axios');
+        
+        const app = express();
+        app.use(cors());
+        app.use(express.json());
+        
+        // MCP server info
+        app.get('/mcp', (req, res) => {
+          res.json({
+            capabilities: {
+              tools: {
+                listChanged: false
+              }
+            },
+            serverInfo: {
+              name: 'web-search',
+              version: '1.0.0'
+            }
+          });
+        });
+        
+        // List available tools
+        app.post('/mcp/tools/list', (req, res) => {
+          res.json({
+            tools: [
+              {
+                name: 'fetch_url',
+                description: 'Fetch content from a URL',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    url: {
+                      type: 'string',
+                      description: 'The URL to fetch'
+                    }
+                  },
+                  required: ['url']
+                }
+              },
+              {
+                name: 'search_web',
+                description: 'Search the web for information',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    query: {
+                      type: 'string',
+                      description: 'The search query'
+                    }
+                  },
+                  required: ['query']
+                }
+              }
+            ]
+          });
+        });
+        
+        // Execute tools
+        app.post('/mcp/tools/call', async (req, res) => {
+          try {
+            const { name, arguments: args } = req.body;
+            
+            if (name === 'fetch_url') {
+              const response = await axios.get(args.url, { timeout: 10000 });
+              res.json({
+                content: [
+                  {
+                    type: 'text',
+                    text: typeof response.data === 'object' 
+                      ? JSON.stringify(response.data, null, 2)
+                      : response.data.toString().substring(0, 5000)
+                  }
+                ]
+              });
+            } else if (name === 'search_web') {
+              // Simulate web search (in real implementation, you'd use a real search API)
+              res.json({
+                content: [
+                  {
+                    type: 'text',
+                    text: \`Search results for \"\${args.query}\":\n\n1. Example result for \${args.query}\n2. Another relevant result\n3. More information about \${args.query}\`
+                  }
+                ]
+              });
+            } else {
+              res.status(400).json({ error: 'Unknown tool: ' + name });
+            }
+          } catch (error) {
+            res.status(500).json({ error: error.message });
+          }
+        });
+        
+        const port = process.env.PORT || 3001;
+        app.listen(port, '0.0.0.0', () => {
+          console.log(\`MCP Web Search server running on port \${port}\`);
+        });
+        EOF
+        fi &&
+        node index.js
+      "
+
+  # Optional: Ollama for local models
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - '11434:11434'
+    networks:
+      - inference-network
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      OLLAMA_HOST: '0.0.0.0'
+    profiles:
+      - 'with-ollama'
+
+volumes:
+  shared-data:
+    driver: local
+  ollama-data:
+    driver: local
+
+networks:
+  inference-network:
+    driver: bridge

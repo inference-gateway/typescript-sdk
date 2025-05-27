@@ -1,0 +1,22 @@
+{
+  "name": "mcp",
+  "version": "1.0.0",
+  "description": "This example demonstrates how to use the Inference Gateway SDK with Model Context Protocol (MCP) tools in a multi-provider architecture.",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "start": "tsx index.ts",
+    "compose:up": "docker-compose up -d",
+    "compose:down": "docker-compose down",
+    "compose:logs": "docker-compose logs -f"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@inference-gateway/sdk": "^0.7.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.4"
+  }
+}

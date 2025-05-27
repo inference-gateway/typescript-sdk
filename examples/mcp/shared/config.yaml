@@ -1,0 +1,49 @@
+# MCP Configuration Example
+# This YAML file demonstrates configuration data that can be read by MCP tools
+
+api:
+  version: 'v1'
+  base_url: 'http://localhost:8080'
+  timeout: 30s
+
+mcp:
+  enabled: true
+  expose: true
+  servers:
+    - name: filesystem
+      url: 'http://mcp-filesystem:3000/mcp'
+      timeout: 10s
+    - name: web-search
+      url: 'http://mcp-web-search:3001/mcp'
+      timeout: 15s
+
+providers:
+  groq:
+    api_url: 'https://api.groq.com/openai/v1'
+    models:
+      - 'meta-llama/llama-3.3-70b-versatile'
+      - 'meta-llama/llama-3.2-90b-vision-preview'
+
+  openai:
+    api_url: 'https://api.openai.com/v1'
+    models:
+      - 'gpt-4o'
+      - 'gpt-4o-mini'
+      - 'gpt-3.5-turbo'
+
+  anthropic:
+    api_url: 'https://api.anthropic.com/v1'
+    models:
+      - 'claude-3-5-sonnet-20241022'
+      - 'claude-3-5-haiku-20241022'
+
+logging:
+  level: info
+  format: json
+
+security:
+  cors_enabled: true
+  auth_required: false
+  allowed_origins:
+    - 'http://localhost:3000'
+    - 'http://localhost:8080'
