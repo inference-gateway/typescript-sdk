@@ -18,6 +18,6 @@ You should have docker installed or use the dev container in VS Code which has a
 
 3. Review the different examples in the specific directories:
 
-   - [Basic](./basic): A basic example of how to use the SDK.
+   - [List](./list): An example of how to use the SDK to list models and MCP tools.
    - [Chat](./chat): An example of how to use the SDK for chat applications.
    - [MCP](./mcp): An example of how to use the SDK with the MCP in a Multi Provider architecture.
