@@ -2,6 +2,10 @@
 
 This directory contains examples that demonstrate how to use the Typescript SDK.
 
+## Pre-requisites
+
+You should have docker installed or use the dev container in VS Code which has all the tools you might need.
+
 ## Quick Start
 
 1. Copy the `.env.example` file to `.env` and fill in your API key.
