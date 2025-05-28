@@ -6,6 +6,8 @@
   "private": true,
   "scripts": {
     "start": "tsx index.ts",
+    "example:mcp:remotetools": "tsx example-mcp-tools.ts",
+    "example:mcp:withlocaltools": "tsx example-mcp-with-tools.ts",
     "compose:up": "docker-compose up -d",
     "compose:down": "docker-compose down",
     "compose:logs": "docker-compose logs -f"

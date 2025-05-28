@@ -20,7 +20,7 @@ You should have docker installed or use the dev container in VS Code which has a
 
    ```bash
    export PROVIDER=groq
-   export LLM=meta-llama/llama-4-maverick-17b-128e-instruct
+   export LLM=llama-3.3-70b-versatile
    ```
 
 4. Review the different examples in the specific directories:

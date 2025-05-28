@@ -1,2 +1,5 @@
 .devcontainer/** linguist-vendored=true
+src/examples/** linguist-vendored=true
+
 src/types/generated/** linguist-generated=true
+

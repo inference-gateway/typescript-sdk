@@ -1,9 +1,8 @@
 import {
-  ChatCompletionToolType,
   InferenceGatewayClient,
   MessageRole,
   Provider,
-} from '@inference-gateway/sdk';
+} from '../../src/index.js';
 
 (async () => {
   const client = new InferenceGatewayClient({
@@ -11,7 +10,10 @@ import {
   });
 
   const provider = (process.env.PROVIDER as Provider) || Provider.groq;
-  const model = process.env.LLM || 'groq/meta-llama/llama-3.3-70b-versatile';
+  const model = process.env.LLM || 'llama-3.3-70b-versatile';
+
+  console.log(`Using model: ${model}`);
+  console.log(`Using provider: ${provider}\n`);
 
   console.log('=== MCP Tools Example ===\n');
 
@@ -49,10 +51,79 @@ import {
       return;
     }
 
-    // Example 1: Use MCP tools for file operations (if filesystem MCP server is available)
+    // Example 0: Simple test without tools first
+    console.log('=== Example 0: Simple Test (No Tools) ===\n');
+    console.log('Testing basic streaming without tools first...\n');
+
+    await client.streamChatCompletion(
+      {
+        model,
+        messages: [
+          {
+            role: MessageRole.user,
+            content: 'Hello! Please tell me about the weather.',
+          },
+        ],
+        max_tokens: 50,
+      },
+      {
+        onOpen: () => console.log('🚀 Starting simple test...'),
+        onContent: (content) => process.stdout.write(content),
+        onTool: (toolCall) => {
+          console.log(`\n🔧 Tool called: ${toolCall.function.name}`);
+          console.log(`📝 Arguments: ${toolCall.function.arguments}`);
+        },
+        onFinish: () => {
+          console.log('\n✅ Simple test completed\n');
+        },
+        onError: (error) => console.error('❌ Error:', error),
+      },
+      provider
+    );
+
+    // Example 1: Automatic tool discovery and usage
+    console.log('=== Example 1: Automatic Tool Discovery ===\n');
+    console.log(
+      'The gateway automatically detects and uses available MCP tools based on context.\n'
+    );
+
+    await client.streamChatCompletion(
+      {
+        model,
+        messages: [
+          {
+            role: MessageRole.system,
+            content:
+              'You are a helpful assistant with access to various tools.',
+          },
+          {
+            role: MessageRole.user,
+            content:
+              'What time is it now? Also, if you can, find some information about artificial intelligence.',
+          },
+        ],
+        max_tokens: 200,
+      },
+      {
+        onOpen: () => console.log('🚀 Starting automatic tool discovery...'),
+        onContent: (content) => process.stdout.write(content),
+        onTool: (toolCall) => {
+          console.log(
+            `\n🔧 Tool automatically called: ${toolCall.function.name}`
+          );
+          console.log(`📝 Arguments: ${toolCall.function.arguments}`);
+        },
+        onFinish: () =>
+          console.log('\n✅ Automatic tool discovery completed\n'),
+        onError: (error) => console.error('❌ Error:', error),
+      },
+      provider
+    );
+
+    // Example 2: Use MCP tools for file operations (if filesystem MCP server is available)
     const fileReadTool = tools.data.find((tool) => tool.name === 'read_file');
     if (fileReadTool) {
-      console.log('=== Example 1: File Operations with MCP ===\n');
+      console.log('=== Example 2: File Operations with MCP ===\n');
 
       await client.streamChatCompletion(
         {
@@ -61,25 +132,15 @@ import {
             {
               role: MessageRole.system,
               content:
-                'You are a helpful assistant that can read files using MCP tools. When asked to read a file, use the read_file tool.',
+                'You are a helpful assistant with access to filesystem operations. Available directories are /shared and /tmp.',
             },
             {
               role: MessageRole.user,
               content:
-                'Can you read the contents of /tmp/example.txt if it exists?',
+                'Can you read the contents of /shared/mcp-filesystem-example.txt and tell me what it contains?',
             },
           ],
-          tools: [
-            {
-              type: ChatCompletionToolType.function,
-              function: {
-                name: fileReadTool.name,
-                description: fileReadTool.description,
-                parameters: fileReadTool.input_schema,
-                strict: true,
-              },
-            },
-          ],
+          max_tokens: 200,
         },
         {
           onOpen: () => console.log('🚀 Starting file reading example...'),
@@ -95,12 +156,12 @@ import {
       );
     }
 
-    // Example 2: Use MCP tools for web scraping (if web scraper MCP server is available)
+    // Example 3: Use MCP tools for web scraping (if web scraper MCP server is available)
     const webScrapeTool = tools.data.find(
       (tool) => tool.name.includes('fetch') || tool.name.includes('scrape')
     );
     if (webScrapeTool) {
-      console.log('=== Example 2: Web Scraping with MCP ===\n');
+      console.log('=== Example 3: Web Scraping with MCP ===\n');
 
       await client.streamChatCompletion(
         {
@@ -109,7 +170,7 @@ import {
             {
               role: MessageRole.system,
               content:
-                'You are a helpful assistant that can fetch web content using MCP tools. Use the available tools to gather information from websites.',
+                'You are a helpful assistant with access to web search capabilities.',
             },
             {
               role: MessageRole.user,
@@ -117,17 +178,7 @@ import {
                 'Can you fetch information from https://httpbin.org/json and tell me what you find?',
             },
           ],
-          tools: [
-            {
-              type: ChatCompletionToolType.function,
-              function: {
-                name: webScrapeTool.name,
-                description: webScrapeTool.description,
-                parameters: webScrapeTool.input_schema,
-                strict: true,
-              },
-            },
-          ],
+          max_tokens: 200,
         },
         {
           onOpen: () => console.log('🚀 Starting web scraping example...'),
@@ -143,9 +194,9 @@ import {
       );
     }
 
-    // Example 3: Generic MCP tool usage - use the first available tool
+    // Example 4: Generic MCP tool usage - use the first available tool
     if (tools.data.length > 0 && !fileReadTool && !webScrapeTool) {
-      console.log('=== Example 3: Generic MCP Tool Usage ===\n');
+      console.log('=== Example 4: Generic MCP Tool Usage ===\n');
 
       const firstTool = tools.data[0];
       console.log(`Using tool: ${firstTool.name}\n`);
@@ -156,24 +207,14 @@ import {
           messages: [
             {
               role: MessageRole.system,
-              content: `You are a helpful assistant that has access to the ${firstTool.name} tool. Use it when appropriate to help the user.`,
+              content: `You are a helpful assistant with access to various tools including ${firstTool.name}.`,
             },
             {
               role: MessageRole.user,
               content: `Can you help me use the ${firstTool.name} tool? What can it do?`,
             },
           ],
-          tools: [
-            {
-              type: ChatCompletionToolType.function,
-              function: {
-                name: firstTool.name,
-                description: firstTool.description,
-                parameters: firstTool.input_schema,
-                strict: true,
-              },
-            },
-          ],
+          max_tokens: 200,
         },
         {
           onOpen: () => console.log('🚀 Starting generic tool example...'),
@@ -189,19 +230,9 @@ import {
       );
     }
 
-    // Example 4: Multi-tool conversation
+    // Example 5: Data Analysis with File Operations
     if (tools.data.length > 1) {
-      console.log('=== Example 4: Multi-Tool Conversation ===\n');
-
-      const availableTools = tools.data.slice(0, 3).map((tool) => ({
-        type: ChatCompletionToolType.function,
-        function: {
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.input_schema,
-          strict: true,
-        },
-      }));
+      console.log('=== Example 5: Data Analysis with File Operations ===\n');
 
       await client.streamChatCompletion(
         {
@@ -209,35 +240,62 @@ import {
           messages: [
             {
               role: MessageRole.system,
-              content: `You are a helpful assistant with access to multiple MCP tools: ${tools.data
-                .slice(0, 3)
-                .map((t) => t.name)
-                .join(
-                  ', '
-                )}. Use these tools to help the user accomplish their tasks.`,
+              content: `You are a helpful data analysis assistant with access to filesystem tools. Available directories are /shared and /tmp. You can read, write, and analyze files. The /shared directory contains sample data files for analysis.`,
             },
             {
               role: MessageRole.user,
               content:
-                'I need help with data analysis. Can you show me what tools are available and suggest how to use them?',
+                'I need help with data analysis. First, can you check what files are available in the /shared directory? Then create a simple CSV file with sample sales data in /tmp/sales_data.csv and analyze it.',
             },
           ],
-          tools: availableTools,
+          max_tokens: 400,
         },
         {
-          onOpen: () => console.log('🚀 Starting multi-tool conversation...'),
+          onOpen: () => console.log('🚀 Starting data analysis example...'),
           onContent: (content) => process.stdout.write(content),
           onTool: (toolCall) => {
             console.log(`\n🔧 Tool called: ${toolCall.function.name}`);
             console.log(`📝 Arguments: ${toolCall.function.arguments}`);
           },
-          onFinish: () =>
-            console.log('\n✅ Multi-tool conversation completed\n'),
+          onFinish: () => console.log('\n✅ Data analysis example completed\n'),
           onError: (error) => console.error('❌ Error:', error),
         },
         provider
       );
     }
+
+    // Example 6: File Creation and Manipulation
+    console.log('=== Example 6: File Creation and Manipulation ===\n');
+
+    await client.streamChatCompletion(
+      {
+        model,
+        messages: [
+          {
+            role: MessageRole.system,
+            content: `You are a helpful assistant with filesystem access. Available directories are /shared and /tmp. You can create, read, write, and manage files in these directories.`,
+          },
+          {
+            role: MessageRole.user,
+            content:
+              'Can you create a simple todo list file at /tmp/todo.txt with 3 sample tasks, then read it back to me?',
+          },
+        ],
+        max_tokens: 300,
+      },
+      {
+        onOpen: () => console.log('🚀 Starting file manipulation example...'),
+        onContent: (content) => process.stdout.write(content),
+        onTool: (toolCall) => {
+          console.log(`\n🔧 Tool called: ${toolCall.function.name}`);
+          console.log(`📝 Arguments: ${toolCall.function.arguments}`);
+        },
+        onFinish: () =>
+          console.log('\n✅ File manipulation example completed\n'),
+        onError: (error) => console.error('❌ Error:', error),
+      },
+      provider
+    );
   } catch (error) {
     if (
       error instanceof Error &&

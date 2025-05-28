@@ -11,7 +11,7 @@ import type {
 } from './types/generated';
 import { ChatCompletionToolType } from './types/generated';
 
-interface ChatCompletionStreamCallbacks {
+export interface ChatCompletionStreamCallbacks {
   onOpen?: () => void;
   onChunk?: (chunk: SchemaCreateChatCompletionStreamResponse) => void;
   onReasoning?: (reasoningContent: string) => void;
@@ -22,6 +22,216 @@ interface ChatCompletionStreamCallbacks {
     response: SchemaCreateChatCompletionStreamResponse | null
   ) => void;
   onError?: (error: SchemaError) => void;
+  onMCPTool?: (toolCall: SchemaChatCompletionMessageToolCall) => void;
+}
+
+/**
+ * Handles streaming response processing with enhanced support for MCP and tool calls
+ */
+class StreamProcessor {
+  private callbacks: ChatCompletionStreamCallbacks;
+  private clientProvidedTools: Set<string>;
+  private incompleteToolCalls = new Map<
+    number,
+    {
+      id: string;
+      type: ChatCompletionToolType;
+      function: {
+        name: string;
+        arguments: string;
+      };
+    }
+  >();
+
+  constructor(
+    callbacks: ChatCompletionStreamCallbacks,
+    clientProvidedTools: Set<string>
+  ) {
+    this.callbacks = callbacks;
+    this.clientProvidedTools = clientProvidedTools;
+  }
+
+  async processStream(body: ReadableStream<Uint8Array>): Promise<void> {
+    const reader = body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(5).trim();
+            await this.processSSEData(data);
+          }
+        }
+      }
+    } catch (error) {
+      const apiError: SchemaError = {
+        error: (error as Error).message || 'Unknown error',
+      };
+      this.callbacks.onError?.(apiError);
+      throw error;
+    } finally {
+      try {
+        reader.releaseLock();
+      } catch {
+        // Reader might already be closed, ignore
+      }
+    }
+  }
+
+  private async processSSEData(data: string): Promise<void> {
+    if (data === '[DONE]') {
+      this.finalizeIncompleteToolCalls();
+      this.callbacks.onFinish?.(null);
+      return;
+    }
+
+    try {
+      const chunk: SchemaCreateChatCompletionStreamResponse = JSON.parse(data);
+      this.callbacks.onChunk?.(chunk);
+
+      if (chunk.usage && this.callbacks.onUsageMetrics) {
+        this.callbacks.onUsageMetrics(chunk.usage);
+      }
+
+      const choice = chunk.choices?.[0];
+      if (!choice) return;
+
+      this.handleReasoningContent(choice);
+
+      const content = choice.delta?.content;
+      if (content) {
+        this.callbacks.onContent?.(content);
+      }
+
+      this.handleToolCalls(choice);
+
+      this.handleFinishReason(choice);
+    } catch (parseError) {
+      const errorMessage = `Failed to parse SSE data: ${(parseError as Error).message}`;
+      globalThis.console.error(errorMessage, { data, parseError });
+
+      const apiError: SchemaError = {
+        error: errorMessage,
+      };
+      this.callbacks.onError?.(apiError);
+    }
+  }
+
+  private handleReasoningContent(choice: {
+    delta?: { reasoning_content?: string; reasoning?: string };
+  }): void {
+    const reasoningContent = choice.delta?.reasoning_content;
+    if (reasoningContent !== undefined) {
+      this.callbacks.onReasoning?.(reasoningContent);
+    }
+
+    const reasoning = choice.delta?.reasoning;
+    if (reasoning !== undefined) {
+      this.callbacks.onReasoning?.(reasoning);
+    }
+  }
+
+  private handleToolCalls(choice: {
+    delta?: {
+      tool_calls?: Array<{
+        index: number;
+        id?: string;
+        function?: { name?: string; arguments?: string };
+      }>;
+    };
+  }): void {
+    const toolCalls = choice.delta?.tool_calls;
+    if (!toolCalls || toolCalls.length === 0) return;
+
+    for (const toolCallChunk of toolCalls) {
+      const index = toolCallChunk.index;
+
+      if (!this.incompleteToolCalls.has(index)) {
+        this.incompleteToolCalls.set(index, {
+          id: toolCallChunk.id || '',
+          type: ChatCompletionToolType.function,
+          function: {
+            name: toolCallChunk.function?.name || '',
+            arguments: toolCallChunk.function?.arguments || '',
+          },
+        });
+      } else {
+        const existingToolCall = this.incompleteToolCalls.get(index)!;
+
+        if (toolCallChunk.id) {
+          existingToolCall.id = toolCallChunk.id;
+        }
+
+        if (toolCallChunk.function?.name) {
+          existingToolCall.function.name = toolCallChunk.function.name;
+        }
+
+        if (toolCallChunk.function?.arguments) {
+          existingToolCall.function.arguments +=
+            toolCallChunk.function.arguments;
+        }
+      }
+    }
+  }
+
+  private handleFinishReason(choice: { finish_reason?: string }): void {
+    const finishReason = choice.finish_reason;
+    if (finishReason === 'tool_calls' && this.incompleteToolCalls.size > 0) {
+      this.finalizeIncompleteToolCalls();
+    }
+  }
+
+  private finalizeIncompleteToolCalls(): void {
+    for (const [, toolCall] of this.incompleteToolCalls.entries()) {
+      if (!toolCall.id || !toolCall.function.name) {
+        globalThis.console.warn('Incomplete tool call detected:', toolCall);
+        continue;
+      }
+
+      const completedToolCall = {
+        id: toolCall.id,
+        type: toolCall.type,
+        function: {
+          name: toolCall.function.name,
+          arguments: toolCall.function.arguments,
+        },
+      };
+
+      if (this.isMCPTool(toolCall.function.name)) {
+        try {
+          if (toolCall.function.arguments) {
+            JSON.parse(toolCall.function.arguments);
+          }
+          this.callbacks.onMCPTool?.(completedToolCall);
+        } catch (argError) {
+          globalThis.console.warn(
+            `Invalid MCP tool arguments for ${toolCall.function.name}:`,
+            argError
+          );
+        }
+      } else {
+        this.callbacks.onTool?.(completedToolCall);
+      }
+    }
+    this.incompleteToolCalls.clear();
+  }
+
+  private isMCPTool(toolName: string): boolean {
+    if (!toolName || typeof toolName !== 'string') {
+      return false;
+    }
+
+    return !this.clientProvidedTools.has(toolName);
+  }
 }
 
 export interface ClientOptions {
@@ -179,6 +389,53 @@ export class InferenceGatewayClient {
     callbacks: ChatCompletionStreamCallbacks,
     provider?: Provider
   ): Promise<void> {
+    try {
+      const response = await this.initiateStreamingRequest(request, provider);
+
+      if (!response.body) {
+        const error: SchemaError = {
+          error: 'Response body is not readable',
+        };
+        callbacks.onError?.(error);
+        throw new Error('Response body is not readable');
+      }
+
+      callbacks.onOpen?.();
+
+      // Extract tool names from client-provided tools
+      const clientProvidedTools = new Set<string>();
+      if (request.tools) {
+        for (const tool of request.tools) {
+          if (tool.type === 'function' && tool.function?.name) {
+            clientProvidedTools.add(tool.function.name);
+          }
+        }
+      }
+
+      const streamProcessor = new StreamProcessor(
+        callbacks,
+        clientProvidedTools
+      );
+      await streamProcessor.processStream(response.body);
+    } catch (error) {
+      const apiError: SchemaError = {
+        error: (error as Error).message || 'Unknown error occurred',
+      };
+      callbacks.onError?.(apiError);
+      throw error;
+    }
+  }
+
+  /**
+   * Initiates a streaming request to the chat completions endpoint
+   */
+  private async initiateStreamingRequest(
+    request: Omit<
+      SchemaCreateChatCompletionRequest,
+      'stream' | 'stream_options'
+    >,
+    provider?: Provider
+  ): Promise<Response> {
     const query: Record<string, string> = {};
     if (provider) {
       query.provider = provider;
@@ -190,7 +447,9 @@ export class InferenceGatewayClient {
     });
 
     const queryString = queryParams.toString();
-    const url = `${this.baseURL}/chat/completions${queryString ? `?${queryString}` : ''}`;
+    const url = `${this.baseURL}/chat/completions${
+      queryString ? `?${queryString}` : ''
+    }`;
 
     const headers = new Headers({
       'Content-Type': 'application/json',
@@ -222,149 +481,17 @@ export class InferenceGatewayClient {
       });
 
       if (!response.ok) {
-        const error: SchemaError = await response.json();
-        throw new Error(
-          error.error || `HTTP error! status: ${response.status}`
-        );
-      }
-
-      if (!response.body) {
-        throw new Error('Response body is not readable');
-      }
-
-      callbacks.onOpen?.();
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      const incompleteToolCalls = new Map<
-        number,
-        {
-          id: string;
-          type: ChatCompletionToolType;
-          function: {
-            name: string;
-            arguments: string;
-          };
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const error: SchemaError = await response.json();
+          errorMessage = error.error || errorMessage;
+        } catch {
+          // Failed to parse error response as JSON, use status message
         }
-      >();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(5).trim();
-
-            if (data === '[DONE]') {
-              for (const [, toolCall] of incompleteToolCalls.entries()) {
-                callbacks.onTool?.({
-                  id: toolCall.id,
-                  type: toolCall.type,
-                  function: {
-                    name: toolCall.function.name,
-                    arguments: toolCall.function.arguments,
-                  },
-                });
-              }
-              callbacks.onFinish?.(null);
-              return;
-            }
-
-            try {
-              const chunk: SchemaCreateChatCompletionStreamResponse =
-                JSON.parse(data);
-              callbacks.onChunk?.(chunk);
-
-              if (chunk.usage && callbacks.onUsageMetrics) {
-                callbacks.onUsageMetrics(chunk.usage);
-              }
-
-              const reasoning_content =
-                chunk.choices[0]?.delta?.reasoning_content;
-              if (reasoning_content !== undefined) {
-                callbacks.onReasoning?.(reasoning_content);
-              }
-
-              const reasoning = chunk.choices[0]?.delta?.reasoning;
-              if (reasoning !== undefined) {
-                callbacks.onReasoning?.(reasoning);
-              }
-
-              const content = chunk.choices[0]?.delta?.content;
-              if (content) {
-                callbacks.onContent?.(content);
-              }
-
-              const toolCalls = chunk.choices[0]?.delta?.tool_calls;
-              if (toolCalls && toolCalls.length > 0) {
-                for (const toolCallChunk of toolCalls) {
-                  const index = toolCallChunk.index;
-
-                  if (!incompleteToolCalls.has(index)) {
-                    incompleteToolCalls.set(index, {
-                      id: toolCallChunk.id || '',
-                      type: ChatCompletionToolType.function,
-                      function: {
-                        name: toolCallChunk.function?.name || '',
-                        arguments: toolCallChunk.function?.arguments || '',
-                      },
-                    });
-                  } else {
-                    const existingToolCall = incompleteToolCalls.get(index)!;
-
-                    if (toolCallChunk.id) {
-                      existingToolCall.id = toolCallChunk.id;
-                    }
-
-                    if (toolCallChunk.function?.name) {
-                      existingToolCall.function.name =
-                        toolCallChunk.function.name;
-                    }
-
-                    if (toolCallChunk.function?.arguments) {
-                      existingToolCall.function.arguments +=
-                        toolCallChunk.function.arguments;
-                    }
-                  }
-                }
-              }
-
-              const finishReason = chunk.choices[0]?.finish_reason;
-              if (
-                finishReason === 'tool_calls' &&
-                incompleteToolCalls.size > 0
-              ) {
-                for (const [, toolCall] of incompleteToolCalls.entries()) {
-                  callbacks.onTool?.({
-                    id: toolCall.id,
-                    type: toolCall.type,
-                    function: {
-                      name: toolCall.function.name,
-                      arguments: toolCall.function.arguments,
-                    },
-                  });
-                }
-                incompleteToolCalls.clear();
-              }
-            } catch (e) {
-              globalThis.console.error('Error parsing SSE data:', e);
-            }
-          }
-        }
+        throw new Error(errorMessage);
       }
-    } catch (error) {
-      const apiError: SchemaError = {
-        error: (error as Error).message || 'Unknown error',
-      };
-      callbacks.onError?.(apiError);
-      throw error;
+
+      return response;
     } finally {
       globalThis.clearTimeout(timeoutId);
     }
