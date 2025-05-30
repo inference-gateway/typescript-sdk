@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.2](https://github.com/inference-gateway/typescript-sdk/compare/v0.7.1...v0.7.2) (2025-05-30)
+
+### 📚 Documentation
+
+* Add more examples how to use this SDK ([#15](https://github.com/inference-gateway/typescript-sdk/issues/15)) ([d771356](https://github.com/inference-gateway/typescript-sdk/commit/d771356657279e63a1c4aaac6fe8370a277f08f6))
+
+### 🔧 Miscellaneous
+
+* Add Docker-in-Docker feature to development container ([177e9f3](https://github.com/inference-gateway/typescript-sdk/commit/177e9f341c7b0fa84d975c754986c75fe98887c9))
+* Remove MCP documentation references and update related instructions ([b33c08f](https://github.com/inference-gateway/typescript-sdk/commit/b33c08f2e1d1a9ae7e0c523f6f1733db86329d90))
+
 ## [0.7.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.7.0...v0.7.1) (2025-05-27)
 
 ### 🐛 Bug Fixes
