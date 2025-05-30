@@ -1,0 +1,127 @@
+services:
+  inference-gateway:
+    image: ghcr.io/inference-gateway/inference-gateway:latest
+    ports:
+      - '8080:8080'
+    environment:
+      # General settings
+      ENVIRONMENT: production
+
+      # Enable MCP support
+      MCP_ENABLE: 'true'
+      MCP_EXPOSE: 'true'
+      MCP_SERVERS: 'http://mcp-filesystem:3000/mcp,http://mcp-web-search:3001/mcp'
+
+      # Server settings
+      SERVER_HOST: '0.0.0.0'
+      SERVER_PORT: '8080'
+
+      # Provider settings - Add your API keys here
+      GROQ_API_URL: 'https://api.groq.com/openai/v1'
+      GROQ_API_KEY: '${GROQ_API_KEY:-}'
+
+      OPENAI_API_URL: 'https://api.openai.com/v1'
+      OPENAI_API_KEY: '${OPENAI_API_KEY:-}'
+
+      ANTHROPIC_API_URL: 'https://api.anthropic.com/v1'
+      ANTHROPIC_API_KEY: '${ANTHROPIC_API_KEY:-}'
+
+      DEEPSEEK_API_URL: 'https://api.deepseek.com/v1'
+      DEEPSEEK_API_KEY: '${DEEPSEEK_API_KEY:-}'
+
+      # Optional: Ollama for local models
+      OLLAMA_API_URL: 'http://ollama:11434/v1'
+      OLLAMA_API_KEY: ''
+    depends_on:
+      mcp-filesystem:
+        condition: service_healthy
+      mcp-web-search:
+        condition: service_healthy
+    networks:
+      - inference-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    pull_policy: always
+    restart: unless-stopped
+
+  mcp-filesystem:
+    build:
+      context: ./mcp-servers/filesystem
+      dockerfile_inline: |
+        FROM node:18-alpine
+        WORKDIR /app
+        RUN apk add --no-cache curl
+        COPY package.json ./
+        RUN npm install
+        COPY . .
+        EXPOSE 3000
+        CMD ["npm", "start"]
+    environment:
+      MCP_SERVER_NAME: 'filesystem'
+      MCP_SERVER_VERSION: '1.0.0'
+      ALLOWED_DIRECTORIES: '/tmp'
+      NODE_ENV: 'production'
+    networks:
+      - inference-network
+    volumes:
+      - ./shared:/tmp
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    restart: unless-stopped
+
+  mcp-web-search:
+    build:
+      context: ./mcp-servers/web-search
+      dockerfile_inline: |
+        FROM node:18-alpine
+        WORKDIR /app
+        RUN apk add --no-cache curl
+        COPY package.json ./
+        RUN npm install
+        COPY . .
+        EXPOSE 3001
+        CMD ["node", "index-http.js"]
+    environment:
+      NODE_ENV: 'production'
+      MCP_SERVER_NAME: 'web-search'
+      MCP_SERVER_VERSION: '1.0.0'
+    networks:
+      - inference-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3001/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    restart: unless-stopped
+
+  # # Optional: Ollama for local models
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   ports:
+  #     - '11434:11434'
+  #   networks:
+  #     - inference-network
+  #   volumes:
+  #     - ollama-data:/root/.ollama
+  #   environment:
+  #     OLLAMA_HOST: '0.0.0.0'
+  #   restart: unless-stopped
+
+volumes:
+  shared-data:
+    driver: local
+  ollama-data:
+    driver: local
+
+networks:
+  inference-network:
+    driver: bridge

@@ -10,13 +10,26 @@ export default [
     plugins: {
       prettier: prettier,
     },
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        global: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        exports: 'readonly',
+      },
+    },
     rules: {
       'prettier/prettier': 'error',
       ...eslint.configs.recommended.rules,
     },
   },
   {
-    files: ['**/*.ts'],
+    files: ['src/**/*.ts', 'tests/**/*.ts'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -25,12 +38,28 @@ export default [
         sourceType: 'module',
       },
       globals: {
-        // Add Jest globals
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        global: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        exports: 'readonly',
         describe: 'readonly',
         it: 'readonly',
         expect: 'readonly',
         beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
         jest: 'readonly',
+        Headers: 'readonly',
+        fetch: 'readonly',
+        ReadableStream: 'readonly',
+        Response: 'readonly',
+        Request: 'readonly',
       },
     },
     plugins: {
@@ -46,9 +75,53 @@ export default [
     },
   },
   {
+    files: ['examples/**/*.ts'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        global: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        exports: 'readonly',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint,
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_' },
+      ],
+    },
+  },
+  {
     files: ['**/*.test.ts'],
-    env: {
-      'jest/globals': true,
+    languageOptions: {
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        jest: 'readonly',
+        Headers: 'readonly',
+        fetch: 'readonly',
+        ReadableStream: 'readonly',
+        Response: 'readonly',
+        Request: 'readonly',
+      },
     },
   },
 ];

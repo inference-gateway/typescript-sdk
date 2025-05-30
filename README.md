@@ -7,12 +7,14 @@ An SDK written in TypeScript for the [Inference Gateway](https://github.com/eden
   - [Usage](#usage)
     - [Creating a Client](#creating-a-client)
     - [Listing Models](#listing-models)
+    - [Listing MCP Tools](#listing-mcp-tools)
     - [Creating Chat Completions](#creating-chat-completions)
     - [Streaming Chat Completions](#streaming-chat-completions)
     - [Tool Calls](#tool-calls)
     - [Proxying Requests](#proxying-requests)
     - [Health Check](#health-check)
     - [Creating a Client with Custom Options](#creating-a-client-with-custom-options)
+    - [Examples](#examples)
   - [Contributing](#contributing)
   - [License](#license)
 
@@ -51,7 +53,7 @@ try {
   console.log('All models:', models);
 
   // List models from a specific provider
-  const openaiModels = await client.listModels(Provider.OpenAI);
+  const openaiModels = await client.listModels(Provider.openai);
   console.log('OpenAI models:', openaiModels);
 } catch (error) {
   console.error('Error:', error);
@@ -235,7 +237,7 @@ To proxy requests directly to a provider:
 import { InferenceGatewayClient, Provider } from '@inference-gateway/sdk';
 
 const client = new InferenceGatewayClient({
-  baseURL: 'http://localhost:8080/v1',
+  baseURL: 'http://localhost:8080',
 });
 
 try {
@@ -261,7 +263,7 @@ To check if the Inference Gateway is running:
 import { InferenceGatewayClient } from '@inference-gateway/sdk';
 
 const client = new InferenceGatewayClient({
-  baseURL: 'http://localhost:8080/v1',
+  baseURL: 'http://localhost:8080',
 });
 
 try {
@@ -291,6 +293,10 @@ const clientWithHeaders = client.withOptions({
   timeout: 60000, // 60 seconds
 });
 ```
+
+### Examples
+
+For more examples, check the [examples directory](./examples).
 
 ## Contributing
 

@@ -1,0 +1,25 @@
+{
+  "name": "inference-gateway-examples",
+  "version": "1.0.0",
+  "description": "Examples for the Inference Gateway TypeScript SDK",
+  "private": true,
+  "scripts": {
+    "install-all": "npm install && cd list && npm install && cd ../chat && npm install && cd ../mcp && npm install",
+    "start:list": "cd list && npm start",
+    "start:chat": "cd chat && npm start",
+    "start:mcp": "cd mcp && npm start",
+    "mcp:up": "cd mcp && npm run compose:up",
+    "mcp:down": "cd mcp && npm run compose:down",
+    "mcp:logs": "cd mcp && npm run compose:logs",
+    "check-gateway": "curl -f http://localhost:8080/health || echo 'Gateway not running'"
+  },
+  "keywords": [
+    "inference-gateway",
+    "ai",
+    "llm",
+    "typescript",
+    "examples"
+  ],
+  "author": "Inference Gateway Team",
+  "license": "MIT"
+}
