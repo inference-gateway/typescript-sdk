@@ -17,45 +17,74 @@ import {
   const provider = (process.env.PROVIDER as Provider) || Provider.groq;
   const model = process.env.LLM || 'llama-3.3-70b-versatile';
 
-  console.log(`Using model: ${model}`);
-  console.log(`Using provider: ${provider}\n`);
+  console.info(`Using model: ${model}`);
+  console.info(`Using provider: ${provider}\n`);
 
-  console.log('=== MCP Tool Usage Demo ===\n');
+  console.info('=== MCP Tool Usage Demo ===\n');
 
   try {
     // Check gateway health
-    console.log('🔍 Checking gateway health...');
+    console.info('🔍 Checking gateway health...');
     const isHealthy = await client.healthCheck();
-    console.log(
+    console.info(
       `Gateway health: ${isHealthy ? '✅ Healthy' : '❌ Unhealthy'}\n`
     );
 
     if (!isHealthy) {
-      console.log(
+      console.info(
         'Please ensure the Inference Gateway is running with Docker Compose.'
       );
       process.exit(1);
     }
 
+    // List available models for the provider
+    console.info('🔍 Checking available models...');
+    try {
+      const models = await client.listModels(provider);
+      console.info(`Found ${models.data.length} models for ${provider}:`);
+      models.data.forEach((modelInfo, index) => {
+        console.info(`${index + 1}. ${modelInfo.id}`);
+      });
+
+      // Check if the requested model is available
+      const isModelAvailable = models.data.some(
+        (m) => m.id === `${provider}/${model}`
+      );
+      if (!isModelAvailable) {
+        console.info(
+          `⚠️  Model '${model}' not found for provider '${provider}'`
+        );
+        console.info(
+          'Consider using one of the available models listed above.'
+        );
+        console.info(
+          'You can set the LLM environment variable to use a different model.\n'
+        );
+      }
+    } catch (modelError) {
+      console.info('⚠️  Could not retrieve model list:', modelError);
+    }
+    console.info('');
+
     // List available MCP tools
-    console.log('📋 Listing available MCP tools...');
+    console.info('📋 Listing available MCP tools...');
     const tools = await client.listTools();
-    console.log(`Found ${tools.data.length} MCP tools:\n`);
+    console.info(`Found ${tools.data.length} MCP tools:\n`);
 
     const fileTools = tools.data.filter((tool) =>
       ['read_file', 'write_file', 'list_directory'].includes(tool.name)
     );
 
     if (fileTools.length === 0) {
-      console.log('⚠️  No filesystem MCP tools available.');
+      console.info('⚠️  No filesystem MCP tools available.');
       return;
     }
 
-    console.log('📁 Available filesystem tools:');
+    console.info('📁 Available filesystem tools:');
     fileTools.forEach((tool, index) => {
-      console.log(`${index + 1}. ${tool.name} - ${tool.description}`);
+      console.info(`${index + 1}. ${tool.name} - ${tool.description}`);
     });
-    console.log('');
+    console.info('');
 
     // Track MCP tool calls for demonstration
     const toolCallTracker = {
@@ -65,7 +94,7 @@ import {
     };
 
     // Example: Analyze highest revenue from sales data
-    console.log('=== Highest Revenue Analysis with MCP Tool Tracking ===\n');
+    console.info('=== Highest Revenue Analysis with MCP Tool Tracking ===\n');
 
     await client.streamChatCompletion(
       {
@@ -85,15 +114,15 @@ import {
       },
       {
         onOpen: () => {
-          console.log('🚀 Starting revenue analysis...');
-          console.log('📊 MCP Tool usage will be tracked below:\n');
+          console.info('🚀 Starting revenue analysis...');
+          console.info('📊 MCP Tool usage will be tracked below:\n');
         },
         onContent: (content) => process.stdout.write(content),
         onMCPTool: (toolCall) => {
           toolCallTracker.totalCalls++;
           toolCallTracker.toolsUsed.add(toolCall.function.name);
 
-          console.log(
+          console.info(
             `\n🔧 [TOOL CALL #${toolCallTracker.totalCalls}] ${toolCall.function.name}`
           );
 
@@ -101,12 +130,12 @@ import {
 
           switch (toolCall.function.name) {
             case 'read_file':
-              console.log(`   📄 Reading file: ${args.path}`);
+              console.info(`   📄 Reading file: ${args.path}`);
               toolCallTracker.filesAccessed.add(args.path);
               break;
             case 'write_file':
-              console.log(`   💾 Writing file: ${args.path}`);
-              console.log(
+              console.info(`   💾 Writing file: ${args.path}`);
+              console.info(
                 `   📝 Content length: ${
                   args.content ? args.content.length : 0
                 } characters`
@@ -114,49 +143,51 @@ import {
               toolCallTracker.filesAccessed.add(args.path);
               break;
             case 'list_directory':
-              console.log(`   📂 Listing directory: ${args.path}`);
+              console.info(`   📂 Listing directory: ${args.path}`);
               break;
             default:
-              console.log(`   ⚙️  Arguments: ${JSON.stringify(args, null, 2)}`);
+              console.info(
+                `   ⚙️  Arguments: ${JSON.stringify(args, null, 2)}`
+              );
           }
-          console.log(`   🆔 Tool ID: ${toolCall.id}`);
+          console.info(`   🆔 Tool ID: ${toolCall.id}`);
         },
         onFinish: () => {
-          console.log('\n\n✅ Revenue analysis completed!\n');
+          console.info('\n\n✅ Revenue analysis completed!\n');
 
           // Display tool usage summary
-          console.log('📈 MCP Tool Usage Summary:');
-          console.log(`   Total tool calls: ${toolCallTracker.totalCalls}`);
-          console.log(
+          console.info('📈 MCP Tool Usage Summary:');
+          console.info(`   Total tool calls: ${toolCallTracker.totalCalls}`);
+          console.info(
             `   Tools used: ${Array.from(toolCallTracker.toolsUsed).join(', ')}`
           );
-          console.log(
+          console.info(
             `   Files accessed: ${Array.from(
               toolCallTracker.filesAccessed
             ).join(', ')}`
           );
-          console.log('');
+          console.info('');
         },
         onError: (error) => console.error('❌ Error:', error),
       },
       provider
     );
 
-    console.log('🎉 MCP Tool Usage Demo completed successfully!');
-    console.log('\n💡 Key takeaways:');
-    console.log(
+    console.info('🎉 MCP Tool Usage Demo completed successfully!');
+    console.info('\n💡 Key takeaways:');
+    console.info(
       '- The onMCPTool callback provides detailed tracking of tool usage'
     );
-    console.log(
+    console.info(
       '- Track total tool calls, tool types used, and files accessed'
     );
-    console.log(
+    console.info(
       '- Each tool call includes function name, arguments, and unique ID'
     );
-    console.log(
+    console.info(
       '- Perfect for debugging, monitoring, and understanding AI tool usage patterns'
     );
-    console.log(
+    console.info(
       '- LLM can read CSV data and perform complex analysis with file operations\n'
     );
   } catch (error) {
@@ -167,8 +198,8 @@ import {
       console.error(
         '❌ MCP tools are not exposed. Please ensure the Inference Gateway is started with MCP_EXPOSE=true'
       );
-      console.log('\n💡 To fix this, restart the gateway with:');
-      console.log('   docker-compose up --build');
+      console.info('\n💡 To fix this, restart the gateway with:');
+      console.info('   docker-compose up --build');
     } else {
       console.error('❌ Error:', error);
     }

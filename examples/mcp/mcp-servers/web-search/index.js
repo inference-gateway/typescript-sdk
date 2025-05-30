@@ -43,7 +43,7 @@ function createMcpServer() {
     },
     async ({ url, timeout = 10000 }) => {
       try {
-        console.log(`Fetching URL: ${url}`);
+        console.info(`Fetching URL: ${url}`);
 
         const response = await axios.get(url, {
           timeout,
@@ -122,7 +122,7 @@ function createMcpServer() {
         .describe('Maximum number of results to return'),
     },
     async ({ query, limit = 5 }) => {
-      console.log(`Searching for: "${query}" (limit: ${limit})`);
+      console.info(`Searching for: "${query}" (limit: ${limit})`);
 
       // Generate simulated search results
       const searchResults = generateSearchResults(query, limit);
@@ -146,7 +146,7 @@ function createMcpServer() {
     },
     async ({ url }) => {
       try {
-        console.log(`Extracting title from: ${url}`);
+        console.info(`Extracting title from: ${url}`);
 
         const response = await axios.get(url, {
           timeout: 10000,
@@ -215,9 +215,9 @@ function generateSearchResults(query, limit) {
 // Handle POST requests for MCP communication
 app.post('/mcp', async (req, res) => {
   try {
-    console.log('MCP POST request received:');
-    console.log('  Headers:', JSON.stringify(req.headers, null, 2));
-    console.log('  Body:', JSON.stringify(req.body, null, 2));
+    console.info('MCP POST request received:');
+    console.info('  Headers: %s', JSON.stringify(req.headers, null, 2));
+    console.info('  Body: %s', JSON.stringify(req.body, null, 2));
 
     // Fix missing Accept headers for compatibility with Go MCP clients
     // The StreamableHTTPServerTransport requires both application/json and text/event-stream
@@ -227,7 +227,7 @@ app.post('/mcp', async (req, res) => {
       !accept.includes('application/json') ||
       !accept.includes('text/event-stream')
     ) {
-      console.log('Adding missing Accept headers for MCP compatibility');
+      console.info('Adding missing Accept headers for MCP compatibility');
       req.headers.accept = 'application/json, text/event-stream';
     }
 
@@ -243,7 +243,7 @@ app.post('/mcp', async (req, res) => {
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (newSessionId) => {
-          console.log(`MCP session initialized: ${newSessionId}`);
+          console.info(`MCP session initialized: ${newSessionId}`);
           // Store the transport by session ID
           transports[newSessionId] = transport;
         },
@@ -252,7 +252,7 @@ app.post('/mcp', async (req, res) => {
       // Clean up transport when closed
       transport.onclose = () => {
         if (transport.sessionId) {
-          console.log(`MCP session closed: ${transport.sessionId}`);
+          console.info(`MCP session closed: ${transport.sessionId}`);
           delete transports[transport.sessionId];
         }
       };
@@ -315,7 +315,7 @@ app.get('/health', (req, res) => {
     transport: 'Streamable HTTP',
   };
 
-  console.log('Health check requested:', healthStatus);
+  console.info('Health check requested: %j', healthStatus);
 
   res.json(healthStatus);
 });
@@ -325,27 +325,27 @@ const port = process.env.PORT || 3001;
 const host = process.env.HOST || '0.0.0.0';
 
 app.listen(port, host, () => {
-  console.log(`MCP Web Search server running on http://${host}:${port}`);
-  console.log('Protocol: Model Context Protocol (MCP)');
-  console.log('Transport: Streamable HTTP');
-  console.log('Available endpoints:');
-  console.log('  POST /mcp             - MCP protocol endpoint');
-  console.log(
+  console.info(`MCP Web Search server running on http://${host}:${port}`);
+  console.info('Protocol: Model Context Protocol (MCP)');
+  console.info('Transport: Streamable HTTP');
+  console.info('Available endpoints:');
+  console.info('  POST /mcp             - MCP protocol endpoint');
+  console.info(
     '  GET  /mcp             - SSE notifications (with session-id header)'
   );
-  console.log(
+  console.info(
     '  DELETE /mcp           - Session termination (with session-id header)'
   );
-  console.log('  GET  /health          - Health check');
-  console.log('Available tools:');
-  console.log('  - fetch_url           - Fetch content from a URL');
-  console.log('  - search_web          - Perform web search (simulated)');
-  console.log('  - get_page_title      - Extract title from a web page');
+  console.info('  GET  /health          - Health check');
+  console.info('Available tools:');
+  console.info('  - fetch_url           - Fetch content from a URL');
+  console.info('  - search_web          - Perform web search (simulated)');
+  console.info('  - get_page_title      - Extract title from a web page');
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, shutting down gracefully');
+  console.info('Received SIGTERM, shutting down gracefully');
   // Close all transports
   Object.values(transports).forEach((transport) => {
     if (transport.close) transport.close();
@@ -354,7 +354,7 @@ process.on('SIGTERM', () => {
 });
 
 process.on('SIGINT', () => {
-  console.log('Received SIGINT, shutting down gracefully');
+  console.info('Received SIGINT, shutting down gracefully');
   // Close all transports
   Object.values(transports).forEach((transport) => {
     if (transport.close) transport.close();

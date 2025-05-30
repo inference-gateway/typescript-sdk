@@ -26,7 +26,7 @@ const allowedDirectories = (
   process.env.ALLOWED_DIRECTORIES || '/shared,/tmp'
 ).split(',');
 
-console.log('Allowed directories:', allowedDirectories);
+console.info('Allowed directories:', allowedDirectories);
 
 /**
  * Check if a path is within allowed directories
@@ -62,7 +62,7 @@ function createMcpServer() {
       }
 
       try {
-        console.log(`Reading file: ${filePath}`);
+        console.info(`Reading file: ${filePath}`);
         const content = await fs.readFile(filePath, 'utf8');
 
         return {
@@ -114,7 +114,7 @@ function createMcpServer() {
       }
 
       try {
-        console.log(`Writing to file: ${filePath}`);
+        console.info(`Writing to file: ${filePath}`);
 
         // Ensure directory exists
         const dir = path.dirname(filePath);
@@ -159,7 +159,7 @@ function createMcpServer() {
       }
 
       try {
-        console.log(`Listing directory: ${dirPath}`);
+        console.info(`Listing directory: ${dirPath}`);
 
         const entries = await fs.readdir(dirPath, { withFileTypes: true });
 
@@ -246,7 +246,7 @@ function createMcpServer() {
       }
 
       try {
-        console.log(`Creating directory: ${dirPath}`);
+        console.info(`Creating directory: ${dirPath}`);
 
         await fs.mkdir(dirPath, { recursive: true });
 
@@ -287,7 +287,7 @@ function createMcpServer() {
       }
 
       try {
-        console.log(`Deleting file: ${filePath}`);
+        console.info(`Deleting file: ${filePath}`);
 
         await fs.unlink(filePath);
 
@@ -340,7 +340,7 @@ function createMcpServer() {
       }
 
       try {
-        console.log(`Getting info for: ${filePath}`);
+        console.info(`Getting info for: ${filePath}`);
 
         const stats = await fs.stat(filePath);
 
@@ -412,9 +412,9 @@ function setupSessionRoutes() {
   // Handle POST requests for MCP communication
   app.post('/mcp', async (req, res) => {
     try {
-      console.log('MCP POST request received:');
-      console.log('  Headers:', JSON.stringify(req.headers, null, 2));
-      console.log('  Body:', JSON.stringify(req.body, null, 2));
+      console.info('MCP POST request received:');
+      console.info('  Headers: %s', JSON.stringify(req.headers, null, 2));
+      console.info('  Body: %s', JSON.stringify(req.body, null, 2));
 
       // Fix missing Accept headers for compatibility with Go MCP clients
       // The StreamableHTTPServerTransport requires both application/json and text/event-stream
@@ -424,7 +424,7 @@ function setupSessionRoutes() {
         !accept.includes('application/json') ||
         !accept.includes('text/event-stream')
       ) {
-        console.log('Adding missing Accept headers for MCP compatibility');
+        console.info('Adding missing Accept headers for MCP compatibility');
         req.headers.accept = 'application/json, text/event-stream';
       }
 
@@ -440,7 +440,7 @@ function setupSessionRoutes() {
         transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
           onsessioninitialized: (newSessionId) => {
-            console.log(`MCP session initialized: ${newSessionId}`);
+            console.info(`MCP session initialized: ${newSessionId}`);
             // Store the transport by session ID
             transports[newSessionId] = transport;
           },
@@ -449,7 +449,7 @@ function setupSessionRoutes() {
         // Clean up transport when closed
         transport.onclose = () => {
           if (transport.sessionId) {
-            console.log(`MCP session closed: ${transport.sessionId}`);
+            console.info(`MCP session closed: ${transport.sessionId}`);
             delete transports[transport.sessionId];
           }
         };
@@ -528,9 +528,9 @@ Available directories: ${allowedDirectories.join(', ')}
 `;
 
         await fs.writeFile(sampleFile, sampleContent);
-        console.log(`Created sample file: ${sampleFile}`);
+        console.info(`Created sample file: ${sampleFile}`);
       } catch (error) {
-        console.log(`Could not create sample file in ${dir}:`, error.message);
+        console.info(`Could not create sample file in ${dir}:`, error.message);
       }
     }
   } catch (error) {
@@ -552,7 +552,7 @@ app.get('/health', (req, res) => {
     activeSessions: Object.keys(transports).length,
   };
 
-  console.log('Health check requested:', healthStatus);
+  console.info('Health check requested: %j', healthStatus);
   res.json(healthStatus);
 });
 
@@ -567,37 +567,37 @@ async function startServer() {
   setupSessionRoutes();
 
   app.listen(port, host, async () => {
-    console.log(`MCP Filesystem server running on http://${host}:${port}`);
-    console.log('Protocol: Model Context Protocol (MCP)');
-    console.log('Transport: Streamable HTTP');
-    console.log('Available endpoints:');
-    console.log('  POST /mcp             - MCP protocol endpoint');
-    console.log(
+    console.info(`MCP Filesystem server running on http://${host}:${port}`);
+    console.info('Protocol: Model Context Protocol (MCP)');
+    console.info('Transport: Streamable HTTP');
+    console.info('Available endpoints:');
+    console.info('  POST /mcp             - MCP protocol endpoint');
+    console.info(
       '  GET  /mcp             - SSE notifications (with session-id header)'
     );
-    console.log(
+    console.info(
       '  DELETE /mcp           - Session termination (with session-id header)'
     );
-    console.log('  GET  /health          - Health check');
-    console.log('Available tools:');
-    console.log('  - read_file           - Read content from a file');
-    console.log('  - write_file          - Write content to a file');
-    console.log('  - list_directory      - List directory contents');
-    console.log('  - create_directory    - Create a new directory');
-    console.log('  - delete_file         - Delete a file');
-    console.log('  - move_file           - Move/rename a file');
-    console.log('Allowed directories:', allowedDirectories);
+    console.info('  GET  /health          - Health check');
+    console.info('Available tools:');
+    console.info('  - read_file           - Read content from a file');
+    console.info('  - write_file          - Write content to a file');
+    console.info('  - list_directory      - List directory contents');
+    console.info('  - create_directory    - Create a new directory');
+    console.info('  - delete_file         - Delete a file');
+    console.info('  - move_file           - Move/rename a file');
+    console.info('Allowed directories:', allowedDirectories);
 
     // Initialize sample files
     await initializeSampleFiles();
 
-    console.log('MCP Filesystem server ready for connections');
+    console.info('MCP Filesystem server ready for connections');
   });
 }
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, shutting down gracefully');
+  console.info('Received SIGTERM, shutting down gracefully');
   // Close all transports
   Object.values(transports).forEach((transport) => {
     if (transport.close) transport.close();
@@ -606,7 +606,7 @@ process.on('SIGTERM', () => {
 });
 
 process.on('SIGINT', () => {
-  console.log('Received SIGINT, shutting down gracefully');
+  console.info('Received SIGINT, shutting down gracefully');
   // Close all transports
   Object.values(transports).forEach((transport) => {
     if (transport.close) transport.close();

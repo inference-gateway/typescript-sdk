@@ -74,7 +74,7 @@ function createServer() {
     },
     async ({ url, timeout = 10000 }) => {
       try {
-        console.log(`Fetching URL: ${url}`);
+        console.info(`Fetching URL: ${url}`);
         const response = await axios.get(url, {
           timeout,
           headers: {
@@ -151,7 +151,7 @@ function createServer() {
       },
     },
     async ({ query, limit = 5 }) => {
-      console.log(`Searching for: "${query}" (limit: ${limit})`);
+      console.info(`Searching for: "${query}" (limit: ${limit})`);
       const searchResults = generateSearchResults(query, limit);
 
       return {
@@ -180,7 +180,7 @@ function createServer() {
     },
     async ({ url }) => {
       try {
-        console.log(`Extracting title from: ${url}`);
+        console.info(`Extracting title from: ${url}`);
         const response = await axios.get(url, {
           timeout: 10000,
           headers: {
@@ -222,8 +222,8 @@ function createServer() {
  */
 app.post('/mcp', async (req, res) => {
   try {
-    console.log('HTTP JSON-RPC request received:');
-    console.log('  Body:', JSON.stringify(req.body, null, 2));
+    console.info('HTTP JSON-RPC request received:');
+    console.info('  Body: %s', JSON.stringify(req.body, null, 2));
 
     // Create new server and transport instances for each request (stateless mode)
     const server = createServer();
@@ -233,7 +233,7 @@ app.post('/mcp', async (req, res) => {
 
     // Clean up on request close
     res.on('close', () => {
-      console.log('Request closed');
+      console.info('Request closed');
       transport.close();
       server.close();
     });
@@ -261,7 +261,7 @@ app.post('/mcp', async (req, res) => {
 
 // Handle unsupported methods for stateless mode
 app.get('/mcp', async (req, res) => {
-  console.log('Received GET MCP request');
+  console.info('Received GET MCP request');
   res.status(405).json({
     jsonrpc: '2.0',
     error: {
@@ -273,7 +273,7 @@ app.get('/mcp', async (req, res) => {
 });
 
 app.delete('/mcp', async (req, res) => {
-  console.log('Received DELETE MCP request');
+  console.info('Received DELETE MCP request');
   res.status(405).json({
     jsonrpc: '2.0',
     error: {
@@ -295,7 +295,7 @@ app.get('/health', (req, res) => {
     protocol: 'HTTP JSON-RPC',
   };
 
-  console.log('Health check requested:', healthStatus);
+  console.info('Health check requested: %j', healthStatus);
   res.json(healthStatus);
 });
 
@@ -304,28 +304,28 @@ const port = process.env.PORT || 3001;
 const host = process.env.HOST || '0.0.0.0';
 
 app.listen(port, host, () => {
-  console.log(`HTTP Web Search server running on http://${host}:${port}`);
-  console.log('Protocol: HTTP JSON-RPC 2.0');
-  console.log('Available endpoints:');
-  console.log('  POST /mcp             - JSON-RPC endpoint');
-  console.log('  GET  /health          - Health check');
-  console.log('Available methods:');
-  console.log('  - initialize          - Initialize the server');
-  console.log('  - tools/list          - List available tools');
-  console.log('  - tools/call          - Call a tool');
-  console.log('Available tools:');
-  console.log('  - fetch_url           - Fetch content from a URL');
-  console.log('  - search_web          - Perform web search (simulated)');
-  console.log('  - get_page_title      - Extract title from a web page');
+  console.info(`HTTP Web Search server running on http://${host}:${port}`);
+  console.info('Protocol: HTTP JSON-RPC 2.0');
+  console.info('Available endpoints:');
+  console.info('  POST /mcp             - JSON-RPC endpoint');
+  console.info('  GET  /health          - Health check');
+  console.info('Available methods:');
+  console.info('  - initialize          - Initialize the server');
+  console.info('  - tools/list          - List available tools');
+  console.info('  - tools/call          - Call a tool');
+  console.info('Available tools:');
+  console.info('  - fetch_url           - Fetch content from a URL');
+  console.info('  - search_web          - Perform web search (simulated)');
+  console.info('  - get_page_title      - Extract title from a web page');
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, shutting down gracefully');
+  console.info('Received SIGTERM, shutting down gracefully');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('Received SIGINT, shutting down gracefully');
+  console.info('Received SIGINT, shutting down gracefully');
   process.exit(0);
 });

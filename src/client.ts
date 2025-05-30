@@ -95,14 +95,29 @@ class StreamProcessor {
     }
 
     try {
-      const chunk: SchemaCreateChatCompletionStreamResponse = JSON.parse(data);
-      this.callbacks.onChunk?.(chunk);
+      const chunk: StreamChunkWithError = JSON.parse(data);
 
-      if (chunk.usage && this.callbacks.onUsageMetrics) {
-        this.callbacks.onUsageMetrics(chunk.usage);
+      // Handle mid-stream errors from the Inference Gateway
+      // When providers fail during streaming, the gateway embeds error info in the stream
+      if ('error' in chunk && chunk.error) {
+        const apiError: SchemaError = {
+          error:
+            typeof chunk.error === 'string'
+              ? chunk.error
+              : JSON.stringify(chunk.error),
+        };
+        this.callbacks.onError?.(apiError);
+        return;
       }
 
-      const choice = chunk.choices?.[0];
+      const validChunk = chunk as SchemaCreateChatCompletionStreamResponse;
+      this.callbacks.onChunk?.(validChunk);
+
+      if (validChunk.usage && this.callbacks.onUsageMetrics) {
+        this.callbacks.onUsageMetrics(validChunk.usage);
+      }
+
+      const choice = validChunk.choices?.[0];
       if (!choice) return;
 
       this.handleReasoningContent(choice);
@@ -116,8 +131,17 @@ class StreamProcessor {
 
       this.handleFinishReason(choice);
     } catch (parseError) {
-      const errorMessage = `Failed to parse SSE data: ${(parseError as Error).message}`;
-      globalThis.console.error(errorMessage, { data, parseError });
+      let errorMessage = `Failed to parse SSE data: ${(parseError as Error).message}`;
+
+      const errorMatch = data.match(/"error":\s*"([^"]+)"/);
+      if (errorMatch) {
+        errorMessage = errorMatch[1];
+      } else {
+        const nestedErrorMatch = data.match(/"message":\s*"([^"]+)"/);
+        if (nestedErrorMatch) {
+          errorMessage = nestedErrorMatch[1];
+        }
+      }
 
       const apiError: SchemaError = {
         error: errorMessage,
@@ -520,3 +544,8 @@ export class InferenceGatewayClient {
     }
   }
 }
+
+// Add type definition for stream chunks that may contain errors
+type StreamChunkWithError = SchemaCreateChatCompletionStreamResponse & {
+  error?: string | object;
+};

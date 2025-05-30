@@ -5,7 +5,7 @@ services:
       - '8080:8080'
     environment:
       # General settings
-      ENVIRONMENT: development
+      ENVIRONMENT: production
 
       # Enable MCP support
       MCP_ENABLE: 'true'
@@ -39,8 +39,6 @@ services:
         condition: service_healthy
     networks:
       - inference-network
-    volumes:
-      - shared-data:/shared
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:8080/health']
       interval: 30s
@@ -70,7 +68,6 @@ services:
     networks:
       - inference-network
     volumes:
-      - shared-data:/shared
       - ./shared:/tmp
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
@@ -106,18 +103,18 @@ services:
       start_period: 45s
     restart: unless-stopped
 
-  # Optional: Ollama for local models
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - '11434:11434'
-    networks:
-      - inference-network
-    volumes:
-      - ollama-data:/root/.ollama
-    environment:
-      OLLAMA_HOST: '0.0.0.0'
-    restart: unless-stopped
+  # # Optional: Ollama for local models
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   ports:
+  #     - '11434:11434'
+  #   networks:
+  #     - inference-network
+  #   volumes:
+  #     - ollama-data:/root/.ollama
+  #   environment:
+  #     OLLAMA_HOST: '0.0.0.0'
+  #   restart: unless-stopped
 
 volumes:
   shared-data:
