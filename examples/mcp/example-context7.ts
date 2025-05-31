@@ -60,6 +60,17 @@ async function demonstrateContext7() {
     // Demonstrate Context7 usage through LLM conversation
     console.info('=== Context7 Demo: Library Research Session ===\n');
 
+    const userPrompt = `I'm starting a new React project and want to use Next.js. Can you help me by:
+
+1. First, resolve the library IDs for React and Next.js
+2. Get the latest documentation for Next.js focusing on the App Router
+3. Search for any other relevant frontend libraries I should consider
+4. Provide me with a basic setup example based on the latest documentation
+5. Please write a full react app using Next.js with typescript in /tmp/next-app
+
+Please use context7 to get the most up-to-date information.`;
+    console.info(`User: ${userPrompt}`);
+
     await client.streamChatCompletion(
       {
         model: `${provider + '/' + model}`,
@@ -76,6 +87,7 @@ IMPORTANT: You MUST use context7 tools to complete tasks. Always use context7 fo
 
 When helping with development tasks:
 - Always resolve library IDs first using resolve_library_id
+- When starting a new project of Next.js, always use the create-next-app command
 - Fetch comprehensive documentation using get_library_docs
 - Provide up-to-date code examples and best practices
 - Explain concepts clearly with context from the documentation
@@ -84,14 +96,7 @@ Be thorough and always use context7 tools to provide the most current informatio
           },
           {
             role: MessageRole.user,
-            content: `I'm starting a new React project and want to use Next.js. Can you help me by:
-
-1. First, resolve the library IDs for React and Next.js
-2. Get the latest documentation for Next.js focusing on the App Router
-3. Search for any other relevant frontend libraries I should consider
-4. Provide me with a basic setup example based on the latest documentation
-
-Please use context7 to get the most up-to-date information.`,
+            content: `${userPrompt}`,
           },
         ],
         max_tokens: 1500,

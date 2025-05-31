@@ -25,6 +25,14 @@ This directory contains Model Context Protocol (MCP) servers that demonstrate ho
 - **Purpose**: Library documentation and context resolution capabilities
 - **Features**: Library search, documentation retrieval, version management
 
+### 📦 NPM Server (`npm/`)
+
+- **Port**: 3003
+- **Tools**: `npm_run`, `npm_init_project`, `npm_install_package`
+- **Purpose**: Safe npm command execution with whitelisted commands
+- **Features**: Package management, project initialization, security restrictions
+- **Shared Volume**: `/tmp` directory shared with filesystem server
+
 ## Quick Start
 
 ### Individual Server Development
