@@ -20,7 +20,6 @@ This example uses Docker Compose to orchestrate:
 - **Inference Gateway** - Main API gateway with MCP support enabled
 - **MCP Filesystem Server** - Provides file system operations (restricted to `/shared` and `/tmp`)
 - **MCP Web Search Server** - Simulated web search and URL fetching
-- **Optional Ollama** - Local model inference (when using `--profile with-ollama`)
 
 ## Important: Filesystem Access
 
@@ -49,7 +48,8 @@ The `/shared` directory contains example files for testing:
 Make sure the environment is configured:
 
 ```bash
-cp .env.example .env
+# From the .env file grab one of the providers keys and export it
+export OPENAI_API_KEY=your_openai_api_key
 ```
 
 ### 1. Start the MCP Infrastructure
@@ -78,7 +78,7 @@ Set your preferred provider and model:
 
 ```bash
 export PROVIDER=groq
-export LLM=meta-llama/llama-3.3-70b-versatile
+export LLM=qwen-qwq-32b
 ```
 
 Or for OpenAI:
@@ -93,7 +93,7 @@ export LLM=gpt-4o
 Test that MCP tools are working correctly:
 
 ```bash
-npx tsx test-mcp-tools.ts
+npm run example:mcp:remotetools
 ```
 
 ### 5. Run Examples
