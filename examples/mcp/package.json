@@ -5,9 +5,18 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "start": "tsx index.ts",
-    "example:mcp:remotetools": "tsx example-mcp-tools.ts",
-    "example:mcp:withlocaltools": "tsx example-mcp-with-tools.ts",
+    "start": "tsx example-basic.ts",
+    "example": "tsx example-${npm_config_name:-basic}.ts",
+    "example:basic": "tsx example-basic.ts",
+    "example:advanced": "tsx example-advanced.ts",
+    "example:nextjs": "tsx example-nextjs.ts",
+    "example:handler-demo": "tsx example-handler-demo.ts",
+    "example:tool-demo": "tsx example-tool-demo.ts",
+    "example:debug-args": "tsx example-debug-args.ts",
+    "example:test-direct-mcp": "tsx example-test-direct-mcp.ts",
+    "example:list-tools": "tsx example-list-tools.ts",
+    "example:mcp-tools": "tsx example-mcp-tools.ts",
+    "example:context7": "tsx example-context7.ts",
     "compose:up": "docker-compose up -d",
     "compose:down": "docker-compose down",
     "compose:logs": "docker-compose logs -f"
@@ -16,7 +25,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@inference-gateway/sdk": "^0.7.1"
+    "@inference-gateway/sdk": "^0.7.1",
+    "axios": "^1.9.0",
+    "dotenv": "^16.5.0"
   },
   "devDependencies": {
     "tsx": "^4.19.4"
