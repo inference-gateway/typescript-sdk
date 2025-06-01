@@ -11,15 +11,11 @@ import cors from 'cors';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 
-// Express app for HTTP transport
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Map to store MCP sessions
 const mcpSessions = new Map();
-
-// Context7 process instances cache
 const context7Processes = new Map();
 
 /**
@@ -42,7 +38,6 @@ class Context7Process {
     this.readyPromise = new Promise((resolve, reject) => {
       console.info('🚀 Spawning Context7 MCP server...');
 
-      // Spawn the real Context7 MCP server
       this.process = spawn('npx', ['-y', '@upstash/context7-mcp@latest'], {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: {
@@ -53,7 +48,6 @@ class Context7Process {
 
       let buffer = '';
 
-      // Handle stdout - MCP protocol messages
       this.process.stdout.on('data', (data) => {
         buffer += data.toString();
         const lines = buffer.split('\n');
@@ -83,24 +77,21 @@ class Context7Process {
         }
       });
 
-      // Handle process exit
       this.process.on('exit', (code) => {
         console.info(`🔚 Context7 process exited with code ${code}`);
         this.isReady = false;
         this.process = null;
 
-        // Reject all pending requests
         for (const [, { reject }] of this.pendingRequests) {
           reject(new Error('Context7 process terminated'));
         }
         this.pendingRequests.clear();
       });
 
-      // Handle errors
       this.process.on('error', (error) => {
         console.error('❌ Context7 process error:', error);
         reject(error);
-      }); // Initialize the MCP session
+      });
       globalThis.setTimeout(() => {
         this.sendInitialize();
       }, 2000);
@@ -127,12 +118,10 @@ class Context7Process {
       },
     };
 
-    // Track this request properly
     const messageId = initMessage.id;
     const initPromise = new Promise((resolve, reject) => {
       this.pendingRequests.set(messageId, { resolve, reject });
 
-      // Set timeout for initialization
       globalThis.setTimeout(() => {
         if (this.pendingRequests.has(messageId)) {
           this.pendingRequests.delete(messageId);
@@ -143,12 +132,10 @@ class Context7Process {
 
     this.sendMessage(initMessage);
 
-    // Handle the initialization response
     initPromise
       .then(() => {
         console.info('✅ Context7 initialized successfully');
         this.isReady = true;
-        // Send initialized notification after successful init
         globalThis.setTimeout(() => {
           this.sendMessage({
             jsonrpc: '2.0',
@@ -181,7 +168,6 @@ class Context7Process {
       JSON.stringify(message, null, 2)
     );
 
-    // Handle responses to our requests
     if (message.id && this.pendingRequests.has(message.id)) {
       const { resolve, reject } = this.pendingRequests.get(message.id);
       this.pendingRequests.delete(message.id);
@@ -197,7 +183,6 @@ class Context7Process {
       return;
     }
 
-    // Special handling for initialization - Context7 doesn't send notifications/initialized
     if (
       message.result &&
       message.result.serverInfo &&
@@ -210,7 +195,6 @@ class Context7Process {
       return;
     }
 
-    // Handle specific notifications and responses
     switch (message.method) {
       case 'notifications/initialized':
         console.info('✅ Context7 initialized notification received');
@@ -249,13 +233,12 @@ class Context7Process {
     return new Promise((resolve, reject) => {
       this.pendingRequests.set(messageId, { resolve, reject });
 
-      // Set timeout for the request
       globalThis.setTimeout(() => {
         if (this.pendingRequests.has(messageId)) {
           this.pendingRequests.delete(messageId);
           reject(new Error('Context7 request timeout'));
         }
-      }, 30000); // 30 second timeout
+      }, 30000);
 
       this.sendMessage(message);
     });
@@ -270,12 +253,10 @@ class Context7Process {
       params: {},
     };
 
-    // Track this request properly
     const messageId = toolsListMessage.id;
     const toolsPromise = new Promise((resolve, reject) => {
       this.pendingRequests.set(messageId, { resolve, reject });
 
-      // Set timeout for tools list request
       globalThis.setTimeout(() => {
         if (this.pendingRequests.has(messageId)) {
           this.pendingRequests.delete(messageId);
@@ -286,7 +267,6 @@ class Context7Process {
 
     this.sendMessage(toolsListMessage);
 
-    // Handle the tools list response
     toolsPromise
       .then((result) => {
         console.info(
@@ -330,7 +310,6 @@ class Context7Process {
       console.info('🔄 Terminating Context7 process...');
       this.process.kill('SIGTERM');
 
-      // Force kill after 5 seconds
       globalThis.setTimeout(() => {
         if (this.process) {
           console.info('🔪 Force killing Context7 process...');
@@ -349,7 +328,6 @@ function getContext7Process(sessionId = 'default') {
     const process = new Context7Process();
     context7Processes.set(sessionId, process);
 
-    // Clean up after 10 minutes of inactivity
     globalThis.setTimeout(
       () => {
         if (context7Processes.has(sessionId)) {
@@ -659,14 +637,12 @@ async function handleMcpRequest(request) {
  * Setup MCP endpoints for proper Model Context Protocol communication
  */
 function setupSessionRoutes() {
-  // Handle POST requests for MCP communication
   app.post('/mcp', async (req, res) => {
     try {
       console.info('📨 MCP POST request received:');
       console.info('  Headers: %s', JSON.stringify(req.headers, null, 2));
       console.info('  Body: %s', JSON.stringify(req.body, null, 2));
 
-      // Validate request body
       if (!req.body || typeof req.body !== 'object') {
         return res.status(400).json({
           jsonrpc: '2.0',
@@ -689,7 +665,6 @@ function setupSessionRoutes() {
         });
       }
 
-      // Get or create session
       const sessionId = req.headers['mcp-session-id'] || randomUUID();
 
       if (!mcpSessions.has(sessionId)) {
@@ -698,7 +673,6 @@ function setupSessionRoutes() {
         });
         console.info(`🎯 MCP session created: ${sessionId}`);
 
-        // Set session cleanup timer
         globalThis.setTimeout(
           () => {
             if (mcpSessions.has(sessionId)) {
@@ -707,13 +681,11 @@ function setupSessionRoutes() {
             }
           },
           10 * 60 * 1000
-        ); // 10 minutes
+        );
       }
 
-      // Handle the MCP request
       const response = await handleMcpRequest(req.body);
 
-      // Set session ID header in response
       res.setHeader('mcp-session-id', sessionId);
       res.json(response);
     } catch (error) {
@@ -733,7 +705,6 @@ function setupSessionRoutes() {
     }
   });
 
-  // Handle GET requests for SSE (server-to-client notifications)
   app.get('/mcp', async (req, res) => {
     const sessionId = req.headers['mcp-session-id'];
 
@@ -747,7 +718,6 @@ function setupSessionRoutes() {
       });
     }
 
-    // Set up SSE stream
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -758,7 +728,6 @@ function setupSessionRoutes() {
 
     res.write('data: {"type":"connected"}\n\n');
 
-    // Keep connection alive
     const keepAlive = globalThis.setInterval(() => {
       res.write('data: {"type":"ping"}\n\n');
     }, 30000);
@@ -768,7 +737,6 @@ function setupSessionRoutes() {
     });
   });
 
-  // Handle DELETE requests for session termination
   app.delete('/mcp', async (req, res) => {
     const sessionId = req.headers['mcp-session-id'];
 
@@ -782,7 +750,6 @@ function setupSessionRoutes() {
       });
     }
 
-    // Clean up session
     mcpSessions.delete(sessionId);
 
     console.info(`🗑️ Session terminated: ${sessionId}`);
@@ -793,7 +760,6 @@ function setupSessionRoutes() {
   });
 }
 
-// Health check endpoint
 app.get('/health', (_req, res) => {
   const healthStatus = {
     status: 'healthy',
@@ -815,7 +781,6 @@ async function startServer() {
   const PORT = process.env.PORT || 3002;
   const host = process.env.HOST || '0.0.0.0';
 
-  // Set up session routes
   setupSessionRoutes();
 
   app.listen(PORT, host, () => {
@@ -842,14 +807,11 @@ async function startServer() {
   });
 }
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
   console.info('🔄 Received SIGTERM, shutting down gracefully');
 
-  // Clear all MCP sessions
   mcpSessions.clear();
 
-  // Terminate all Context7 processes
   context7Processes.forEach((proc) => {
     proc.terminate();
   });
@@ -860,10 +822,8 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
   console.info('🔄 Received SIGINT, shutting down gracefully');
 
-  // Clear all MCP sessions
   mcpSessions.clear();
 
-  // Terminate all Context7 processes
   context7Processes.forEach((proc) => {
     proc.terminate();
   });
@@ -871,7 +831,6 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-// Start the server
 startServer().catch((error) => {
   console.error('💥 Failed to start server:', error);
   process.exit(1);

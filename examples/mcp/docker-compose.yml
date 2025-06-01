@@ -10,7 +10,7 @@ services:
       # Enable MCP support
       MCP_ENABLE: 'true'
       MCP_EXPOSE: 'true'
-      MCP_SERVERS: 'http://mcp-filesystem:3000/mcp,http://mcp-web-search:3001/mcp,http://mcp-context7:3002/mcp,http://mcp-npm:3003/mcp'
+      MCP_SERVERS: 'http://mcp-filesystem:3000/mcp,http://mcp-web-search:3001/mcp,http://mcp-context7:3002/mcp,http://mcp-npm:3003/mcp,http://mcp-memory:3004/mcp'
 
       # Server settings
       SERVER_HOST: '0.0.0.0'
@@ -43,6 +43,8 @@ services:
       mcp-context7:
         condition: service_healthy
       mcp-npm:
+        condition: service_healthy
+      mcp-memory:
         condition: service_healthy
     networks:
       - inference-network
@@ -164,6 +166,36 @@ services:
       - ./shared:/tmp
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:3003/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    restart: unless-stopped
+
+  mcp-memory:
+    build:
+      context: ./mcp-servers/memory
+      dockerfile_inline: |
+        FROM node:18-alpine
+        WORKDIR /app
+        RUN apk add --no-cache curl
+        COPY package.json ./
+        RUN npm install
+        COPY . .
+        EXPOSE 3004
+        CMD ["npm", "start"]
+    environment:
+      NODE_ENV: 'production'
+      MCP_SERVER_NAME: 'memory'
+      MCP_SERVER_VERSION: '1.0.0'
+      PORT: '3004'
+      MEMORY_DIR: '/tmp/memory'
+    networks:
+      - inference-network
+    volumes:
+      - ./shared:/tmp/memory
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3004/health']
       interval: 30s
       timeout: 10s
       retries: 5
