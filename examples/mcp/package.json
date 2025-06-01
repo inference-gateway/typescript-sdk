@@ -5,8 +5,8 @@
   "main": "index.js",
   "private": true,
   "scripts": {
+    "clean": "rm -rf shared/next-app shared/update-check",
     "start": "tsx example-basic.ts",
-    "example": "tsx example-${npm_config_name:-basic}.ts",
     "example:basic": "tsx example-basic.ts",
     "example:advanced": "tsx example-advanced.ts",
     "example:nextjs": "tsx example-nextjs.ts",
@@ -16,7 +16,7 @@
     "example:test-direct-mcp": "tsx example-test-direct-mcp.ts",
     "example:list-tools": "tsx example-list-tools.ts",
     "example:mcp-tools": "tsx example-mcp-tools.ts",
-    "example:context7": "tsx example-context7.ts",
+    "example:agent": "tsx example-agent.ts",
     "compose:up": "docker-compose up -d",
     "compose:down": "docker-compose down",
     "compose:logs": "docker-compose logs -f"

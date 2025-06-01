@@ -93,7 +93,7 @@ async function executeNpmCommand(command, cwd = workingDirectory) {
   try {
     const { stdout, stderr } = await execAsync(fullCommand, {
       cwd,
-      timeout: 30000, // 30 second timeout
+      timeout: 300000, // 5 minute timeout (increased from 30 seconds)
       maxBuffer: 1024 * 1024, // 1MB buffer
     });
 
@@ -367,7 +367,7 @@ function createMcpServer() {
 
       try {
         // Build the npx create-next-app command with options
-        let command = `npx create-next-app@latest "${name}"`;
+        let command = `npx create-next-app@latest "${name}" --yes`;
 
         // Add flags based on options
         if (typescript) {
@@ -408,7 +408,7 @@ function createMcpServer() {
 
         const { stdout, stderr } = await execAsync(command, {
           cwd: workDir,
-          timeout: 180000, // 3 minute timeout for project creation
+          timeout: 600000, // 10 minute timeout for project creation (increased from 3 minutes)
           maxBuffer: 1024 * 1024 * 5, // 5MB buffer
         });
 

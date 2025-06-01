@@ -280,7 +280,7 @@ export class InferenceGatewayClient {
     this.apiKey = options.apiKey;
     this.defaultHeaders = options.defaultHeaders || {};
     this.defaultQuery = options.defaultQuery || {};
-    this.timeout = options.timeout || 30000;
+    this.timeout = options.timeout || 60000; // Increased default timeout to 60 seconds
     this.fetchFn = options.fetch || globalThis.fetch;
   }
 

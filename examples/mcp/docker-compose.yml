@@ -29,6 +29,9 @@ services:
       DEEPSEEK_API_URL: 'https://api.deepseek.com/v1'
       DEEPSEEK_API_KEY: '${DEEPSEEK_API_KEY:-}'
 
+      COHERE_API_URL: 'https://api.cohere.ai'
+      COHERE_API_KEY: '${COHERE_API_KEY:-}'
+
       # Optional: Ollama for local models
       OLLAMA_API_URL: 'http://ollama:11434/v1'
       OLLAMA_API_KEY: ''

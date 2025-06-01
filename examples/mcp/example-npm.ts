@@ -21,6 +21,7 @@ declare const module: any;
 async function demonstrateNpmMcp() {
   const client = new InferenceGatewayClient({
     baseURL: 'http://localhost:8080/v1',
+    timeout: 120000, // 2 minute timeout for npm operations
   });
 
   const provider = (process.env.PROVIDER as Provider) || Provider.groq;
