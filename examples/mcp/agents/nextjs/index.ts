@@ -1,5 +1,5 @@
 /**
- * Interactive Context7 Agent
+ * Interactive NextJS Agent
  *
  * This agent allows users to interactively request app development assistance
  * using Context7 MCP tools for up-to-date documentation and library information.
@@ -28,7 +28,7 @@ interface AgentConfig {
   retryDelayMs: number;
 }
 
-class Context7Agent {
+class NextJSAgent {
   private config: AgentConfig;
   private rl: readline.Interface;
 
@@ -197,7 +197,7 @@ If a Next.js project exists:
 
   async initialize(): Promise<void> {
     console.log(
-      `🚀 Context7 Interactive Agent initialized using ${this.config.model} on ${this.config.provider}\n`
+      `🚀 NextJS Interactive Agent initialized using ${this.config.model} on ${this.config.provider}\n`
     );
 
     let attempt = 0;
@@ -285,7 +285,7 @@ If a Next.js project exists:
   }
 
   private showWelcomeMessage(): void {
-    console.log('🤖 Welcome to Context7 Interactive Development Agent!');
+    console.log('🤖 Welcome to NextJS Interactive Development Agent!');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(
       '\n💡 I can help you create modern applications using the latest technologies.'
@@ -346,7 +346,7 @@ If a Next.js project exists:
     switch (command) {
       case 'exit':
       case 'quit':
-        console.log('\n👋 Thank you for using Context7 Agent! Goodbye!');
+        console.log('\n👋 Thank you for using NextJS Agent! Goodbye!');
         this.rl.close();
         process.exit(0);
         return true;
@@ -420,7 +420,7 @@ If a Next.js project exists:
       },
       {
         onOpen: () => {
-          console.log('🔗 Starting development session with Context7...\n');
+          console.log('🔗 Starting development session with NextJS Agent...\n');
         },
         onReasoning: (reasoning) => {
           console.log(`\n🤔 Agent Reasoning: ${reasoning}`);
@@ -480,17 +480,17 @@ If a Next.js project exists:
   }
 }
 
-async function runContext7Agent(): Promise<void> {
-  const agent = new Context7Agent();
+async function runNextJSAgent(): Promise<void> {
+  const agent = new NextJSAgent();
 
   process.on('SIGINT', async () => {
-    console.log('\n\n👋 Shutting down Context7 Agent...');
+    console.log('\n\n👋 Shutting down NextJS Agent...');
     await agent.shutdown();
     process.exit(0);
   });
 
   process.on('SIGTERM', async () => {
-    console.log('\n\n👋 Shutting down Context7 Agent...');
+    console.log('\n\n👋 Shutting down NextJS Agent...');
     await agent.shutdown();
     process.exit(0);
   });
@@ -498,8 +498,8 @@ async function runContext7Agent(): Promise<void> {
   await agent.initialize();
 }
 
-if (require.main === module || process.argv[1].endsWith('context7-agent.ts')) {
-  runContext7Agent().catch(console.error);
+if (require.main === module || process.argv[1].endsWith('index.ts')) {
+  runNextJSAgent().catch(console.error);
 }
 
-export { Context7Agent, runContext7Agent };
+export { NextJSAgent, runNextJSAgent };
