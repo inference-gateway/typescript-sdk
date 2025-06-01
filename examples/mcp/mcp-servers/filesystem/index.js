@@ -21,17 +21,13 @@ import {
   logMcpError,
 } from './logger.js';
 
-// Express app for HTTP transport
 const app = express();
 app.use(express.json());
 
-// Create standardized logger
 const logger = createMcpLogger('mcp-filesystem', '1.0.0');
 
-// Map to store transports by session ID
 const transports = {};
 
-// Allowed directories (configurable via environment)
 const allowedDirectories = (process.env.ALLOWED_DIRECTORIES || '/tmp').split(
   ','
 );
@@ -487,7 +483,6 @@ function createMcpServer() {
  * Setup MCP endpoints for proper Model Context Protocol communication
  */
 function setupSessionRoutes() {
-  // Handle POST requests for MCP communication
   app.post('/mcp', async (req, res) => {
     try {
       logMcpRequest(logger, req, 'MCP POST request received');
