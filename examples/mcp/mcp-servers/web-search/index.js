@@ -10,6 +10,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import express from 'express';
 import { randomUUID } from 'node:crypto';
+import { setTimeout } from 'node:timers/promises';
 import { z } from 'zod';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
@@ -18,6 +19,47 @@ import { createMcpLogger } from './logger.js';
 import cors from 'cors';
 
 const logger = createMcpLogger('mcp-web-search', '1.0.0');
+
+let lastSearchTime = 0;
+const MIN_SEARCH_INTERVAL = 2000;
+
+const rateLimitedSearch = async (query, options, retries = 3) => {
+  const now = Date.now();
+  const timeSinceLastSearch = now - lastSearchTime;
+
+  if (timeSinceLastSearch < MIN_SEARCH_INTERVAL) {
+    const delay = MIN_SEARCH_INTERVAL - timeSinceLastSearch;
+    logger.info('Rate limiting: delaying search', { delay, query });
+    await setTimeout(delay);
+  }
+
+  lastSearchTime = Date.now();
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await search(query, options);
+    } catch (error) {
+      if (
+        error.message.includes('anomaly') ||
+        error.message.includes('too quickly')
+      ) {
+        if (attempt < retries) {
+          const backoffDelay = MIN_SEARCH_INTERVAL * attempt;
+          logger.warn('DuckDuckGo rate limit hit, retrying', {
+            attempt,
+            retries,
+            delay: backoffDelay,
+            query,
+            error: error.message,
+          });
+          await setTimeout(backoffDelay);
+          continue;
+        }
+      }
+      throw error;
+    }
+  }
+};
 
 const app = express();
 app.use(cors());
@@ -270,12 +312,12 @@ function createMcpServer() {
 
         const searchOptions = {
           safeSearch: safeSearchMap[safe_search],
-          time: null, // no time restriction
+          time: null,
           locale: 'en-us',
-          count: Math.min(limit, 20), // DuckDuckGo API limit
+          count: Math.min(limit, 20),
         };
 
-        const searchResults = await search(query, searchOptions);
+        const searchResults = await rateLimitedSearch(query, searchOptions);
 
         if (
           !searchResults ||
@@ -385,6 +427,7 @@ app.post('/mcp', async (req, res) => {
     logger.info('MCP POST request received', {
       headers: req.headers,
       bodyKeys: Object.keys(req.body || {}),
+      method: req.body?.method,
     });
 
     const accept = req.headers.accept || req.headers.Accept;
@@ -402,12 +445,16 @@ app.post('/mcp', async (req, res) => {
 
     if (sessionId && transports[sessionId]) {
       transport = transports[sessionId];
+      logger.info('Using existing session', { sessionId });
     } else {
+      const newSessionId = randomUUID();
+      logger.info('Creating new MCP session', { sessionId: newSessionId });
+
       transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => randomUUID(),
-        onsessioninitialized: (newSessionId) => {
-          logger.info('MCP session initialized', { sessionId: newSessionId });
-          transports[newSessionId] = transport;
+        sessionIdGenerator: () => newSessionId,
+        onsessioninitialized: (initSessionId) => {
+          logger.info('MCP session initialized', { sessionId: initSessionId });
+          transports[initSessionId] = transport;
         },
       });
 
@@ -420,11 +467,20 @@ app.post('/mcp', async (req, res) => {
 
       const server = createMcpServer();
       await server.connect(transport);
+
+      transports[newSessionId] = transport;
+
+      res.setHeader('mcp-session-id', newSessionId);
     }
 
     await transport.handleRequest(req, res, req.body);
   } catch (error) {
-    logger.error('Error handling MCP request', { error: error.message });
+    logger.error('Error handling MCP request', {
+      error: error.message,
+      stack: error.stack,
+      method: req.body?.method,
+      sessionId: req.headers['mcp-session-id'],
+    });
     if (!res.headersSent) {
       res.status(500).json({
         jsonrpc: '2.0',

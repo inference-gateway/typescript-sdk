@@ -10,9 +10,11 @@ import {
   MessageRole,
   Provider,
 } from '@inference-gateway/sdk';
+import { randomUUID } from 'crypto';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as readline from 'readline';
+import { clearTimeout, setTimeout } from 'timers';
 
 dotenv.config({ path: path.join(__dirname, '.env') });
 
@@ -32,6 +34,7 @@ interface AgentConfig {
   maxHistoryLength: number;
   sessionId: string;
   memoryEnabled: boolean;
+  abortController: globalThis.AbortController;
 }
 
 class NextJSAgent {
@@ -39,6 +42,10 @@ class NextJSAgent {
   private rl: readline.Interface;
 
   constructor() {
+    console.log('🔧 Debug - Environment variables:');
+    console.log('   PROVIDER:', process.env.PROVIDER);
+    console.log('   LLM:', process.env.LLM);
+
     this.config = {
       client: new InferenceGatewayClient({
         baseURL: 'http://inference-gateway:8080/v1',
@@ -52,8 +59,9 @@ class NextJSAgent {
       totalTokensUsed: 0,
       maxTokensPerRequest: 1000,
       maxHistoryLength: 10,
-      sessionId: `nextjs-agent-${Date.now()}`,
+      sessionId: process.env.SESSION_ID || randomUUID(),
       memoryEnabled: true,
+      abortController: new globalThis.AbortController(),
     };
 
     this.rl = readline.createInterface({
@@ -68,8 +76,24 @@ class NextJSAgent {
   }
 
   private async delay(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-      global.setTimeout(() => resolve(), ms);
+    return new Promise((resolve, reject) => {
+      if (this.config.abortController.signal.aborted) {
+        reject(new Error('Aborted'));
+        return;
+      }
+
+      const timeout = global.setTimeout(() => resolve(), ms);
+
+      const abortHandler = () => {
+        global.clearTimeout(timeout);
+        reject(new Error('Aborted'));
+      };
+
+      this.config.abortController.signal.addEventListener(
+        'abort',
+        abortHandler,
+        { once: true }
+      );
     });
   }
 
@@ -84,6 +108,14 @@ class NextJSAgent {
   private getSystemPrompt(): string {
     return `
 You are an expert software development assistant with access to Context7 MCP tools for library documentation and research. Today is **June 1, 2025**.
+
+**ABSOLUTELY CRITICAL - READ THIS FIRST**:
+- You must NEVER output XML tags or function calls in any format
+- You must NEVER use syntax like <tool_name>, <function>, or <function(name)>
+- Tools are handled automatically by the MCP system - you just describe what you need
+- When you want to search: Say "I need to search for X" - don't output XML
+- When you want to fetch: Say "I need to get information from Y" - don't output XML
+- Just communicate naturally and the system will handle all tool calling
 
 ---
 
@@ -107,6 +139,12 @@ You have access to several MCP tool categories:
 
 * c41_resolve-library-id: Resolve technology names to Context7-compatible IDs
 * c41_get-library-docs: Fetch full documentation, usage examples, and best practices
+
+**Web Search Tools:**
+
+* search_web: Perform web searches using DuckDuckGo (use this FIRST before fetching URLs)
+* fetch_url: Fetch content from verified URLs (only use URLs from search results)
+* get_page_title: Extract page titles from URLs
 
 **Mock Tools (for local/demo use):**
 
@@ -138,7 +176,13 @@ You have access to several MCP tool categories:
 * npm_install: Install npm packages
 * create_nextjs_project: Create a new Next.js project with specified options
 
-**IMPORTANT**: All tools are called through the MCP system - never use XML-style syntax like <tool_name>. The LLM will automatically use the available tools when needed.
+**CRITICAL TOOL USAGE RULES**:
+- NEVER use XML-style syntax like <tool_name> or <function> tags
+- NEVER output function calls in XML format like <function(tool_name)>
+- Tools are automatically available and will be called by the system when you need them
+- Simply describe what you want to do and the system will handle tool calls
+- If you need to search, just say "I need to search for..." and the system will call search_web
+- If you need to fetch a URL, just say "I need to fetch..." and the system will call fetch_url
 
 ---
 
@@ -172,10 +216,16 @@ When encountering HTTP errors or failures:
 
 **When creating a Next.js project, always wait 30 seconds after project creation.**
 
-**CRITICAL: Never use XML-style tool syntax like \`<tool_name>\`. All tools are automatically available through MCP and will be called by the LLM when needed.**
+**CRITICAL: Never use XML-style tool syntax like \`<tool_name>\` or \`<function>\` tags. All tools are automatically available through MCP and will be called by the LLM when needed. Simply describe what you want to do in natural language.**
+
+**Web Search Best Practices:**
+1. **Always search first**: Use search_web to find information before trying to fetch URLs
+2. **Use reliable URLs**: Only fetch URLs from search results or known reliable domains
+3. **Verify domains**: Stick to major sites like github.com, stackoverflow.com, docs sites, etc.
+4. **Search workflow**: search_web → get reliable URLs → fetch_url with those URLs
 
 1. Clarify requirements and tech stack
-2. Lookup technologies using Context7 tools
+2. Lookup technologies using Context7 tools OR web search tools
 3. Retrieve current documentation and patterns
 4. Scaffold or enhance projects under /tmp, maintaining clean structure
 5. Follow framework and language conventions
@@ -492,12 +542,18 @@ If a Next.js project exists:
       );
     }
 
+    this.resetAbortController();
+
     let assistantResponse = '';
     let shouldWaitForProject = false;
 
+    console.log(
+      `🔧 Debug - Using provider: ${this.config.provider}, model: ${this.config.model}`
+    );
+
     await this.config.client.streamChatCompletion(
       {
-        model: `${this.config.provider}/${this.config.model}`,
+        model: this.config.model,
         messages: this.getOptimizedConversationHistory(),
         max_tokens: this.config.maxTokensPerRequest,
       },
@@ -575,7 +631,6 @@ If a Next.js project exists:
         onError: (error) => {
           console.error(`\n❌ Stream Error: ${error.error}`);
 
-          // Save error state to memory for recovery
           if (this.config.memoryEnabled) {
             this.saveStateToMemory(
               `Error occurred during request processing: ${error.error}`
@@ -599,7 +654,9 @@ If a Next.js project exists:
             });
           }
         },
-      }
+      },
+      this.config.provider,
+      this.config.abortController.signal
     );
   }
 
@@ -626,7 +683,7 @@ If a Next.js project exists:
 
       await this.config.client.streamChatCompletion(
         {
-          model: `${this.config.provider}/${this.config.model}`,
+          model: this.config.model,
           messages: [
             {
               role: MessageRole.system,
@@ -675,7 +732,9 @@ Call save-state tool immediately with sessionId="${this.config.sessionId}" and t
               console.warn('⚠️  Memory tool called but save may have failed');
             }
           },
-        }
+        },
+        this.config.provider,
+        this.config.abortController.signal
       );
     } catch (error) {
       console.warn(
@@ -708,12 +767,17 @@ Call save-state tool immediately with sessionId="${this.config.sessionId}" and t
       const maxAttempts = 3;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (this.config.abortController.signal.aborted) {
+          console.warn('⚠️  Memory save aborted during shutdown');
+          throw new Error('Memory save aborted');
+        }
+
         console.log(`🔄 Memory save attempt ${attempt}/${maxAttempts}`);
 
         try {
           await this.config.client.streamChatCompletion(
             {
-              model: `${this.config.provider}/${this.config.model}`,
+              model: this.config.model,
               messages: [
                 {
                   role: MessageRole.system,
@@ -751,7 +815,9 @@ Call the save-state tool now.`,
                       JSON.stringify(args, null, 2)
                     );
                   } catch {
-                    // Ignore parsing errors
+                    console.error(
+                      `📝 Raw tool arguments: ${toolCall.function.arguments}`
+                    );
                   }
                 }
               },
@@ -779,7 +845,9 @@ Call the save-state tool now.`,
                   );
                 }
               },
-            }
+            },
+            this.config.provider,
+            this.config.abortController.signal
           );
 
           if (toolCallDetected && saveSuccessful) {
@@ -787,6 +855,10 @@ Call the save-state tool now.`,
           }
 
           if (attempt < maxAttempts) {
+            if (this.config.abortController.signal.aborted) {
+              console.warn('⚠️  Memory save aborted during retry wait');
+              throw new Error('Memory save aborted');
+            }
             console.log(`⏳ Waiting 2 seconds before retry...`);
             await this.delay(2000);
           }
@@ -829,7 +901,7 @@ Call the save-state tool now.`,
 
       await this.config.client.streamChatCompletion(
         {
-          model: `${this.config.provider}/${this.config.model}`,
+          model: this.config.model,
           messages: [
             {
               role: MessageRole.system,
@@ -846,7 +918,7 @@ Call the save-state tool now.`,
           onContent: (content) => {
             if (content.includes('{') && content.includes('}')) {
               try {
-                const jsonMatch = content.match(/\{.*\}/s);
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
                   restoredData = JSON.parse(jsonMatch[0]);
                 }
@@ -881,7 +953,9 @@ Call the save-state tool now.`,
               );
             }
           },
-        }
+        },
+        this.config.provider,
+        this.config.abortController.signal
       );
 
       return !!restoredData;
@@ -958,13 +1032,27 @@ Call the save-state tool now.`,
     return this.config.conversationHistory;
   }
 
+  private resetAbortController(): void {
+    if (!this.config.abortController.signal.aborted) {
+      this.config.abortController.abort('Starting new request');
+    }
+    this.config.abortController = new globalThis.AbortController();
+  }
+
   async shutdown(): Promise<void> {
     if (this.config.memoryEnabled) {
       console.log('💾 Saving session state before shutdown...');
       try {
+        const shutdownTimeout = setTimeout(() => {
+          console.warn('⚠️  Shutdown timeout reached, forcing exit...');
+          process.exit(1);
+        }, 10000); // 10 second timeout
+
         await this.saveStateToMemoryForced(
           'Manual shutdown via SIGINT/SIGTERM signal'
         );
+
+        clearTimeout(shutdownTimeout);
         console.log('✅ Session state saved successfully');
       } catch (error) {
         console.warn(
@@ -976,6 +1064,12 @@ Call the save-state tool now.`,
 
     this.rl.close();
   }
+
+  abortOperations(): void {
+    if (!this.config.abortController.signal.aborted) {
+      this.config.abortController.abort('Shutdown signal received');
+    }
+  }
 }
 
 async function runNextJSAgent(): Promise<void> {
@@ -983,12 +1077,14 @@ async function runNextJSAgent(): Promise<void> {
 
   process.on('SIGINT', async () => {
     console.log('\n\n👋 Shutting down NextJS Agent...');
+    agent.abortOperations();
     await agent.shutdown();
     process.exit(0);
   });
 
   process.on('SIGTERM', async () => {
     console.log('\n\n👋 Shutting down NextJS Agent...');
+    agent.abortOperations();
     await agent.shutdown();
     process.exit(0);
   });

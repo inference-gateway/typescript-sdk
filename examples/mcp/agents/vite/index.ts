@@ -453,7 +453,7 @@ If a Vite project exists:
 
     await this.config.client.streamChatCompletion(
       {
-        model: `${this.config.provider}/${this.config.model}`,
+        model: this.config.model,
         messages: this.config.conversationHistory,
         max_tokens: 2000,
       },
