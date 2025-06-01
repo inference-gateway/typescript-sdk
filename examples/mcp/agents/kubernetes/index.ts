@@ -555,10 +555,7 @@ async function runKubernetesAgent(): Promise<void> {
   await agent.initialize();
 }
 
-if (
-  require.main === module ||
-  process.argv[1].endsWith('kubernetes-agent.ts')
-) {
+if (require.main === module || process.argv[1].endsWith('index.ts')) {
   runKubernetesAgent().catch(console.error);
 }
 

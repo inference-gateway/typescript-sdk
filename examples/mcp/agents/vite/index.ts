@@ -524,7 +524,7 @@ async function runViteAgent(): Promise<void> {
   await agent.initialize();
 }
 
-if (require.main === module || process.argv[1].endsWith('vite-agent.ts')) {
+if (require.main === module || process.argv[1].endsWith('index.ts')) {
   runViteAgent().catch(console.error);
 }
 
