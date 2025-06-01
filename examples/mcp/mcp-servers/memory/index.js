@@ -25,7 +25,6 @@ import {
 const app = express();
 app.use(express.json());
 
-// Create standardized logger
 const logger = createMcpLogger('mcp-memory', '1.0.0');
 
 const transports = {};
@@ -79,6 +78,12 @@ function createMcpServer() {
           timestamp: new Date().toISOString(),
           lastError: null,
         };
+
+        logger.info(`Saving state for session: ${sessionId}`, {
+          sessionId,
+          state: JSON.stringify(state),
+          context,
+        });
 
         const memoryPath = getMemoryPath(sessionId);
         await fs.writeFile(memoryPath, JSON.stringify(memoryData, null, 2));
