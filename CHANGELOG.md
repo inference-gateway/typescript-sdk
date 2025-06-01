@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.3](https://github.com/inference-gateway/typescript-sdk/compare/v0.7.2...v0.7.3) (2025-06-01)
+
+### ♻️ Improvements
+
+* Enhance stream processing with abort signal support and increase default timeout ([#18](https://github.com/inference-gateway/typescript-sdk/issues/18)) ([3778138](https://github.com/inference-gateway/typescript-sdk/commit/377813851b6635ca7aafe2a5c9888b720736c9f5))
+
+### 🔧 Miscellaneous
+
+* Update MCP example README and remove unused example file ([99b34e7](https://github.com/inference-gateway/typescript-sdk/commit/99b34e70edf0c8aada1d0e0d0874481ea8381a79))
+
 ## [0.7.2](https://github.com/inference-gateway/typescript-sdk/compare/v0.7.1...v0.7.2) (2025-05-30)
 
 ### 📚 Documentation
