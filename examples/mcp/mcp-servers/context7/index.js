@@ -79,7 +79,6 @@ class Context7Process {
         }
       });
 
-      // Handle stderr - logs and errors
       this.process.stderr.on('data', (data) => {
         const message = data.toString().trim();
         if (message.includes('ready') || message.includes('listening')) {
