@@ -26,6 +26,8 @@ interface AgentConfig {
   conversationHistory: Array<{ role: MessageRole; content: string }>;
   maxRetries: number;
   retryDelayMs: number;
+  iterationCount: number;
+  totalTokensUsed: number;
 }
 
 class ViteAgent {
@@ -42,6 +44,8 @@ class ViteAgent {
       conversationHistory: [],
       maxRetries: 3,
       retryDelayMs: 60000,
+      iterationCount: 0,
+      totalTokensUsed: 0,
     };
 
     this.rl = readline.createInterface({
@@ -428,6 +432,17 @@ If a Vite project exists:
     console.log(`\n🔍 Processing Vite request: "${userInput}"`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
+    // Increment iteration count and start timing
+    this.config.iterationCount++;
+    const iterationStartTime = Date.now();
+
+    console.log(`🔄 Starting Iteration #${this.config.iterationCount}`);
+    console.log(
+      `📝 User Input: "${userInput.substring(0, 100)}${userInput.length > 100 ? '...' : ''}"`
+    );
+    console.log(`⏰ Start Time: ${new Date().toLocaleTimeString()}`);
+    console.log('─'.repeat(60));
+
     this.config.conversationHistory.push({
       role: MessageRole.user,
       content: userInput,
@@ -454,6 +469,43 @@ If a Vite project exists:
         onContent: (content) => {
           process.stdout.write(content);
           assistantResponse += content;
+        },
+        onUsageMetrics: (usage) => {
+          const iterationDuration = Date.now() - iterationStartTime;
+          this.config.totalTokensUsed += usage.total_tokens;
+
+          console.log(
+            `\n\n💰 Iteration #${this.config.iterationCount} Token Usage:`
+          );
+          console.log(
+            `   📊 Prompt tokens: ${usage.prompt_tokens.toLocaleString()}`
+          );
+          console.log(
+            `   ✍️  Completion tokens: ${usage.completion_tokens.toLocaleString()}`
+          );
+          console.log(
+            `   🎯 Total tokens: ${usage.total_tokens.toLocaleString()}`
+          );
+          console.log(`   ⏱️  Duration: ${iterationDuration}ms`);
+          console.log(
+            `   🚀 Tokens/sec: ${Math.round((usage.total_tokens / iterationDuration) * 1000)}`
+          );
+
+          console.log(`\n📈 Cumulative Session Usage:`);
+          console.log(`   🔢 Total Iterations: ${this.config.iterationCount}`);
+          console.log(
+            `   🎯 Total Tokens Used: ${this.config.totalTokensUsed.toLocaleString()}`
+          );
+          console.log(
+            `   📈 Average Tokens per Iteration: ${Math.round(this.config.totalTokensUsed / this.config.iterationCount).toLocaleString()}`
+          );
+
+          // Calculate estimated cost (example rates - adjust based on provider)
+          const estimatedCost = this.config.totalTokensUsed * 0.000001;
+          console.log(
+            `   💰 Estimated Total Cost: $${estimatedCost.toFixed(6)}`
+          );
+          console.log('─'.repeat(60));
         },
         onMCPTool: (toolCall: any) => {
           console.log(`\n🛠️  Context7 Tool: ${toolCall.function.name}`);

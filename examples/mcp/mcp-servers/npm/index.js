@@ -16,8 +16,18 @@ import { z } from 'zod';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import path from 'node:path';
+import {
+  createMcpLogger,
+  logMcpRequest,
+  logMcpSession,
+  logMcpToolCall,
+  logMcpError,
+} from './logger.js';
 
 const execAsync = promisify(exec);
+
+// Create standardized logger
+const logger = createMcpLogger('mcp-npm', '1.0.0');
 
 // Express app for HTTP transport
 const app = express();
@@ -49,9 +59,10 @@ const ALLOWED_NPM_COMMANDS = [
   'npx',
 ];
 
-console.info('NPM MCP Server starting...');
-console.info('Working directory:', workingDirectory);
-console.info('Allowed npm commands:', ALLOWED_NPM_COMMANDS);
+logger.info('NPM MCP Server starting', {
+  workingDirectory,
+  allowedCommands: ALLOWED_NPM_COMMANDS,
+});
 
 /**
  * Validate npm command for security
@@ -88,7 +99,10 @@ async function executeNpmCommand(command, cwd = workingDirectory) {
   const validatedCommand = validateNpmCommand(command);
   const fullCommand = `npm ${validatedCommand}`;
 
-  console.info(`Executing npm command: ${fullCommand} in ${cwd}`);
+  logger.info('Executing npm command', {
+    command: fullCommand,
+    workingDirectory: cwd,
+  });
 
   try {
     const { stdout, stderr } = await execAsync(fullCommand, {
@@ -105,7 +119,10 @@ async function executeNpmCommand(command, cwd = workingDirectory) {
       cwd,
     };
   } catch (error) {
-    console.error(`NPM command failed: ${fullCommand}`, error.message);
+    logMcpError(logger, error, {
+      command: fullCommand,
+      workingDirectory: cwd,
+    });
 
     return {
       success: false,
@@ -142,6 +159,8 @@ function createMcpServer() {
     async ({ command, cwd }) => {
       const workDir = cwd || workingDirectory;
 
+      logMcpToolCall(logger, 'npm_run', 'unknown', { command, cwd: workDir });
+
       try {
         const result = await executeNpmCommand(command, workDir);
 
@@ -170,10 +189,11 @@ function createMcpServer() {
           ],
         };
       } catch (error) {
-        console.error(
-          `Failed to execute npm command: ${command}`,
-          error.message
-        );
+        logMcpError(logger, error, {
+          tool: 'npm_run',
+          command,
+          workingDirectory: workDir,
+        });
 
         return {
           content: [
@@ -201,6 +221,12 @@ function createMcpServer() {
     async ({ name, cwd, yes = true }) => {
       const workDir = cwd || workingDirectory;
       const projectDir = path.join(workDir, name);
+
+      logMcpToolCall(logger, 'npm_init', 'unknown', {
+        name,
+        cwd: workDir,
+        yes,
+      });
 
       try {
         // Create project directory
@@ -232,10 +258,11 @@ function createMcpServer() {
           ],
         };
       } catch (error) {
-        console.error(
-          `Failed to initialize npm project: ${name}`,
-          error.message
-        );
+        logMcpError(logger, error, {
+          tool: 'npm_init',
+          projectName: name,
+          workingDirectory: projectDir,
+        });
 
         return {
           content: [
@@ -266,6 +293,13 @@ function createMcpServer() {
     },
     async ({ packages = [], cwd, dev = false, global = false }) => {
       const workDir = cwd || workingDirectory;
+
+      logMcpToolCall(logger, 'npm_install', 'unknown', {
+        packages,
+        cwd: workDir,
+        dev,
+        global,
+      });
 
       try {
         let command = 'install';
@@ -308,7 +342,13 @@ function createMcpServer() {
           ],
         };
       } catch (error) {
-        console.error(`Failed to install npm packages`, error.message);
+        logMcpError(logger, error, {
+          tool: 'npm_install',
+          packages,
+          workingDirectory: workDir,
+          dev,
+          global,
+        });
 
         return {
           content: [
@@ -365,6 +405,17 @@ function createMcpServer() {
     }) => {
       const workDir = cwd || workingDirectory;
 
+      logMcpToolCall(logger, 'create_nextjs_project', 'unknown', {
+        name,
+        cwd: workDir,
+        typescript,
+        tailwind,
+        eslint,
+        appRouter,
+        srcDir,
+        importAlias,
+      });
+
       try {
         // Build the npx create-next-app command with options
         let command = `npx create-next-app@latest "${name}" --yes`;
@@ -404,7 +455,19 @@ function createMcpServer() {
           command += ` --import-alias "${importAlias}"`;
         }
 
-        console.info(`Creating Next.js project: ${command} in ${workDir}`);
+        logger.info('Creating Next.js project', {
+          command,
+          workingDirectory: workDir,
+          projectName: name,
+          options: {
+            typescript,
+            tailwind,
+            eslint,
+            appRouter,
+            srcDir,
+            importAlias,
+          },
+        });
 
         const { stdout, stderr } = await execAsync(command, {
           cwd: workDir,
@@ -445,10 +508,11 @@ function createMcpServer() {
           ],
         };
       } catch (error) {
-        console.error(
-          `Failed to create Next.js project: ${name}`,
-          error.message
-        );
+        logMcpError(logger, error, {
+          tool: 'create_nextjs_project',
+          projectName: name,
+          workingDirectory: workDir,
+        });
 
         return {
           content: [
@@ -472,9 +536,7 @@ function setupSessionRoutes() {
   // Handle POST requests for MCP communication
   app.post('/mcp', async (req, res) => {
     try {
-      console.info('MCP POST request received:');
-      console.info('  Headers: %s', JSON.stringify(req.headers, null, 2));
-      console.info('  Body: %s', JSON.stringify(req.body, null, 2));
+      logMcpRequest(logger, req);
 
       // Fix missing Accept headers for compatibility with Go MCP clients
       const accept = req.headers.accept || req.headers.Accept;
@@ -483,7 +545,7 @@ function setupSessionRoutes() {
         !accept.includes('application/json') ||
         !accept.includes('text/event-stream')
       ) {
-        console.info('Adding missing Accept headers for MCP compatibility');
+        logger.debug('Adding missing Accept headers for MCP compatibility');
         req.headers.accept = 'application/json, text/event-stream';
       }
 
@@ -499,7 +561,7 @@ function setupSessionRoutes() {
         transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
           onsessioninitialized: (newSessionId) => {
-            console.info(`MCP session initialized: ${newSessionId}`);
+            logMcpSession(logger, 'initialized', newSessionId);
             // Store the transport by session ID
             transports[newSessionId] = transport;
           },
@@ -508,7 +570,7 @@ function setupSessionRoutes() {
         // Clean up transport when closed
         transport.onclose = () => {
           if (transport.sessionId) {
-            console.info(`MCP session closed: ${transport.sessionId}`);
+            logMcpSession(logger, 'closed', transport.sessionId);
             delete transports[transport.sessionId];
           }
         };
@@ -521,7 +583,10 @@ function setupSessionRoutes() {
       // Handle the MCP request
       await transport.handleRequest(req, res, req.body);
     } catch (error) {
-      console.error('Error handling MCP request:', error);
+      logMcpError(logger, error, {
+        endpoint: '/mcp',
+        method: 'POST',
+      });
       if (!res.headersSent) {
         res.status(500).json({
           jsonrpc: '2.0',
@@ -587,31 +652,30 @@ async function startServer() {
   setupHealthCheck();
 
   app.listen(port, '0.0.0.0', () => {
-    console.info('');
-    console.info('🚀 MCP NPM Server Started Successfully!');
-    console.info('==========================================');
-    console.info(`Server running on: http://0.0.0.0:${port}`);
-    console.info('');
-    console.info('Available endpoints:');
-    console.info('  POST /mcp             - MCP protocol communication');
-    console.info('  GET  /mcp             - MCP SSE notifications');
-    console.info('  DELETE /mcp           - MCP session termination');
-    console.info('  GET  /health          - Health check');
-    console.info('Available tools:');
-    console.info('  - npm_run               - Run any whitelisted npm command');
-    console.info('  - npm_init              - Initialize a new npm project');
-    console.info('  - npm_install           - Install npm packages');
-    console.info('  - create_nextjs_project - Create a new Next.js project');
-    console.info('Working directory:', workingDirectory);
-    console.info('Allowed npm commands:', ALLOWED_NPM_COMMANDS);
-    console.info('');
-    console.info('MCP NPM server ready for connections');
+    logger.info('MCP NPM Server started successfully', {
+      host: '0.0.0.0',
+      port,
+      endpoints: {
+        mcp: 'POST /mcp - MCP protocol communication',
+        mcpSse: 'GET /mcp - MCP SSE notifications',
+        mcpDelete: 'DELETE /mcp - MCP session termination',
+        health: 'GET /health - Health check',
+      },
+      tools: [
+        'npm_run - Run any whitelisted npm command',
+        'npm_init - Initialize a new npm project',
+        'npm_install - Install npm packages',
+        'create_nextjs_project - Create a new Next.js project',
+      ],
+      workingDirectory,
+      allowedCommands: ALLOWED_NPM_COMMANDS,
+    });
   });
 }
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.info('Received SIGTERM, shutting down gracefully');
+  logger.info('Received SIGTERM, shutting down gracefully');
   // Close all transports
   Object.values(transports).forEach((transport) => {
     if (transport.close) transport.close();
@@ -620,7 +684,7 @@ process.on('SIGTERM', () => {
 });
 
 process.on('SIGINT', () => {
-  console.info('Received SIGINT, shutting down gracefully');
+  logger.info('Received SIGINT, shutting down gracefully');
   // Close all transports
   Object.values(transports).forEach((transport) => {
     if (transport.close) transport.close();
@@ -630,6 +694,8 @@ process.on('SIGINT', () => {
 
 // Start the server
 startServer().catch((error) => {
-  console.error('Failed to start server:', error);
+  logMcpError(logger, error, {
+    operation: 'server-startup',
+  });
   process.exit(1);
 });

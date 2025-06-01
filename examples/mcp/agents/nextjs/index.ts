@@ -26,6 +26,12 @@ interface AgentConfig {
   conversationHistory: Array<{ role: MessageRole; content: string }>;
   maxRetries: number;
   retryDelayMs: number;
+  iterationCount: number;
+  totalTokensUsed: number;
+  maxTokensPerRequest: number;
+  maxHistoryLength: number;
+  sessionId: string;
+  memoryEnabled: boolean;
 }
 
 class NextJSAgent {
@@ -42,6 +48,12 @@ class NextJSAgent {
       conversationHistory: [],
       maxRetries: 3,
       retryDelayMs: 60000,
+      iterationCount: 0,
+      totalTokensUsed: 0,
+      maxTokensPerRequest: 1000,
+      maxHistoryLength: 10,
+      sessionId: `nextjs-agent-${Date.now()}`,
+      memoryEnabled: true,
     };
 
     this.rl = readline.createInterface({
@@ -112,7 +124,21 @@ You have access to several MCP tool categories:
 
 **File System Tools:**
 
-* Available for file operations in /tmp directory
+* read_file: Read the contents of a file
+* write_file: Write content to a file
+* list_directory: List directory contents
+* create_directory: Create directories
+* delete_file: Delete files
+* file_info: Get file information
+
+**NPM Tools:**
+
+* npm_run: Execute npm commands (install, build, start, test, etc.)
+* npm_init: Initialize new npm project
+* npm_install: Install npm packages
+* create_nextjs_project: Create a new Next.js project with specified options
+
+**IMPORTANT**: All tools are called through the MCP system - never use XML-style syntax like <tool_name>. The LLM will automatically use the available tools when needed.
 
 ---
 
@@ -146,6 +172,8 @@ When encountering HTTP errors or failures:
 
 **When creating a Next.js project, always wait 30 seconds after project creation.**
 
+**CRITICAL: Never use XML-style tool syntax like \`<tool_name>\`. All tools are automatically available through MCP and will be called by the LLM when needed.**
+
 1. Clarify requirements and tech stack
 2. Lookup technologies using Context7 tools
 3. Retrieve current documentation and patterns
@@ -153,6 +181,11 @@ When encountering HTTP errors or failures:
 5. Follow framework and language conventions
 6. Include error handling, testing, and CI/build scripts
 7. Prioritize maintainability, readability, and DX (developer experience)
+
+**For Next.js projects:**
+- Use \`create_nextjs_project\` tool to create new projects
+- Use \`npm_run\` tool for npm commands like "run dev", "install", "build"
+- Use filesystem tools to read/write files and list directories
 
 ---
 
@@ -203,7 +236,6 @@ If a Next.js project exists:
     let attempt = 0;
     while (attempt < this.config.maxRetries) {
       try {
-        // Health check
         const isHealthy = await this.config.client.healthCheck();
         if (!isHealthy) {
           console.error('❌ Gateway unhealthy. Run: docker-compose up --build');
@@ -221,6 +253,22 @@ If a Next.js project exists:
             'get_documentation',
           ].includes(tool.name)
         );
+
+        const memoryTools = tools.data.filter((tool) =>
+          ['save-state', 'restore-state', 'list-sessions'].includes(tool.name)
+        );
+
+        if (memoryTools.length > 0) {
+          console.info(
+            `🧠 Found ${memoryTools.length} memory management tools`
+          );
+          await this.loadStateFromMemory();
+        } else {
+          console.info(
+            '⚠️  No memory tools available. State persistence disabled.'
+          );
+          this.config.memoryEnabled = false;
+        }
 
         const context7Tools = [...realContext7Tools, ...mockContext7Tools];
 
@@ -347,8 +395,27 @@ If a Next.js project exists:
       case 'exit':
       case 'quit':
         console.log('\n👋 Thank you for using NextJS Agent! Goodbye!');
-        this.rl.close();
-        process.exit(0);
+
+        if (this.config.memoryEnabled) {
+          console.log('💾 Saving session state before exit...');
+          this.saveStateToMemoryForced('Manual exit via user command')
+            .then(() => {
+              console.log('✅ Session state saved successfully');
+              this.rl.close();
+              process.exit(0);
+            })
+            .catch((error) => {
+              console.warn(
+                '⚠️  Failed to save session state:',
+                (error as Error).message
+              );
+              this.rl.close();
+              process.exit(0);
+            });
+        } else {
+          this.rl.close();
+          process.exit(0);
+        }
         return true;
 
       case 'clear':
@@ -404,10 +471,26 @@ If a Next.js project exists:
     console.log(`\n🔍 Processing request: "${userInput}"`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
+    this.config.iterationCount++;
+    const iterationStartTime = Date.now();
+
+    console.log(`🔄 Starting Iteration #${this.config.iterationCount}`);
+    console.log(
+      `📝 User Input: "${userInput.substring(0, 100)}${userInput.length > 100 ? '...' : ''}"`
+    );
+    console.log(`⏰ Start Time: ${new Date().toLocaleTimeString()}`);
+    console.log('─'.repeat(60));
+
     this.config.conversationHistory.push({
       role: MessageRole.user,
       content: userInput,
     });
+
+    if (this.config.memoryEnabled) {
+      await this.saveStateToMemory(
+        `Before processing request: "${userInput.substring(0, 50)}..."`
+      );
+    }
 
     let assistantResponse = '';
     let shouldWaitForProject = false;
@@ -415,12 +498,14 @@ If a Next.js project exists:
     await this.config.client.streamChatCompletion(
       {
         model: `${this.config.provider}/${this.config.model}`,
-        messages: this.config.conversationHistory,
-        max_tokens: 2000,
+        messages: this.getOptimizedConversationHistory(),
+        max_tokens: this.config.maxTokensPerRequest,
       },
       {
         onOpen: () => {
-          console.log('🔗 Starting development session with NextJS Agent...\n');
+          console.log(
+            '\n🔗 Starting development session with NextJS Agent...\n'
+          );
         },
         onReasoning: (reasoning) => {
           console.log(`\n🤔 Agent Reasoning: ${reasoning}`);
@@ -428,6 +513,42 @@ If a Next.js project exists:
         onContent: (content) => {
           process.stdout.write(content);
           assistantResponse += content;
+        },
+        onUsageMetrics: (usage) => {
+          const iterationDuration = Date.now() - iterationStartTime;
+          this.config.totalTokensUsed += usage.total_tokens;
+
+          console.log(
+            `\n\n💰 Iteration #${this.config.iterationCount} Token Usage:`
+          );
+          console.log(
+            `   📊 Prompt tokens: ${usage.prompt_tokens.toLocaleString()}`
+          );
+          console.log(
+            `   ✍️  Completion tokens: ${usage.completion_tokens.toLocaleString()}`
+          );
+          console.log(
+            `   🎯 Total tokens: ${usage.total_tokens.toLocaleString()}`
+          );
+          console.log(`   ⏱️  Duration: ${iterationDuration}ms`);
+          console.log(
+            `   🚀 Tokens/sec: ${Math.round((usage.total_tokens / iterationDuration) * 1000)}`
+          );
+
+          console.log(`\n📈 Cumulative Session Usage:`);
+          console.log(`   🔢 Total Iterations: ${this.config.iterationCount}`);
+          console.log(
+            `   🎯 Total Tokens Used: ${this.config.totalTokensUsed.toLocaleString()}`
+          );
+          console.log(
+            `   📈 Average Tokens per Iteration: ${Math.round(this.config.totalTokensUsed / this.config.iterationCount).toLocaleString()}`
+          );
+
+          const estimatedCost = this.config.totalTokensUsed * 0.000001;
+          console.log(
+            `   💰 Estimated Total Cost: $${estimatedCost.toFixed(6)}`
+          );
+          console.log('─'.repeat(60));
         },
         onMCPTool: (toolCall) => {
           console.log(`\n🛠️  Context7 Tool: ${toolCall.function.name}`);
@@ -453,6 +574,14 @@ If a Next.js project exists:
         },
         onError: (error) => {
           console.error(`\n❌ Stream Error: ${error.error}`);
+
+          // Save error state to memory for recovery
+          if (this.config.memoryEnabled) {
+            this.saveStateToMemory(
+              `Error occurred during request processing: ${error.error}`
+            ).catch(console.warn);
+          }
+
           throw new Error(`Stream error: ${error.error}`);
         },
         onFinish: async () => {
@@ -463,7 +592,6 @@ If a Next.js project exists:
             await this.waitForProjectCreation();
           }
 
-          // Add assistant response to conversation history
           if (assistantResponse.trim()) {
             this.config.conversationHistory.push({
               role: MessageRole.assistant,
@@ -475,7 +603,377 @@ If a Next.js project exists:
     );
   }
 
+  /**
+   * Save current state to memory MCP server
+   */
+  private async saveStateToMemory(context: string): Promise<void> {
+    if (!this.config.memoryEnabled) return;
+
+    try {
+      const state = {
+        conversationHistory: this.config.conversationHistory.slice(-5),
+        iterationCount: this.config.iterationCount,
+        totalTokensUsed: this.config.totalTokensUsed,
+        timestamp: new Date().toISOString(),
+      };
+
+      console.log(
+        `💾 Saving state to memory for session: ${this.config.sessionId}`
+      );
+
+      let toolCallDetected = false;
+      let saveSuccessful = false;
+
+      await this.config.client.streamChatCompletion(
+        {
+          model: `${this.config.provider}/${this.config.model}`,
+          messages: [
+            {
+              role: MessageRole.system,
+              content: `You are a memory manager. You MUST call the save-state tool now with the provided data. Don't explain - just call the tool immediately.
+
+SessionID: ${this.config.sessionId}
+State: ${JSON.stringify(state)}
+Context: ${context}
+
+Call save-state tool immediately with sessionId="${this.config.sessionId}" and the state object above.`,
+            },
+            {
+              role: MessageRole.user,
+              content: `Call save-state tool now with sessionId="${this.config.sessionId}"`,
+            },
+          ],
+          max_tokens: 50,
+        },
+        {
+          onMCPTool: (toolCall) => {
+            toolCallDetected = true;
+            console.log(`📱 Memory tool called: ${toolCall.function.name}`);
+
+            if (
+              toolCall.function.name === 'save-state' ||
+              toolCall.function.name === 'save-error-state'
+            ) {
+              saveSuccessful = true;
+              console.log('✅ State save tool invoked successfully');
+            }
+          },
+          onContent: () => {
+            // Suppress content output for memory saves
+          },
+          onError: (error) => {
+            console.warn('⚠️  Memory save failed:', error.error);
+          },
+          onFinish: () => {
+            if (toolCallDetected && saveSuccessful) {
+              console.log('✅ Memory save completed successfully');
+            } else if (!toolCallDetected) {
+              console.warn(
+                '⚠️  No memory tool was called - memory may not be available'
+              );
+            } else {
+              console.warn('⚠️  Memory tool called but save may have failed');
+            }
+          },
+        }
+      );
+    } catch (error) {
+      console.warn(
+        '⚠️  Failed to save state to memory:',
+        (error as Error).message
+      );
+    }
+  }
+
+  /**
+   * Save current state to memory MCP server with forced tool usage
+   */
+  private async saveStateToMemoryForced(context: string): Promise<void> {
+    if (!this.config.memoryEnabled) return;
+
+    try {
+      const state = {
+        conversationHistory: this.config.conversationHistory.slice(-5),
+        iterationCount: this.config.iterationCount,
+        totalTokensUsed: this.config.totalTokensUsed,
+        timestamp: new Date().toISOString(),
+      };
+
+      console.log(
+        `💾 Forcing memory save for session: ${this.config.sessionId}`
+      );
+
+      let toolCallDetected = false;
+      let saveSuccessful = false;
+      const maxAttempts = 3;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        console.log(`🔄 Memory save attempt ${attempt}/${maxAttempts}`);
+
+        try {
+          await this.config.client.streamChatCompletion(
+            {
+              model: `${this.config.provider}/${this.config.model}`,
+              messages: [
+                {
+                  role: MessageRole.system,
+                  content: `You are a memory manager. You MUST call the save-state tool immediately. No explanations, no acknowledgments - just call the tool.
+
+CRITICAL: You MUST call save-state tool with these exact parameters:
+- sessionId: "${this.config.sessionId}"
+- state: ${JSON.stringify(state)}
+- context: "${context}"
+
+Call the save-state tool now.`,
+                },
+                {
+                  role: MessageRole.user,
+                  content: `Call save-state tool immediately with sessionId="${this.config.sessionId}". Do not respond with text - only call the tool.`,
+                },
+              ],
+              max_tokens: 100,
+            },
+            {
+              onMCPTool: (toolCall) => {
+                toolCallDetected = true;
+                console.log(`📱 Memory tool called: ${toolCall.function.name}`);
+
+                if (
+                  toolCall.function.name === 'save-state' ||
+                  toolCall.function.name === 'save-error-state'
+                ) {
+                  saveSuccessful = true;
+                  console.log('✅ Memory tool invoked successfully');
+                  try {
+                    const args = JSON.parse(toolCall.function.arguments);
+                    console.log(
+                      `📝 Tool arguments:`,
+                      JSON.stringify(args, null, 2)
+                    );
+                  } catch {
+                    // Ignore parsing errors
+                  }
+                }
+              },
+              onContent: () => {
+                // Suppress content output for memory saves
+              },
+              onError: (error) => {
+                console.warn(
+                  `⚠️  Memory save attempt ${attempt} failed:`,
+                  error.error
+                );
+              },
+              onFinish: () => {
+                if (toolCallDetected && saveSuccessful) {
+                  console.log(
+                    `✅ Memory save completed successfully on attempt ${attempt}`
+                  );
+                } else if (!toolCallDetected) {
+                  console.warn(
+                    `⚠️  Attempt ${attempt}: No memory tool was called`
+                  );
+                } else {
+                  console.warn(
+                    `⚠️  Attempt ${attempt}: Memory tool called but save may have failed`
+                  );
+                }
+              },
+            }
+          );
+
+          if (toolCallDetected && saveSuccessful) {
+            break;
+          }
+
+          if (attempt < maxAttempts) {
+            console.log(`⏳ Waiting 2 seconds before retry...`);
+            await this.delay(2000);
+          }
+        } catch (attemptError) {
+          console.warn(
+            `⚠️  Memory save attempt ${attempt} error:`,
+            (attemptError as Error).message
+          );
+          if (attempt === maxAttempts) {
+            throw attemptError;
+          }
+        }
+      }
+
+      if (!toolCallDetected || !saveSuccessful) {
+        console.error(
+          `❌ Failed to save memory after ${maxAttempts} attempts - memory tools may not be available`
+        );
+      }
+    } catch (error) {
+      console.warn(
+        '⚠️  Failed to save state to memory:',
+        (error as Error).message
+      );
+    }
+  }
+
+  /**
+   * Load state from memory MCP server (via chat completion)
+   */
+  private async loadStateFromMemory(): Promise<boolean> {
+    if (!this.config.memoryEnabled) return false;
+
+    try {
+      console.log(
+        `📥 Attempting to restore state for session: ${this.config.sessionId}`
+      );
+
+      let restoredData: any = null;
+
+      await this.config.client.streamChatCompletion(
+        {
+          model: `${this.config.provider}/${this.config.model}`,
+          messages: [
+            {
+              role: MessageRole.system,
+              content: `You have access to memory management tools. Restore the saved state for session "${this.config.sessionId}".`,
+            },
+            {
+              role: MessageRole.user,
+              content: `Please restore the session state using the restore-state tool and provide the restored data.`,
+            },
+          ],
+          max_tokens: 200,
+        },
+        {
+          onContent: (content) => {
+            if (content.includes('{') && content.includes('}')) {
+              try {
+                const jsonMatch = content.match(/\{.*\}/s);
+                if (jsonMatch) {
+                  restoredData = JSON.parse(jsonMatch[0]);
+                }
+              } catch {
+                // Ignore parsing errors
+              }
+            }
+          },
+          onMCPTool: (toolCall) => {
+            console.log(`📱 Memory tool called: ${toolCall.function.name}`);
+          },
+          onError: () => {
+            console.log('ℹ️  No previous state found');
+          },
+          onFinish: () => {
+            if (restoredData && restoredData.state) {
+              this.config.conversationHistory =
+                restoredData.state.conversationHistory || [];
+              this.config.iterationCount =
+                restoredData.state.iterationCount || 0;
+              this.config.totalTokensUsed =
+                restoredData.state.totalTokensUsed || 0;
+
+              console.log(
+                `✅ Restored state from ${restoredData.state.timestamp}`
+              );
+              console.log(
+                `📊 Restored ${this.config.conversationHistory.length} messages`
+              );
+              console.log(
+                `🔢 Restored iteration count: ${this.config.iterationCount}`
+              );
+            }
+          },
+        }
+      );
+
+      return !!restoredData;
+    } catch (error) {
+      console.log(`ℹ️  No previous state found: ${(error as Error).message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Truncate conversation history to stay within token limits
+   */
+  private truncateConversationHistory(): void {
+    if (
+      this.config.conversationHistory.length <=
+      this.config.maxHistoryLength + 1
+    ) {
+      return;
+    }
+
+    console.log(
+      `✂️  Truncating conversation history from ${this.config.conversationHistory.length} to ${this.config.maxHistoryLength + 1} messages`
+    );
+
+    const systemPrompt = this.config.conversationHistory[0];
+
+    const recentMessages = this.config.conversationHistory.slice(
+      -this.config.maxHistoryLength
+    );
+
+    const truncatedMessages = this.config.conversationHistory.slice(
+      1,
+      -this.config.maxHistoryLength
+    );
+
+    if (truncatedMessages.length > 0) {
+      this.saveStateToMemoryForced(
+        `Truncated ${truncatedMessages.length} older messages`
+      ).catch((error) => {
+        console.warn(
+          '⚠️  Failed to save truncated messages to memory:',
+          (error as Error).message
+        );
+      });
+    }
+
+    this.config.conversationHistory = [systemPrompt, ...recentMessages];
+  }
+
+  /**
+   * Estimate token count for a message (rough approximation)
+   */
+  private estimateTokenCount(text: string): number {
+    // Rough approximation: 1 token ≈ 4 characters
+    return Math.ceil(text.length / 4);
+  }
+
+  /**
+   * Get optimized conversation history for the current request
+   */
+  private getOptimizedConversationHistory(): Array<{
+    role: MessageRole;
+    content: string;
+  }> {
+    this.truncateConversationHistory();
+
+    const totalEstimatedTokens = this.config.conversationHistory.reduce(
+      (sum, msg) => sum + this.estimateTokenCount(msg.content),
+      0
+    );
+
+    console.log(`📊 Estimated tokens in conversation: ${totalEstimatedTokens}`);
+
+    return this.config.conversationHistory;
+  }
+
   async shutdown(): Promise<void> {
+    if (this.config.memoryEnabled) {
+      console.log('💾 Saving session state before shutdown...');
+      try {
+        await this.saveStateToMemoryForced(
+          'Manual shutdown via SIGINT/SIGTERM signal'
+        );
+        console.log('✅ Session state saved successfully');
+      } catch (error) {
+        console.warn(
+          '⚠️  Failed to save session state:',
+          (error as Error).message
+        );
+      }
+    }
+
     this.rl.close();
   }
 }

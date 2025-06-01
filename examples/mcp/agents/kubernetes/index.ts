@@ -26,6 +26,8 @@ interface AgentConfig {
   conversationHistory: Array<{ role: MessageRole; content: string }>;
   maxRetries: number;
   retryDelayMs: number;
+  iterationCount: number;
+  totalTokensUsed: number;
 }
 
 class KubernetesAgent {
@@ -42,6 +44,8 @@ class KubernetesAgent {
       conversationHistory: [],
       maxRetries: 3,
       retryDelayMs: 60000,
+      iterationCount: 0,
+      totalTokensUsed: 0,
     };
 
     this.rl = readline.createInterface({

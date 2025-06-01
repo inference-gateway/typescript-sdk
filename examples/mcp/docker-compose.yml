@@ -5,7 +5,7 @@ services:
       - '8080:8080'
     environment:
       # General settings
-      ENVIRONMENT: development
+      ENVIRONMENT: production
 
       # Enable MCP support
       MCP_ENABLE: 'true'
@@ -97,7 +97,7 @@ services:
         RUN npm install
         COPY . .
         EXPOSE 3001
-        CMD ["node", "index-http.js"]
+        CMD ["node", "index.js"]
     environment:
       NODE_ENV: 'production'
       MCP_SERVER_NAME: 'web-search'

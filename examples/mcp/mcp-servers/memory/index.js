@@ -14,9 +14,19 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import {
+  createMcpLogger,
+  logMcpRequest,
+  logMcpSession,
+  logMcpToolCall,
+  logMcpError,
+} from './logger.js';
 
 const app = express();
 app.use(express.json());
+
+// Create standardized logger
+const logger = createMcpLogger('mcp-memory', '1.0.0');
 
 const transports = {};
 

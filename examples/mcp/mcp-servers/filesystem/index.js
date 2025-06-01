@@ -13,10 +13,20 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import {
+  createMcpLogger,
+  logMcpRequest,
+  logMcpSession,
+  logMcpToolCall,
+  logMcpError,
+} from './logger.js';
 
 // Express app for HTTP transport
 const app = express();
 app.use(express.json());
+
+// Create standardized logger
+const logger = createMcpLogger('mcp-filesystem', '1.0.0');
 
 // Map to store transports by session ID
 const transports = {};
@@ -26,7 +36,9 @@ const allowedDirectories = (process.env.ALLOWED_DIRECTORIES || '/tmp').split(
   ','
 );
 
-console.info('Allowed directories:', allowedDirectories);
+logger.info('Filesystem server starting', {
+  allowedDirectories,
+});
 
 /**
  * Check if a path is within allowed directories
@@ -61,7 +73,7 @@ function createMcpServer() {
       }
 
       try {
-        console.info(`Reading file: ${filePath}`);
+        logMcpToolCall(logger, 'read_file', { filePath });
         const content = await fs.readFile(filePath, 'utf8');
 
         return {
@@ -73,7 +85,7 @@ function createMcpServer() {
           ],
         };
       } catch (error) {
-        console.error(`Failed to read file ${filePath}:`, error.message);
+        logMcpError(logger, error, { filePath, operation: 'read_file' });
 
         let errorMessage = `Failed to read file: ${filePath}\n`;
         if (error.code === 'ENOENT') {
@@ -112,7 +124,10 @@ function createMcpServer() {
       }
 
       try {
-        console.info(`Writing to file: ${filePath}`);
+        logMcpToolCall(logger, 'write_file', {
+          filePath,
+          contentLength: content.length,
+        });
 
         const dir = path.dirname(filePath);
         await fs.mkdir(dir, { recursive: true });
@@ -128,7 +143,7 @@ function createMcpServer() {
           ],
         };
       } catch (error) {
-        console.error(`Failed to write file ${filePath}:`, error.message);
+        logMcpError(logger, error, { filePath, operation: 'write_file' });
 
         return {
           content: [
@@ -155,7 +170,7 @@ function createMcpServer() {
       }
 
       try {
-        console.info(`Listing directory: ${dirPath}`);
+        logMcpToolCall(logger, 'list_directory', { dirPath });
 
         const entries = await fs.readdir(dirPath, { withFileTypes: true });
 
@@ -171,10 +186,11 @@ function createMcpServer() {
                 modified: stats.mtime.toISOString(),
               };
             } catch (error) {
-              console.warn(
-                `Could not get stats for ${entry.name}:`,
-                error.message
-              );
+              logger.warn('Could not get stats for entry', {
+                entryName: entry.name,
+                dirPath,
+                error: error.message,
+              });
               return {
                 name: entry.name,
                 type: entry.isDirectory() ? 'directory' : 'file',
@@ -203,7 +219,7 @@ function createMcpServer() {
           ],
         };
       } catch (error) {
-        console.error(`Failed to list directory ${dirPath}:`, error.message);
+        logMcpError(logger, error, { dirPath, operation: 'list_directory' });
 
         let errorMessage = `Failed to list directory: ${dirPath}\n`;
         if (error.code === 'ENOENT') {
@@ -241,7 +257,7 @@ function createMcpServer() {
       }
 
       try {
-        console.info(`Creating directory: ${dirPath}`);
+        logMcpToolCall(logger, 'create_directory', { dirPath });
 
         await fs.mkdir(dirPath, { recursive: true });
 
@@ -254,7 +270,7 @@ function createMcpServer() {
           ],
         };
       } catch (error) {
-        console.error(`Failed to create directory ${dirPath}:`, error.message);
+        logMcpError(logger, error, { dirPath, operation: 'create_directory' });
 
         return {
           content: [
@@ -281,7 +297,7 @@ function createMcpServer() {
       }
 
       try {
-        console.info(`Deleting file: ${filePath}`);
+        logMcpToolCall(logger, 'delete_file', { filePath });
 
         await fs.unlink(filePath);
 
@@ -294,7 +310,7 @@ function createMcpServer() {
           ],
         };
       } catch (error) {
-        console.error(`Failed to delete file ${filePath}:`, error.message);
+        logMcpError(logger, error, { filePath, operation: 'delete_file' });
 
         let errorMessage = `Failed to delete file: ${filePath}\n`;
         if (error.code === 'ENOENT') {
@@ -337,9 +353,10 @@ function createMcpServer() {
       }
 
       try {
-        console.info(
-          `Deleting directory: ${dirPath} (recursive: ${recursive})`
-        );
+        logMcpToolCall(logger, 'delete_directory', {
+          dirPath,
+          recursive,
+        });
 
         if (recursive) {
           await fs.rm(dirPath, { recursive: true, force: true });
@@ -356,7 +373,11 @@ function createMcpServer() {
           ],
         };
       } catch (error) {
-        console.error(`Failed to delete directory ${dirPath}:`, error.message);
+        logMcpError(logger, error, {
+          dirPath,
+          recursive,
+          operation: 'delete_directory',
+        });
 
         let errorMessage = `Failed to delete directory: ${dirPath}\n`;
         if (error.code === 'ENOENT') {
@@ -397,7 +418,7 @@ function createMcpServer() {
       }
 
       try {
-        console.info(`Getting info for: ${filePath}`);
+        logMcpToolCall(logger, 'file_info', { filePath });
 
         const stats = await fs.stat(filePath);
 
@@ -436,7 +457,7 @@ function createMcpServer() {
           ],
         };
       } catch (error) {
-        console.error(`Failed to get info for ${filePath}:`, error.message);
+        logMcpError(logger, error, { filePath, operation: 'file_info' });
 
         let errorMessage = `Failed to get file info: ${filePath}\n`;
         if (error.code === 'ENOENT') {
@@ -469,9 +490,7 @@ function setupSessionRoutes() {
   // Handle POST requests for MCP communication
   app.post('/mcp', async (req, res) => {
     try {
-      console.info('MCP POST request received:');
-      console.info('  Headers: %s', JSON.stringify(req.headers, null, 2));
-      console.info('  Body: %s', JSON.stringify(req.body, null, 2));
+      logMcpRequest(logger, req, 'MCP POST request received');
 
       const accept = req.headers.accept || req.headers.Accept;
       if (
@@ -479,7 +498,7 @@ function setupSessionRoutes() {
         !accept.includes('application/json') ||
         !accept.includes('text/event-stream')
       ) {
-        console.info('Adding missing Accept headers for MCP compatibility');
+        logger.debug('Adding missing Accept headers for MCP compatibility');
         req.headers.accept = 'application/json, text/event-stream';
       }
 
@@ -492,14 +511,14 @@ function setupSessionRoutes() {
         transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
           onsessioninitialized: (newSessionId) => {
-            console.info(`MCP session initialized: ${newSessionId}`);
+            logMcpSession(logger, 'initialized', { sessionId: newSessionId });
             transports[newSessionId] = transport;
           },
         });
 
         transport.onclose = () => {
           if (transport.sessionId) {
-            console.info(`MCP session closed: ${transport.sessionId}`);
+            logMcpSession(logger, 'closed', { sessionId: transport.sessionId });
             delete transports[transport.sessionId];
           }
         };
@@ -510,7 +529,7 @@ function setupSessionRoutes() {
 
       await transport.handleRequest(req, res, req.body);
     } catch (error) {
-      console.error('Error handling MCP request:', error);
+      logMcpError(logger, error, { operation: 'mcp_request_handling' });
       if (!res.headersSent) {
         res.status(500).json({
           jsonrpc: '2.0',
@@ -539,7 +558,7 @@ app.get('/health', (req, res) => {
     activeSessions: Object.keys(transports).length,
   };
 
-  console.info('Health check requested: %j', healthStatus);
+  logger.info('Health check requested', healthStatus);
   res.json(healthStatus);
 });
 
@@ -553,34 +572,36 @@ async function startServer() {
   setupSessionRoutes();
 
   app.listen(port, host, async () => {
-    console.info(`MCP Filesystem server running on http://${host}:${port}`);
-    console.info('Protocol: Model Context Protocol (MCP)');
-    console.info('Transport: Streamable HTTP');
-    console.info('Available endpoints:');
-    console.info('  POST /mcp             - MCP protocol endpoint');
-    console.info(
-      '  GET  /mcp             - SSE notifications (with session-id header)'
-    );
-    console.info(
-      '  DELETE /mcp           - Session termination (with session-id header)'
-    );
-    console.info('  GET  /health          - Health check');
-    console.info('Available tools:');
-    console.info('  - read_file           - Read content from a file');
-    console.info('  - write_file          - Write content to a file');
-    console.info('  - list_directory      - List directory contents');
-    console.info('  - create_directory    - Create a new directory');
-    console.info('  - delete_file         - Delete a file');
-    console.info('  - delete_directory    - Delete a directory');
-    console.info('  - file_info           - Get file or directory information');
-    console.info('Allowed directories:', allowedDirectories);
+    logger.info('MCP Filesystem server started', {
+      host,
+      port,
+      protocol: 'Model Context Protocol (MCP)',
+      transport: 'Streamable HTTP',
+      endpoints: {
+        mcp: 'POST /mcp - MCP protocol endpoint',
+        mcpSSE: 'GET /mcp - SSE notifications (with session-id header)',
+        mcpTerminate:
+          'DELETE /mcp - Session termination (with session-id header)',
+        health: 'GET /health - Health check',
+      },
+      tools: [
+        'read_file - Read content from a file',
+        'write_file - Write content to a file',
+        'list_directory - List directory contents',
+        'create_directory - Create a new directory',
+        'delete_file - Delete a file',
+        'delete_directory - Delete a directory',
+        'file_info - Get file or directory information',
+      ],
+      allowedDirectories,
+    });
 
-    console.info('MCP Filesystem server ready for connections');
+    logger.info('MCP Filesystem server ready for connections');
   });
 }
 
 process.on('SIGTERM', () => {
-  console.info('Received SIGTERM, shutting down gracefully');
+  logger.info('Received SIGTERM, shutting down gracefully');
   Object.values(transports).forEach((transport) => {
     if (transport.close) transport.close();
   });
@@ -588,7 +609,7 @@ process.on('SIGTERM', () => {
 });
 
 process.on('SIGINT', () => {
-  console.info('Received SIGINT, shutting down gracefully');
+  logger.info('Received SIGINT, shutting down gracefully');
   Object.values(transports).forEach((transport) => {
     if (transport.close) transport.close();
   });
@@ -596,6 +617,6 @@ process.on('SIGINT', () => {
 });
 
 startServer().catch((error) => {
-  console.error('Failed to start server:', error);
+  logMcpError(logger, error, { operation: 'server_startup' });
   process.exit(1);
 });

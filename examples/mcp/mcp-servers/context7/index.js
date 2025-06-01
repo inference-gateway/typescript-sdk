@@ -10,10 +10,19 @@ import express from 'express';
 import cors from 'cors';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import {
+  createMcpLogger,
+  logMcpRequest,
+  logMcpSession,
+  logMcpToolCall,
+  logMcpError,
+} from './logger.js';
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+const logger = createMcpLogger('mcp-context7', '1.0.0');
 
 const mcpSessions = new Map();
 const context7Processes = new Map();
@@ -36,7 +45,9 @@ class Context7Process {
     }
 
     this.readyPromise = new Promise((resolve, reject) => {
-      console.info('🚀 Spawning Context7 MCP server...');
+      logger.info('Spawning Context7 MCP server', {
+        service: 'context7-process',
+      });
 
       this.process = spawn('npx', ['-y', '@upstash/context7-mcp@latest'], {
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -59,7 +70,10 @@ class Context7Process {
               const message = JSON.parse(line.trim());
               this.handleMessage(message);
             } catch {
-              console.warn('📝 Non-JSON output from Context7:', line.trim());
+              logger.warn('Non-JSON output from Context7', {
+                service: 'context7-process',
+                output: line.trim(),
+              });
             }
           }
         }
@@ -69,16 +83,24 @@ class Context7Process {
       this.process.stderr.on('data', (data) => {
         const message = data.toString().trim();
         if (message.includes('ready') || message.includes('listening')) {
-          console.info('✅ Context7 MCP server ready');
+          logger.info('Context7 MCP server ready', {
+            service: 'context7-process',
+          });
           this.isReady = true;
           resolve();
         } else {
-          console.info('📝 Context7 log:', message);
+          logger.info('Context7 log', {
+            service: 'context7-process',
+            message,
+          });
         }
       });
 
       this.process.on('exit', (code) => {
-        console.info(`🔚 Context7 process exited with code ${code}`);
+        logger.info('Context7 process exited', {
+          service: 'context7-process',
+          exitCode: code,
+        });
         this.isReady = false;
         this.process = null;
 
@@ -89,7 +111,9 @@ class Context7Process {
       });
 
       this.process.on('error', (error) => {
-        console.error('❌ Context7 process error:', error);
+        logMcpError(logger, 'Context7 process error', error, {
+          service: 'context7-process',
+        });
         reject(error);
       });
       globalThis.setTimeout(() => {
@@ -101,7 +125,9 @@ class Context7Process {
   }
 
   sendInitialize() {
-    console.info('🔧 Sending initialize to Context7...');
+    logger.info('Sending initialize to Context7', {
+      service: 'context7-process',
+    });
     const initMessage = {
       jsonrpc: '2.0',
       id: this.nextMessageId(),
@@ -134,7 +160,9 @@ class Context7Process {
 
     initPromise
       .then(() => {
-        console.info('✅ Context7 initialized successfully');
+        logger.info('Context7 initialized successfully', {
+          service: 'context7-process',
+        });
         this.isReady = true;
         globalThis.setTimeout(() => {
           this.sendMessage({
@@ -144,7 +172,10 @@ class Context7Process {
         }, 100);
       })
       .catch((error) => {
-        console.error('❌ Context7 initialization failed:', error);
+        logMcpError(logger, error, {
+          service: 'context7-process',
+          operation: 'initialization',
+        });
       });
   }
 
@@ -158,27 +189,40 @@ class Context7Process {
     }
 
     const jsonMessage = JSON.stringify(message) + '\n';
-    console.info('📤 Sending to Context7:', JSON.stringify(message, null, 2));
+    logger.debug('Sending message to Context7', {
+      service: 'context7-process',
+      method: message.method,
+      id: message.id,
+      message: jsonMessage.trim(),
+    });
     this.process.stdin.write(jsonMessage);
   }
 
   handleMessage(message) {
-    console.info(
-      '📥 Received from Context7:',
-      JSON.stringify(message, null, 2)
-    );
+    logger.debug('Received message from Context7', {
+      service: 'context7-process',
+      method: message.method,
+      id: message.id,
+      hasError: !!message.error,
+    });
 
     if (message.id && this.pendingRequests.has(message.id)) {
       const { resolve, reject } = this.pendingRequests.get(message.id);
       this.pendingRequests.delete(message.id);
 
       if (message.error) {
-        console.error('❌ Context7 error response:', message.error);
+        logMcpError(logger, message.error, {
+          service: 'context7-process',
+          requestId: message.id,
+        });
         reject(new Error(message.error.message || 'Context7 error'));
         return;
       }
 
-      console.info('✅ Context7 success response for ID', message.id);
+      logger.debug('Context7 success response', {
+        service: 'context7-process',
+        requestId: message.id,
+      });
       resolve(message.result || message);
       return;
     }
@@ -188,28 +232,36 @@ class Context7Process {
       message.result.serverInfo &&
       message.result.serverInfo.name === 'Context7'
     ) {
-      console.info(
-        '✅ Context7 initialized successfully (detected from serverInfo)'
-      );
+      logger.info('Context7 initialized successfully from serverInfo', {
+        service: 'context7-process',
+        serverInfo: message.result.serverInfo,
+      });
       this.isReady = true;
       return;
     }
 
     switch (message.method) {
       case 'notifications/initialized':
-        console.info('✅ Context7 initialized notification received');
+        logger.info('Context7 initialized notification received', {
+          service: 'context7-process',
+        });
         this.isReady = true;
         break;
       default:
         if (message.method) {
-          console.info('📢 Context7 notification/method:', message.method);
+          logger.debug('Context7 notification received', {
+            service: 'context7-process',
+            method: message.method,
+          });
         } else if (message.id) {
-          console.warn(
-            '⚠️  Received response for unknown request ID:',
-            message.id
-          );
+          logger.warn('Received response for unknown request ID', {
+            service: 'context7-process',
+            requestId: message.id,
+          });
         } else {
-          console.info('ℹ️  Context7 message (no ID or method)');
+          logger.debug('Context7 message with no ID or method', {
+            service: 'context7-process',
+          });
         }
     }
   }
@@ -245,7 +297,9 @@ class Context7Process {
   }
 
   requestToolsList() {
-    console.info('🔍 Requesting tools list from Context7...');
+    logger.info('Requesting tools list from Context7', {
+      service: 'context7-process',
+    });
     const toolsListMessage = {
       jsonrpc: '2.0',
       id: this.nextMessageId(),
@@ -269,13 +323,16 @@ class Context7Process {
 
     toolsPromise
       .then((result) => {
-        console.info(
-          '✅ Context7 tools list received:',
-          JSON.stringify(result, null, 2)
-        );
+        logger.info('Context7 tools list received', {
+          service: 'context7-process',
+          toolsCount: result?.tools?.length || 0,
+        });
       })
       .catch((error) => {
-        console.error('❌ Context7 tools list failed:', error);
+        logMcpError(logger, error, {
+          service: 'context7-process',
+          operation: 'tools-list',
+        });
       });
   }
 
@@ -307,12 +364,16 @@ class Context7Process {
 
   terminate() {
     if (this.process) {
-      console.info('🔄 Terminating Context7 process...');
+      logger.info('Terminating Context7 process', {
+        service: 'context7-process',
+      });
       this.process.kill('SIGTERM');
 
       globalThis.setTimeout(() => {
         if (this.process) {
-          console.info('🔪 Force killing Context7 process...');
+          logger.warn('Force killing Context7 process', {
+            service: 'context7-process',
+          });
           this.process.kill('SIGKILL');
         }
       }, 5000);
@@ -353,10 +414,10 @@ async function handleMcpRequest(request) {
 
   switch (request.method) {
     case 'initialize': {
-      console.info(
-        '🔧 MCP initialize request:',
-        JSON.stringify(request, null, 2)
-      );
+      logger.info('MCP initialize request received', {
+        protocolVersion: request.params?.protocolVersion,
+        clientInfo: request.params?.clientInfo,
+      });
 
       return {
         jsonrpc: '2.0',
@@ -375,7 +436,7 @@ async function handleMcpRequest(request) {
     }
 
     case 'tools/list': {
-      console.info('📋 MCP tools/list request');
+      logger.info('MCP tools/list request received');
 
       return {
         jsonrpc: '2.0',
@@ -430,9 +491,11 @@ async function handleMcpRequest(request) {
     }
 
     case 'tools/call': {
-      console.info(
-        '🔧 MCP tools/call request:',
-        JSON.stringify(request, null, 2)
+      logMcpToolCall(
+        logger,
+        request.params?.name,
+        'unknown',
+        request.params?.arguments || {}
       );
 
       if (!request?.params?.name) {
@@ -443,47 +506,26 @@ async function handleMcpRequest(request) {
 
       switch (name) {
         case 'c41_resolve-library-id': {
-          console.info(`🔍 Resolving library ID for: ${args.libraryName}`);
-          console.info(`📝 Input arguments:`, JSON.stringify(args, null, 2));
+          logger.info('Resolving library ID', {
+            libraryName: args.libraryName,
+          });
 
           try {
             const context7 = getContext7Process();
-            console.info(`🚀 Calling Context7 resolve-library-id tool...`);
+            logger.debug('Calling Context7 resolve-library-id tool');
 
             const result = await context7.callTool('resolve-library-id', {
               libraryName: args.libraryName,
             });
 
-            console.info(
-              `✅ Context7 resolve-library-id raw result:`,
-              JSON.stringify(result, null, 2)
-            );
-            console.info(`📊 Result structure analysis:`);
-            console.info(`  - Result type: ${typeof result}`);
-            console.info(
-              `  - Has content array: ${Array.isArray(result.content)}`
-            );
-            console.info(`  - Content length: ${result.content?.length || 0}`);
-
-            if (result.content?.[0]) {
-              console.info(
-                `  - First content item type: ${result.content[0].type}`
-              );
-              console.info(
-                `  - First content text length: ${result.content[0].text?.length || 0}`
-              );
-              console.info(
-                `  - First content text preview: ${result.content[0].text?.substring(0, 200)}...`
-              );
-            }
+            logger.info('Context7 resolve-library-id completed', {
+              libraryName: args.libraryName,
+              hasContent: !!result.content,
+              contentLength: result.content?.[0]?.text?.length || 0,
+            });
 
             const responseText =
               result.content?.[0]?.text || JSON.stringify(result, null, 2);
-            console.info(
-              `📤 Sending response text (${responseText.length} chars):`,
-              responseText.substring(0, 500) +
-                (responseText.length > 500 ? '...' : '')
-            );
 
             return {
               jsonrpc: '2.0',
@@ -498,16 +540,12 @@ async function handleMcpRequest(request) {
               },
             };
           } catch (error) {
-            console.error('❌ Error resolving library ID:', error);
-            console.error('❌ Error stack:', error.stack);
-            console.error('❌ Error details:', {
-              name: error.name,
-              message: error.message,
-              cause: error.cause,
+            logMcpError(logger, error, {
+              libraryName: args.libraryName,
+              tool: 'resolve-library-id',
             });
 
             const errorText = `Error resolving library ID for "${args.libraryName}": ${error.message}`;
-            console.info(`📤 Sending error response:`, errorText);
 
             return {
               jsonrpc: '2.0',
@@ -525,14 +563,15 @@ async function handleMcpRequest(request) {
         }
 
         case 'c41_get-library-docs': {
-          console.info(
-            `📚 Getting documentation for: ${args.context7CompatibleLibraryID}`
-          );
-          console.info(`📝 Input arguments:`, JSON.stringify(args, null, 2));
+          logger.info('Getting library documentation', {
+            context7CompatibleLibraryID: args.context7CompatibleLibraryID,
+            tokens: args.tokens || 10000,
+            topic: args.topic,
+          });
 
           try {
             const context7 = getContext7Process();
-            console.info(`🚀 Calling Context7 get-library-docs tool...`);
+            logger.debug('Calling Context7 get-library-docs tool');
 
             const callArgs = {
               context7CompatibleLibraryID: args.context7CompatibleLibraryID,
@@ -543,46 +582,19 @@ async function handleMcpRequest(request) {
               callArgs.topic = args.topic;
             }
 
-            console.info(
-              `📝 Context7 call arguments:`,
-              JSON.stringify(callArgs, null, 2)
-            );
-
             const result = await context7.callTool(
               'get-library-docs',
               callArgs
             );
 
-            console.info(
-              `✅ Context7 get-library-docs raw result:`,
-              JSON.stringify(result, null, 2)
-            );
-            console.info(`📊 Result structure analysis:`);
-            console.info(`  - Result type: ${typeof result}`);
-            console.info(
-              `  - Has content array: ${Array.isArray(result.content)}`
-            );
-            console.info(`  - Content length: ${result.content?.length || 0}`);
-
-            if (result.content?.[0]) {
-              console.info(
-                `  - First content item type: ${result.content[0].type}`
-              );
-              console.info(
-                `  - First content text length: ${result.content[0].text?.length || 0}`
-              );
-              console.info(
-                `  - First content text preview: ${result.content[0].text?.substring(0, 200)}...`
-              );
-            }
+            logger.info('Context7 get-library-docs completed', {
+              context7CompatibleLibraryID: args.context7CompatibleLibraryID,
+              hasContent: !!result.content,
+              contentLength: result.content?.[0]?.text?.length || 0,
+            });
 
             const responseText =
               result.content?.[0]?.text || JSON.stringify(result, null, 2);
-            console.info(
-              `📤 Sending response text (${responseText.length} chars):`,
-              responseText.substring(0, 500) +
-                (responseText.length > 500 ? '...' : '')
-            );
 
             return {
               jsonrpc: '2.0',
@@ -597,16 +609,12 @@ async function handleMcpRequest(request) {
               },
             };
           } catch (error) {
-            console.error('❌ Error getting library documentation:', error);
-            console.error('❌ Error stack:', error.stack);
-            console.error('❌ Error details:', {
-              name: error.name,
-              message: error.message,
-              cause: error.cause,
+            logMcpError(logger, error, {
+              context7CompatibleLibraryID: args.context7CompatibleLibraryID,
+              tool: 'get-library-docs',
             });
 
             const errorText = `Error getting documentation for "${args.context7CompatibleLibraryID}": ${error.message}`;
-            console.info(`📤 Sending error response:`, errorText);
 
             return {
               jsonrpc: '2.0',
@@ -639,9 +647,7 @@ async function handleMcpRequest(request) {
 function setupSessionRoutes() {
   app.post('/mcp', async (req, res) => {
     try {
-      console.info('📨 MCP POST request received:');
-      console.info('  Headers: %s', JSON.stringify(req.headers, null, 2));
-      console.info('  Body: %s', JSON.stringify(req.body, null, 2));
+      logMcpRequest(logger, req);
 
       if (!req.body || typeof req.body !== 'object') {
         return res.status(400).json({
@@ -671,13 +677,13 @@ function setupSessionRoutes() {
         mcpSessions.set(sessionId, {
           createdAt: Date.now(),
         });
-        console.info(`🎯 MCP session created: ${sessionId}`);
+        logMcpSession(logger, 'created', sessionId);
 
         globalThis.setTimeout(
           () => {
             if (mcpSessions.has(sessionId)) {
               mcpSessions.delete(sessionId);
-              console.info(`🧹 Cleaned up session: ${sessionId}`);
+              logMcpSession(logger, 'cleaned up', sessionId);
             }
           },
           10 * 60 * 1000
@@ -689,7 +695,10 @@ function setupSessionRoutes() {
       res.setHeader('mcp-session-id', sessionId);
       res.json(response);
     } catch (error) {
-      console.error('❌ Error handling MCP request:', error);
+      logMcpError(logger, error, {
+        endpoint: '/mcp',
+        method: 'POST',
+      });
 
       if (!res.headersSent) {
         res.status(500).json({
@@ -752,7 +761,7 @@ function setupSessionRoutes() {
 
     mcpSessions.delete(sessionId);
 
-    console.info(`🗑️ Session terminated: ${sessionId}`);
+    logMcpSession(logger, 'terminated', sessionId);
     res.status(200).json({
       jsonrpc: '2.0',
       result: { status: 'terminated' },
@@ -770,7 +779,7 @@ app.get('/health', (_req, res) => {
     timestamp: new Date().toISOString(),
   };
 
-  console.info('💚 Health check requested: %j', healthStatus);
+  logger.info('Health check requested', healthStatus);
   res.json(healthStatus);
 });
 
@@ -784,31 +793,27 @@ async function startServer() {
   setupSessionRoutes();
 
   app.listen(PORT, host, () => {
-    console.info(`🌉 Context7 HTTP Bridge running on http://${host}:${PORT}`);
-    console.info('📋 Protocol: Model Context Protocol (MCP) HTTP Bridge');
-    console.info('🎯 Target: Context7 MCP Server (stdio)');
-    console.info('🔗 Available endpoints:');
-    console.info('  POST /mcp             - MCP protocol endpoint');
-    console.info(
-      '  GET  /mcp             - SSE notifications (with session-id header)'
-    );
-    console.info(
-      '  DELETE /mcp           - Session termination (with session-id header)'
-    );
-    console.info('  GET  /health          - Health check');
-    console.info('🛠️  Available tools:');
-    console.info(
-      '  - c41_resolve-library-id  - Resolve library names to Context7 IDs'
-    );
-    console.info(
-      '  - c41_get-library-docs    - Fetch up-to-date library documentation'
-    );
-    console.info('🚀 Bridge ready for connections');
+    logger.info('Context7 HTTP Bridge started', {
+      host,
+      port: PORT,
+      protocol: 'Model Context Protocol (MCP) HTTP Bridge',
+      target: 'Context7 MCP Server (stdio)',
+      endpoints: {
+        mcp: 'POST /mcp - MCP protocol endpoint',
+        mcpSse: 'GET /mcp - SSE notifications (with session-id header)',
+        mcpDelete: 'DELETE /mcp - Session termination (with session-id header)',
+        health: 'GET /health - Health check',
+      },
+      tools: [
+        'c41_resolve-library-id - Resolve library names to Context7 IDs',
+        'c41_get-library-docs - Fetch up-to-date library documentation',
+      ],
+    });
   });
 }
 
 process.on('SIGTERM', () => {
-  console.info('🔄 Received SIGTERM, shutting down gracefully');
+  logger.info('Received SIGTERM, shutting down gracefully');
 
   mcpSessions.clear();
 
@@ -820,7 +825,7 @@ process.on('SIGTERM', () => {
 });
 
 process.on('SIGINT', () => {
-  console.info('🔄 Received SIGINT, shutting down gracefully');
+  logger.info('Received SIGINT, shutting down gracefully');
 
   mcpSessions.clear();
 
@@ -832,6 +837,8 @@ process.on('SIGINT', () => {
 });
 
 startServer().catch((error) => {
-  console.error('💥 Failed to start server:', error);
+  logMcpError(logger, error, {
+    operation: 'server-startup',
+  });
   process.exit(1);
 });

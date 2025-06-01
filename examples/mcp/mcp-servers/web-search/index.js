@@ -12,24 +12,84 @@ import express from 'express';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import axios from 'axios';
+import * as cheerio from 'cheerio';
+import {
+  createMcpLogger,
+  logMcpRequest,
+  logMcpSession,
+  logMcpToolCall,
+  logMcpError,
+} from './logger.js';
 
-// Express app for HTTP transport
+const logger = createMcpLogger('mcp-web-search', '1.0.0');
+
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
-// Map to store transports by session ID
-const transports = {};
+app.use((req, res, next) => {
+  const startTime = Date.now();
+  const requestId = randomUUID();
+
+  req.requestId = requestId;
+
+  logger.info('Incoming request', {
+    requestId,
+    method: req.method,
+    url: req.url,
+    userAgent: req.get('User-Agent'),
+    contentType: req.get('Content-Type'),
+    sessionId: req.headers['mcp-session-id'],
+  });
+
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    logger.info('Request completed', {
+      requestId,
+      method: req.method,
+      url: req.url,
+      statusCode: res.statusCode,
+      duration,
+      sessionId: req.headers['mcp-session-id'],
+    });
+  });
+
+  next();
+});
+
+const transports = new Map();
+
+/**
+ * Enhanced error handling for tools
+ */
+function createToolError(error, context = {}) {
+  logger.error('Tool execution error', {
+    error: error.message,
+    stack: error.stack,
+    context,
+  });
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Error: ${error.message}`,
+      },
+    ],
+    isError: true,
+  };
+}
 
 /**
  * Create and configure the MCP server
  */
 function createMcpServer() {
+  logger.info('Creating MCP server instance');
+
   const mcpServer = new McpServer({
     name: 'web-search',
     version: '1.0.0',
   });
 
-  // Tool: Fetch URL content
   mcpServer.tool(
     'fetch_url',
     {
@@ -40,25 +100,79 @@ function createMcpServer() {
         .max(30000)
         .default(10000)
         .describe('Request timeout in milliseconds'),
+      extract_text: z
+        .boolean()
+        .default(true)
+        .describe('Extract plain text from HTML content'),
     },
-    async ({ url, timeout = 10000 }) => {
+    async ({ url, timeout = 10000, extract_text = true }) => {
+      const operationId = randomUUID();
+
       try {
-        console.info(`Fetching URL: ${url}`);
+        logger.info('Fetching URL', {
+          operationId,
+          url,
+          timeout,
+          extract_text,
+        });
 
         const response = await axios.get(url, {
           timeout,
           headers: {
-            'User-Agent': 'MCP-Web-Search-Server/1.0.0',
+            'User-Agent': 'MCP-Web-Search-Server/1.0.0 (Compatible)',
+            Accept:
+              'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            Connection: 'keep-alive',
           },
           maxRedirects: 5,
-          validateStatus: (status) => status < 500, // Accept 4xx but not 5xx
+          validateStatus: (status) => status < 500,
         });
 
         const contentType = response.headers['content-type'] || '';
         let content;
 
+        logger.info('URL fetch successful', {
+          operationId,
+          url,
+          statusCode: response.status,
+          contentType,
+          contentLength: response.data?.length || 0,
+        });
+
         if (contentType.includes('application/json')) {
           content = JSON.stringify(response.data, null, 2);
+        } else if (contentType.includes('text/html') && extract_text) {
+          const rawContent = response.data.toString();
+
+          try {
+            const $ = cheerio.load(rawContent);
+
+            $('script, style, nav, footer, aside').remove();
+
+            const title = $('title').text().trim();
+
+            const mainContent = $(
+              'main, article, .content, #content, .main'
+            ).first();
+            const extractedText =
+              mainContent.length > 0 ? mainContent.text() : $('body').text();
+
+            const cleanText = extractedText
+              .replace(/\s+/g, ' ')
+              .replace(/\n\s*\n/g, '\n')
+              .trim();
+
+            content = `Title: ${title}\n\nContent:\n${cleanText}`;
+          } catch (parseError) {
+            logger.warn('Failed to parse HTML, returning raw content', {
+              operationId,
+              url,
+              error: parseError.message,
+            });
+            content = rawContent;
+          }
         } else if (contentType.includes('text/')) {
           content = response.data.toString();
         } else {
@@ -67,49 +181,63 @@ function createMcpServer() {
           } bytes`;
         }
 
-        // Truncate very large responses
-        if (content.length > 10000) {
-          content = content.substring(0, 10000) + '\n\n... (content truncated)';
+        const maxLength = 15000;
+        if (content.length > maxLength) {
+          content =
+            content.substring(0, maxLength) +
+            '\n\n... (content truncated due to length)';
+          logger.info('Content truncated', {
+            operationId,
+            originalLength: content.length + (content.length - maxLength),
+            truncatedLength: content.length,
+          });
         }
 
         return {
           content: [
             {
               type: 'text',
-              text: `URL: ${url}\nStatus: ${response.status} ${response.statusText}\nContent-Type: ${contentType}\n\nContent:\n${content}`,
+              text: `URL: ${url}\nStatus: ${response.status} ${response.statusText}\nContent-Type: ${contentType}\nExtracted Text: ${extract_text}\n\n${content}`,
             },
           ],
         };
       } catch (error) {
-        console.error(`Failed to fetch URL ${url}:`, error.message);
+        logger.error('Failed to fetch URL', {
+          operationId,
+          url,
+          error: error.message,
+          code: error.code,
+          status: error.response?.status,
+        });
 
         let errorMessage = `Failed to fetch URL: ${url}\n`;
 
-        if (error.code === 'ENOTFOUND') {
-          errorMessage += 'Domain not found';
-        } else if (error.code === 'ECONNREFUSED') {
-          errorMessage += 'Connection refused';
-        } else if (error.code === 'ETIMEDOUT') {
-          errorMessage += 'Request timed out';
-        } else if (error.response) {
-          errorMessage += `HTTP ${error.response.status}: ${error.response.statusText}`;
-        } else {
-          errorMessage += error.message;
+        switch (error.code) {
+          case 'ENOTFOUND':
+            errorMessage += 'Domain not found or DNS resolution failed';
+            break;
+          case 'ECONNREFUSED':
+            errorMessage += 'Connection refused by the server';
+            break;
+          case 'ETIMEDOUT':
+            errorMessage += 'Request timed out';
+            break;
+          case 'ECONNRESET':
+            errorMessage += 'Connection was reset by the server';
+            break;
+          default:
+            if (error.response) {
+              errorMessage += `HTTP ${error.response.status}: ${error.response.statusText}`;
+            } else {
+              errorMessage += error.message;
+            }
         }
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: errorMessage,
-            },
-          ],
-        };
+        return createToolError(new Error(errorMessage), { url, operationId });
       }
     }
   );
 
-  // Tool: Web search (simulated)
   mcpServer.tool(
     'search_web',
     {
@@ -122,9 +250,8 @@ function createMcpServer() {
         .describe('Maximum number of results to return'),
     },
     async ({ query, limit = 5 }) => {
-      console.info(`Searching for: "${query}" (limit: ${limit})`);
+      logger.info('Performing web search', { query, limit });
 
-      // Generate simulated search results
       const searchResults = generateSearchResults(query, limit);
 
       return {
@@ -138,7 +265,6 @@ function createMcpServer() {
     }
   );
 
-  // Tool: Get page title
   mcpServer.tool(
     'get_page_title',
     {
@@ -146,7 +272,7 @@ function createMcpServer() {
     },
     async ({ url }) => {
       try {
-        console.info(`Extracting title from: ${url}`);
+        logger.info('Extracting page title', { url });
 
         const response = await axios.get(url, {
           timeout: 10000,
@@ -155,7 +281,6 @@ function createMcpServer() {
           },
         });
 
-        // Simple title extraction using regex (cheerio would require additional dependency)
         const titleMatch = response.data.match(/<title[^>]*>([^<]+)<\/title>/i);
         const title = titleMatch ? titleMatch[1].trim() : 'No title found';
 
@@ -168,7 +293,10 @@ function createMcpServer() {
           ],
         };
       } catch (error) {
-        console.error(`Failed to extract title from ${url}:`, error.message);
+        logger.error('Failed to extract page title', {
+          url,
+          error: error.message,
+        });
 
         return {
           content: [
@@ -212,60 +340,51 @@ function generateSearchResults(query, limit) {
   return results.join('\n');
 }
 
-// Handle POST requests for MCP communication
 app.post('/mcp', async (req, res) => {
   try {
-    console.info('MCP POST request received:');
-    console.info('  Headers: %s', JSON.stringify(req.headers, null, 2));
-    console.info('  Body: %s', JSON.stringify(req.body, null, 2));
+    logger.info('MCP POST request received', {
+      headers: req.headers,
+      bodyKeys: Object.keys(req.body || {}),
+    });
 
-    // Fix missing Accept headers for compatibility with Go MCP clients
-    // The StreamableHTTPServerTransport requires both application/json and text/event-stream
     const accept = req.headers.accept || req.headers.Accept;
     if (
       !accept ||
       !accept.includes('application/json') ||
       !accept.includes('text/event-stream')
     ) {
-      console.info('Adding missing Accept headers for MCP compatibility');
+      logger.info('Adding missing Accept headers for MCP compatibility');
       req.headers.accept = 'application/json, text/event-stream';
     }
 
-    // Check for existing session ID
     const sessionId = req.headers['mcp-session-id'];
     let transport;
 
     if (sessionId && transports[sessionId]) {
-      // Reuse existing transport
       transport = transports[sessionId];
     } else {
-      // Create new transport for new session
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (newSessionId) => {
-          console.info(`MCP session initialized: ${newSessionId}`);
-          // Store the transport by session ID
+          logger.info('MCP session initialized', { sessionId: newSessionId });
           transports[newSessionId] = transport;
         },
       });
 
-      // Clean up transport when closed
       transport.onclose = () => {
         if (transport.sessionId) {
-          console.info(`MCP session closed: ${transport.sessionId}`);
+          logger.info('MCP session closed', { sessionId: transport.sessionId });
           delete transports[transport.sessionId];
         }
       };
 
-      // Create and connect MCP server
       const server = createMcpServer();
       await server.connect(transport);
     }
 
-    // Handle the MCP request
     await transport.handleRequest(req, res, req.body);
   } catch (error) {
-    console.error('Error handling MCP request:', error);
+    logger.error('Error handling MCP request', { error: error.message });
     if (!res.headersSent) {
       res.status(500).json({
         jsonrpc: '2.0',
@@ -279,7 +398,6 @@ app.post('/mcp', async (req, res) => {
   }
 });
 
-// Handle GET requests for SSE (server-to-client notifications)
 app.get('/mcp', async (req, res) => {
   const sessionId = req.headers['mcp-session-id'];
   if (!sessionId || !transports[sessionId]) {
@@ -291,7 +409,6 @@ app.get('/mcp', async (req, res) => {
   await transport.handleRequest(req, res);
 });
 
-// Handle DELETE requests for session termination
 app.delete('/mcp', async (req, res) => {
   const sessionId = req.headers['mcp-session-id'];
   if (!sessionId || !transports[sessionId]) {
@@ -303,7 +420,6 @@ app.delete('/mcp', async (req, res) => {
   await transport.handleRequest(req, res);
 });
 
-// Health check endpoint
 app.get('/health', (req, res) => {
   const healthStatus = {
     status: 'healthy',
@@ -315,38 +431,35 @@ app.get('/health', (req, res) => {
     transport: 'Streamable HTTP',
   };
 
-  console.info('Health check requested: %j', healthStatus);
+  logger.info('Health check requested', healthStatus);
 
   res.json(healthStatus);
 });
 
-// Start the server
 const port = process.env.PORT || 3001;
 const host = process.env.HOST || '0.0.0.0';
 
 app.listen(port, host, () => {
-  console.info(`MCP Web Search server running on http://${host}:${port}`);
-  console.info('Protocol: Model Context Protocol (MCP)');
-  console.info('Transport: Streamable HTTP');
-  console.info('Available endpoints:');
-  console.info('  POST /mcp             - MCP protocol endpoint');
-  console.info(
+  logger.info(`MCP Web Search server running on http://${host}:${port}`);
+  logger.info('Protocol: Model Context Protocol (MCP)');
+  logger.info('Transport: Streamable HTTP');
+  logger.info('Available endpoints:');
+  logger.info('  POST /mcp             - MCP protocol endpoint');
+  logger.info(
     '  GET  /mcp             - SSE notifications (with session-id header)'
   );
-  console.info(
+  logger.info(
     '  DELETE /mcp           - Session termination (with session-id header)'
   );
-  console.info('  GET  /health          - Health check');
-  console.info('Available tools:');
-  console.info('  - fetch_url           - Fetch content from a URL');
-  console.info('  - search_web          - Perform web search (simulated)');
-  console.info('  - get_page_title      - Extract title from a web page');
+  logger.info('  GET  /health          - Health check');
+  logger.info('Available tools:');
+  logger.info('  - fetch_url           - Fetch content from a URL');
+  logger.info('  - search_web          - Perform web search (simulated)');
+  logger.info('  - get_page_title      - Extract title from a web page');
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
-  console.info('Received SIGTERM, shutting down gracefully');
-  // Close all transports
+  logger.info('Received SIGTERM, shutting down gracefully');
   Object.values(transports).forEach((transport) => {
     if (transport.close) transport.close();
   });
@@ -354,8 +467,7 @@ process.on('SIGTERM', () => {
 });
 
 process.on('SIGINT', () => {
-  console.info('Received SIGINT, shutting down gracefully');
-  // Close all transports
+  logger.info('Received SIGINT, shutting down gracefully');
   Object.values(transports).forEach((transport) => {
     if (transport.close) transport.close();
   });
