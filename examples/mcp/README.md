@@ -2,47 +2,17 @@
 
 This directory contains comprehensive examples demonstrating how to use the Inference Gateway SDK with Model Context Protocol (MCP) tools in a multi-provider architecture. Each example showcases different aspects of MCP tool integration.
 
-## 📁 Available Examples
-
-### Core Examples
-
-- **`example-basic.ts`** - Basic MCP tool usage and file operations
-- **`example-advanced.ts`** - Multi-scenario demonstration with complex workflows
-- **`example-nextjs.ts`** - Next.js application generator with documentation fetching
-- **`example-handler-demo.ts`** - Comprehensive `onMCPTool` handler demonstration
-
-### Debugging & Testing Examples
-
-- **`example-tool-demo.ts`** - Tool argument analysis and issue identification
-- **`example-debug-args.ts`** - Raw tool argument debugging
-- **`example-list-tools.ts`** - List all available MCP tools with schemas
-- **`example-mcp-tools.ts`** - Legacy MCP tools example
-
 ## 🚀 Quick Start
 
 ### Run Specific Examples
 
 ```bash
-# Run specific examples by name
-npm run example:basic
-npm run example:advanced
-npm run example:nextjs
-npm run example:tool-demo
-npm run example:handler-demo
-npm run example:debug-args
-npm run example:list-tools
+
+# Run interactive specialized agents
+npm run example:nextjs-agent      # 🤖 Next.js development agent
+npm run example:vite-agent        # ⚡ Vite application agent
+npm run example:kubernetes-agent  # ☸️ Kubernetes operations agent
 ```
-
-## Features Demonstrated
-
-1. **MCP Tool Discovery** - List and explore available MCP tools
-2. **File Operations** - Use filesystem MCP server for file operations
-3. **Web Scraping** - Fetch content from URLs using MCP tools
-4. **Multi-Tool Conversations** - Combine multiple MCP tools in single conversations
-5. **Tool Function Calling** - Stream responses with real-time tool execution
-6. **Data Analysis** - Analyze sample data files with AI assistance
-7. **Enhanced Tool Debugging** - Comprehensive `onMCPTool` handler examples
-8. **Error Handling** - Robust handling of incomplete tool arguments and failures
 
 ## Architecture
 
@@ -57,18 +27,94 @@ This example uses Docker Compose to orchestrate:
 
 The MCP filesystem server is configured with restricted access for security:
 
-- **`/shared`** - Read-only directory with sample data files
-- **`/tmp`** - Read-write directory for temporary files
+- **`/shared`** - Read-Write directory for shared files between the host and container
+- **`/tmp`** - Read-write directory for temporary files inside of the container
 
 The AI will only be able to access these directories. This prevents unauthorized access to system files.
 
 ## Sample Data
 
-The `/shared` directory contains example files for testing:
+The `/shared` directory contains example files for testing.
 
-- `mcp-filesystem-example.txt` - Basic example file
-- `sample_sales_data.csv` - Sales data for analysis exercises
-- `README.md` - Documentation about available files
+## 🤖 Interactive Development Agents
+
+This repository includes three specialized interactive agents that use Context7 MCP tools for up-to-date documentation and best practices:
+
+### ⚡ Vite Agent (`example-vite-agent.ts`)
+
+**Purpose:** Creates lightning-fast modern Vite applications with optimal configuration.
+
+**Specializes in:**
+
+- React, Vue, Svelte, and vanilla JavaScript/TypeScript projects
+- Modern build tooling and optimization
+- Fast development server with HMR
+- Vitest testing setup
+- TypeScript configuration
+- CSS preprocessing (Tailwind, Sass, PostCSS)
+
+**Run with:** `npm run example:vite-agent`
+
+**Example requests:**
+
+- "Create a React + TypeScript app with Vite and Tailwind CSS"
+- "Build a Vue 3 dashboard with Vite, Vitest, and component library"
+- "Make a Svelte SPA with Vite and optimal build configuration"
+
+### ☸️ Kubernetes Agent (`example-kubernetes-agent.ts`)
+
+**Purpose:** Handles Kubernetes cluster operations and container orchestration.
+
+**Specializes in:**
+
+- Production-ready YAML manifests
+- Deployment strategies (blue-green, canary)
+- RBAC and security policies
+- Service mesh configuration
+- Monitoring and observability
+- Scaling and resource management
+- CI/CD pipeline integration
+
+**Run with:** `npm run example:kubernetes-agent`
+
+**Example requests:**
+
+- "Deploy a scalable web application with load balancing and auto-scaling"
+- "Create a microservices architecture with service mesh and monitoring"
+- "Set up RBAC and network policies for multi-tenant cluster"
+- "Configure GitOps deployment pipeline with ArgoCD"
+
+### 🤖 Next.js Agent (`example-nextjs-agent.ts`)
+
+**Purpose:** Creates modern Next.js applications with App Router and latest features.
+
+**Specializes in:**
+
+- Next.js 13+ App Router architecture
+- Server Components and streaming
+- TypeScript and modern tooling
+- Performance optimization
+- SEO and accessibility
+- Production deployment
+
+**Run with:** `npm run example:nextjs-agent`
+
+**Example requests:**
+
+- "Create a Next.js blog with TypeScript and Tailwind CSS"
+- "Build a React dashboard with charts and data visualization"
+- "Make a full-stack Next.js app with authentication and database"
+
+### 🧰 Context7 Integration
+
+All agents use Context7 MCP tools to:
+
+- **Fetch Latest Documentation** - Get current best practices and API references
+- **Resolve Library Dependencies** - Find compatible package versions
+- **Access Code Examples** - Retrieve real-world implementation patterns
+- **Stay Current** - Use up-to-date information instead of static training data
+
+Each agent maintains conversation history and provides interactive help. Use `clear` to reset, `help` for guidance, or `exit` to quit.
 
 ## Setup Instructions
 
@@ -200,22 +246,12 @@ npx tsx filesystem-demo.ts
 
 ## Available Examples
 
-- `index.ts` - Enhanced MCP demonstration with comprehensive tool handling
-- `advanced-example.ts` - Multi-scenario examples showing file operations, web content, and data analysis
-- `nextjs-example.ts` - **IMPROVED!** Create a complete Next.js app with enhanced error handling and URL parsing
-- `handler-demo.ts` - Focused demonstration of the onMCPTool handler with detailed metrics and logging
-- `tool-demo.ts` - **NEW!** Comprehensive tool demonstration that identifies schema issues
-- `list-tools.ts` - **NEW!** Inspect MCP tool schemas and parameters
-- `example-mcp-tools.ts` - Basic MCP tool discovery and testing
+- `npm run example:nextjs-agent` - Next.js application generator
+- `npm run example:vite-agent` - Vite application generator
+- `npm run example:kubernetes-agent` - Kubernetes deployment example
 
 ## Available Commands
 
-- `npm start` - Run the main enhanced MCP example (index.ts)
-- `npm run advanced` - Run the advanced multi-scenario examples
-- `npm run nextjs` - Run improved Next.js app creator with better debugging
-- `npm run handler-demo` - Run the focused MCP tool handler demonstration
-- `npx tsx tool-demo.ts` - **NEW!** Run comprehensive tool testing and issue identification
-- `npx tsx list-tools.ts` - **NEW!** List all MCP tools with detailed schemas
 - `npm run compose:up` - Start all services in background
 - `npm run compose:down` - Stop all services
 - `npm run compose:logs` - View logs from all services

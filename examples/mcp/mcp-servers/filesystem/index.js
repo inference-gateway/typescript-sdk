@@ -22,9 +22,9 @@ app.use(express.json());
 const transports = {};
 
 // Allowed directories (configurable via environment)
-const allowedDirectories = (
-  process.env.ALLOWED_DIRECTORIES || '/shared,/tmp'
-).split(',');
+const allowedDirectories = (process.env.ALLOWED_DIRECTORIES || '/tmp').split(
+  ','
+);
 
 console.info('Allowed directories:', allowedDirectories);
 
@@ -48,7 +48,6 @@ function createMcpServer() {
     version: '1.0.0',
   });
 
-  // Tool: Read file content
   mcpServer.tool(
     'read_file',
     {
@@ -99,7 +98,6 @@ function createMcpServer() {
     }
   );
 
-  // Tool: Write file content
   mcpServer.tool(
     'write_file',
     {
@@ -116,7 +114,6 @@ function createMcpServer() {
       try {
         console.info(`Writing to file: ${filePath}`);
 
-        // Ensure directory exists
         const dir = path.dirname(filePath);
         await fs.mkdir(dir, { recursive: true });
 
@@ -145,7 +142,6 @@ function createMcpServer() {
     }
   );
 
-  // Tool: List directory contents
   mcpServer.tool(
     'list_directory',
     {
@@ -232,7 +228,6 @@ function createMcpServer() {
     }
   );
 
-  // Tool: Create directory
   mcpServer.tool(
     'create_directory',
     {
@@ -273,7 +268,6 @@ function createMcpServer() {
     }
   );
 
-  // Tool: Delete file
   mcpServer.tool(
     'delete_file',
     {
@@ -326,7 +320,6 @@ function createMcpServer() {
     }
   );
 
-  // Tool: Get file info
   mcpServer.tool(
     'file_info',
     {
@@ -416,8 +409,6 @@ function setupSessionRoutes() {
       console.info('  Headers: %s', JSON.stringify(req.headers, null, 2));
       console.info('  Body: %s', JSON.stringify(req.body, null, 2));
 
-      // Fix missing Accept headers for compatibility with Go MCP clients
-      // The StreamableHTTPServerTransport requires both application/json and text/event-stream
       const accept = req.headers.accept || req.headers.Accept;
       if (
         !accept ||
@@ -428,25 +419,20 @@ function setupSessionRoutes() {
         req.headers.accept = 'application/json, text/event-stream';
       }
 
-      // Check for existing session ID
       const sessionId = req.headers['mcp-session-id'];
       let transport;
 
       if (sessionId && transports[sessionId]) {
-        // Reuse existing transport
         transport = transports[sessionId];
       } else {
-        // Create new transport for new session
         transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
           onsessioninitialized: (newSessionId) => {
             console.info(`MCP session initialized: ${newSessionId}`);
-            // Store the transport by session ID
             transports[newSessionId] = transport;
           },
         });
 
-        // Clean up transport when closed
         transport.onclose = () => {
           if (transport.sessionId) {
             console.info(`MCP session closed: ${transport.sessionId}`);
@@ -454,12 +440,10 @@ function setupSessionRoutes() {
           }
         };
 
-        // Create and connect MCP server
         const server = createMcpServer();
         await server.connect(transport);
       }
 
-      // Handle the MCP request
       await transport.handleRequest(req, res, req.body);
     } catch (error) {
       console.error('Error handling MCP request:', error);
@@ -475,67 +459,6 @@ function setupSessionRoutes() {
       }
     }
   });
-
-  // Handle GET requests for SSE (server-to-client notifications)
-  app.get('/mcp', async (req, res) => {
-    const sessionId = req.headers['mcp-session-id'];
-    if (!sessionId || !transports[sessionId]) {
-      res.status(400).send('Invalid or missing session ID');
-      return;
-    }
-
-    const transport = transports[sessionId];
-    await transport.handleRequest(req, res);
-  });
-
-  // Handle DELETE requests for session termination
-  app.delete('/mcp', async (req, res) => {
-    const sessionId = req.headers['mcp-session-id'];
-    if (!sessionId || !transports[sessionId]) {
-      res.status(400).send('Invalid or missing session ID');
-      return;
-    }
-
-    const transport = transports[sessionId];
-    await transport.handleRequest(req, res);
-  });
-}
-
-/**
- * Initialize sample files
- */
-async function initializeSampleFiles() {
-  try {
-    // Create sample files in allowed directories
-    for (const dir of allowedDirectories) {
-      try {
-        await fs.access(dir);
-
-        const sampleFile = path.join(dir, 'mcp-filesystem-example.txt');
-        const sampleContent = `Hello from MCP Filesystem Server!
-
-This is a sample file created by the MCP Filesystem Server.
-Created at: ${new Date().toISOString()}
-
-You can use the following MCP tools to interact with this file:
-- read_file: Read this file's content
-- write_file: Modify this file
-- file_info: Get detailed information about this file
-- list_directory: List all files in this directory
-- delete_file: Delete this file
-
-Available directories: ${allowedDirectories.join(', ')}
-`;
-
-        await fs.writeFile(sampleFile, sampleContent);
-        console.info(`Created sample file: ${sampleFile}`);
-      } catch (error) {
-        console.info(`Could not create sample file in ${dir}:`, error.message);
-      }
-    }
-  } catch (error) {
-    console.error('Error initializing sample files:', error);
-  }
 }
 
 /**
@@ -563,7 +486,6 @@ async function startServer() {
   const port = process.env.PORT || 3000;
   const host = process.env.HOST || '0.0.0.0';
 
-  // Set up session routes
   setupSessionRoutes();
 
   app.listen(port, host, async () => {
@@ -588,17 +510,12 @@ async function startServer() {
     console.info('  - move_file           - Move/rename a file');
     console.info('Allowed directories:', allowedDirectories);
 
-    // Initialize sample files
-    await initializeSampleFiles();
-
     console.info('MCP Filesystem server ready for connections');
   });
 }
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
   console.info('Received SIGTERM, shutting down gracefully');
-  // Close all transports
   Object.values(transports).forEach((transport) => {
     if (transport.close) transport.close();
   });
@@ -607,14 +524,12 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   console.info('Received SIGINT, shutting down gracefully');
-  // Close all transports
   Object.values(transports).forEach((transport) => {
     if (transport.close) transport.close();
   });
   process.exit(0);
 });
 
-// Start the server
 startServer().catch((error) => {
   console.error('Failed to start server:', error);
   process.exit(1);

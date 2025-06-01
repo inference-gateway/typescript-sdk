@@ -1,8 +1,8 @@
 /**
- * Interactive Context7 Agent
+ * Interactive Kubernetes Operations Agent
  *
- * This agent allows users to interactively request app development assistance
- * using Context7 MCP tools for up-to-date documentation and library information.
+ * This agent specializes in Kubernetes cluster management, deployment automation,
+ * and container orchestration using Context7 MCP tools for up-to-date K8s documentation.
  */
 
 import * as dotenv from 'dotenv';
@@ -14,7 +14,6 @@ import {
   Provider,
 } from '../../src/index.js';
 
-// Load environment variables from the mcp directory
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 declare const require: any;
@@ -29,7 +28,7 @@ interface AgentConfig {
   retryDelayMs: number;
 }
 
-class Context7Agent {
+class KubernetesAgent {
   private config: AgentConfig;
   private rl: readline.Interface;
 
@@ -42,7 +41,7 @@ class Context7Agent {
       model: process.env.LLM || 'llama-3.3-70b-versatile',
       conversationHistory: [],
       maxRetries: 3,
-      retryDelayMs: 60000, // 1 minute
+      retryDelayMs: 60000,
     };
 
     this.rl = readline.createInterface({
@@ -50,7 +49,6 @@ class Context7Agent {
       output: process.stdout,
     });
 
-    // Initialize system prompt with comprehensive development instructions
     this.config.conversationHistory.push({
       role: MessageRole.system,
       content: this.getSystemPrompt(),
@@ -63,29 +61,29 @@ class Context7Agent {
     });
   }
 
-  private async waitForProjectCreation(): Promise<void> {
+  private async waitForKubernetesOperation(): Promise<void> {
     console.log(
-      '⏳ Waiting 30 seconds for Next.js project creation to complete...'
+      '⏳ Waiting 10 seconds for Kubernetes operation to complete...'
     );
-    await this.delay(30000);
-    console.log('✅ Project creation wait period completed.\n');
+    await this.delay(10000);
+    console.log('✅ Kubernetes operation wait period completed.\n');
   }
 
   private getSystemPrompt(): string {
     return `
-You are an expert software development assistant with access to Context7 MCP tools for library documentation and research. Today is **June 1, 2025**.
+You are an expert Kubernetes operations assistant with access to Context7 MCP tools for K8s documentation and research. Today is **June 1, 2025**.
 
 ---
 
 ### 🔧 CORE RESPONSIBILITIES
 
-You help users create **modern, production-grade applications** by:
+You help users with **Kubernetes cluster operations and container orchestration** by:
 
-1. Understanding user requirements and recommending the best-fit technologies
-2. Using **Context7 tools** to retrieve up-to-date documentation and best practices
-3. Building complete projects with proper structure and configuration
-4. Following modern development conventions and patterns
-5. Creating clean, responsive, and accessible UI/UX
+1. Understanding deployment requirements and recommending optimal K8s strategies
+2. Using **Context7 tools** to retrieve up-to-date Kubernetes documentation and best practices
+3. Creating production-ready YAML manifests and Helm charts
+4. Following Kubernetes security and performance conventions
+5. Providing cluster management, monitoring, and troubleshooting guidance
 
 ---
 
@@ -98,7 +96,6 @@ You have access to either **Real** or **Mock** Context7 tools.
 * c41_resolve-library-id: Resolve technology names to Context7-compatible IDs
 * c41_get-library-docs: Fetch full documentation, usage examples, and best practices
 
-**Mock Tools (for local/demo use):**
 
 * search_libraries: Search for libraries by name or functionality
 * get_library_details: Fetch library metadata and features
@@ -108,72 +105,123 @@ You have access to either **Real** or **Mock** Context7 tools.
 
 ### 📂 FILE SYSTEM RULES
 
-* All projects and generated files must **use the /tmp directory exclusively**.
-* If a **Next.js project already exists in /tmp**, continue working within it instead of creating a new one.
-* You must **never overwrite** an existing project unless explicitly asked.
+* All Kubernetes manifests and generated files must **use the /tmp directory exclusively**.
+* If **Kubernetes configurations already exist in /tmp**, continue working within them instead of creating new ones.
+* You must **never overwrite** existing configurations unless explicitly asked.
 
 ---
 
 ### ⚙️ DEVELOPMENT WORKFLOW
 
-**Always use Context7 tools before coding:**
+**Always use Context7 tools before creating K8s resources:**
 
-**Always list the files in a directory before creating new files.**
+**Always list the files in a directory before creating new manifests.**
 
-**When creating a Next.js project, always wait 30 seconds after project creation.**
+**When applying K8s configurations, always wait 10 seconds after operation.**
 
-1. Clarify requirements and tech stack
-2. Lookup technologies using Context7 tools
-3. Retrieve current documentation and patterns
-4. Scaffold or enhance projects under /tmp, maintaining clean structure
-5. Follow framework and language conventions
-6. Include error handling, testing, and CI/build scripts
-7. Prioritize maintainability, readability, and DX (developer experience)
-
----
-
-### ⚛️ NEXT.JS PROJECT RULES
-
-* **Use ONLY the App Router (/app)**, not the legacy Pages Router
-* **Never create both (/app and /pages directories**
-* **IMPORTANT: Always wait 30 seconds after creating a Next.js project before proceeding**
-* Structure should include:
-  * app/layout.tsx – required root layout
-  * app/page.tsx - homepage
-  * app/about/page.tsx – nested routes
-  * components/, public/, etc. as needed
-
-If a Next.js project exists:
-
-* Validate it uses the App Router
-* Extend or modify as needed based on the request
+1. Clarify requirements and deployment architecture
+2. Lookup Kubernetes and related technologies using Context7 tools
+3. Retrieve current documentation, patterns, and best practices
+4. Create or enhance configurations under /tmp, maintaining clean structure
+5. Follow K8s conventions, security policies, and resource management
+6. Include proper monitoring, logging, and health check configurations
+7. Prioritize scalability, reliability, and operational excellence
 
 ---
 
-### 🧪 TECH STACK (verify latest versions with Context7)
+### ☸️ KUBERNETES RESOURCE RULES
 
-**Frontend:** React, Next.js, Vue, Angular, Svelte
-**Backend:** Node.js, Express, Fastify, NestJS, Koa
-**Databases:** MongoDB, PostgreSQL, MySQL, SQLite, Redis
-**Styling:** Tailwind CSS, CSS Modules, Styled Components
-**Testing:** Jest, Vitest, Playwright, Cypress
-**Build Tools:** Vite, Webpack, Rollup, Turbo
-**Package Managers:** npm, yarn, pnpm
+* **Use the latest Kubernetes API versions and best practices**
+* **Follow security-first approach with RBAC, network policies, and pod security**
+* **Structure should include:**
+  * Namespace definitions
+  * Deployment/StatefulSet manifests
+  * Service and Ingress configurations
+  * ConfigMaps and Secrets
+  * RBAC policies (ServiceAccount, Role, RoleBinding)
+  * NetworkPolicies for security
+  * HorizontalPodAutoscaler for scaling
+  * PodDisruptionBudget for availability
+
+**Supported Kubernetes Resources:**
+* **Workloads:** Deployments, StatefulSets, DaemonSets, Jobs, CronJobs
+* **Services:** ClusterIP, NodePort, LoadBalancer, ExternalName
+* **Configuration:** ConfigMaps, Secrets, PersistentVolumes
+* **Security:** RBAC, NetworkPolicies, PodSecurityPolicies
+* **Scaling:** HPA, VPA, Cluster Autoscaler
+* **Networking:** Ingress, Service Mesh (Istio/Linkerd)
+
+If Kubernetes configurations exist:
+* Validate API versions and resource definitions
+* Extend or modify as needed based on requirements
+* Optimize for performance, security, and cost
+
+---
+
+### 🧪 KUBERNETES ECOSYSTEM (verify latest versions with Context7)
+
+**Core:** kubectl, kubelet, kube-apiserver, etcd, kube-controller-manager
+**Container Runtime:** containerd, Docker, CRI-O
+**Networking:** Calico, Flannel, Weave, Cilium
+**Service Mesh:** Istio, Linkerd, Consul Connect
+**Monitoring:** Prometheus, Grafana, Jaeger, Kiali
+**CI/CD:** ArgoCD, Flux, Tekton, Jenkins X
+**Package Management:** Helm, Kustomize, Operator Framework
+**Security:** Falco, Open Policy Agent (OPA), Twistlock
+**Storage:** Longhorn, Rook, OpenEBS, Portworx
+
+---
+
+### 🚀 COMMON KUBERNETES PATTERNS TO LEVERAGE
+
+* **Microservices Architecture** with proper service decomposition
+* **GitOps Deployment** with declarative configurations
+* **Blue-Green Deployments** for zero-downtime updates
+* **Canary Releases** for safe rollouts
+* **Resource Quotas** and limits for multi-tenancy
+* **Health Checks** (liveness, readiness, startup probes)
+* **Secrets Management** with external secret operators
+* **Observability** with distributed tracing and metrics
+
+---
+
+### 🛡️ SECURITY BEST PRACTICES
+
+* **Principle of Least Privilege** with RBAC
+* **Network Segmentation** with NetworkPolicies
+* **Pod Security Standards** enforcement
+* **Image Security** scanning and admission controllers
+* **Secret Rotation** and external secret management
+* **Audit Logging** for compliance and monitoring
+* **Resource Isolation** with namespaces and quotas
+
+---
+
+### 📊 OPERATIONAL EXCELLENCE
+
+* **Infrastructure as Code** with Terraform/Pulumi
+* **Automated Scaling** based on metrics
+* **Disaster Recovery** planning and testing
+* **Cost Optimization** with resource right-sizing
+* **Performance Monitoring** and alerting
+* **Capacity Planning** for growth
+* **Multi-cluster Management** for resilience
 
 ---
 
 ### ✅ SUMMARY
 
 * Always work in /tmp
-* If a project exists, enhance it — don't recreate
-* Use Context7 tools for everything: tech decisions, patterns, and examples
-* Adhere to modern best practices in project setup, UI/UX, and code quality
+* If K8s configurations exist, enhance them — don't recreate
+* Use Context7 tools for everything: K8s decisions, patterns, and examples
+* Follow security-first, cloud-native principles
+* Adhere to modern best practices in cluster operations, security, and reliability
 `;
   }
 
   async initialize(): Promise<void> {
     console.log(
-      `🚀 Context7 Interactive Agent initialized using ${this.config.model} on ${this.config.provider}\n`
+      `☸️  Kubernetes Operations Agent initialized using ${this.config.model} on ${this.config.provider}\n`
     );
 
     let attempt = 0;
@@ -233,7 +281,7 @@ If a Next.js project exists:
 
         this.showWelcomeMessage();
         await this.startInteractiveSession();
-        break; // Success, exit retry loop
+        break;
       } catch (error) {
         attempt++;
         console.error(
@@ -261,29 +309,32 @@ If a Next.js project exists:
   }
 
   private showWelcomeMessage(): void {
-    console.log('🤖 Welcome to Context7 Interactive Development Agent!');
+    console.log('☸️  Welcome to Kubernetes Operations Agent!');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(
-      '\n💡 I can help you create modern applications using the latest technologies.'
+      '\n💡 I specialize in Kubernetes cluster operations and container orchestration.'
     );
     console.log(
-      "   Just describe what you want to build, and I'll use Context7 to get"
+      "   Just describe what you want to deploy or manage, and I'll use Context7"
     );
     console.log(
-      '   up-to-date documentation and create a complete solution for you.'
+      '   to get up-to-date K8s documentation and create production-ready solutions.'
     );
     console.log('\n📝 Example requests:');
     console.log(
-      '   • "Create a Next.js blog with TypeScript and Tailwind CSS"'
+      '   • "Deploy a scalable web application with load balancing and auto-scaling"'
     );
     console.log(
-      '   • "Build a React dashboard with charts and data visualization"'
+      '   • "Create a microservices architecture with service mesh and monitoring"'
     );
     console.log(
-      '   • "Make a Node.js API with Express and MongoDB integration"'
+      '   • "Set up a CI/CD pipeline with GitOps and automated deployments"'
     );
     console.log(
-      '   • "Create a Vue.js e-commerce frontend with cart functionality"'
+      '   • "Configure RBAC and network policies for multi-tenant cluster"'
+    );
+    console.log(
+      '   • "Deploy a database cluster with persistent storage and backups"'
     );
     console.log('\n⚡ Commands:');
     console.log('   • Type your request to start building');
@@ -295,7 +346,7 @@ If a Next.js project exists:
   private async startInteractiveSession(): Promise<void> {
     while (true) {
       const userInput = await this.getUserInput(
-        '🔨 What would you like to build? '
+        '☸️  What would you like to deploy or manage in Kubernetes? '
       );
 
       if (this.handleSpecialCommands(userInput)) {
@@ -322,7 +373,7 @@ If a Next.js project exists:
     switch (command) {
       case 'exit':
       case 'quit':
-        console.log('\n👋 Thank you for using Context7 Agent! Goodbye!');
+        console.log('\n👋 Thank you for using Kubernetes Agent! Goodbye!');
         this.rl.close();
         process.exit(0);
         return true;
@@ -352,7 +403,7 @@ If a Next.js project exists:
     while (attempt < this.config.maxRetries) {
       try {
         await this.processUserRequest(userInput);
-        break; // Success, exit retry loop
+        break;
       } catch (error) {
         attempt++;
         console.error(
@@ -377,17 +428,16 @@ If a Next.js project exists:
   }
 
   private async processUserRequest(userInput: string): Promise<void> {
-    console.log(`\n🔍 Processing request: "${userInput}"`);
+    console.log(`\n🔍 Processing Kubernetes request: "${userInput}"`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    // Add user message to conversation history
     this.config.conversationHistory.push({
       role: MessageRole.user,
       content: userInput,
     });
 
     let assistantResponse = '';
-    let shouldWaitForProject = false;
+    let shouldWaitForOperation = false;
 
     await this.config.client.streamChatCompletion(
       {
@@ -397,7 +447,9 @@ If a Next.js project exists:
       },
       {
         onOpen: () => {
-          console.log('🔗 Starting development session with Context7...\n');
+          console.log(
+            '🔗 Starting Kubernetes operations session with Context7...\n'
+          );
         },
         onReasoning: (reasoning) => {
           console.log(`\n🤔 Agent Reasoning: ${reasoning}`);
@@ -417,15 +469,16 @@ If a Next.js project exists:
           console.log(`🔍 Tool ID: ${toolCall.id}\n`);
 
           if (
-            toolCall.function.name === 'create_next_project' ||
-            toolCall.function.name === 'create_nextjs_project' ||
-            toolCall.function.name === 'create_new_workspace' ||
-            toolCall.function.name.toLowerCase().includes('next')
+            toolCall.function.name.toLowerCase().includes('kubernetes') ||
+            toolCall.function.name.toLowerCase().includes('k8s') ||
+            toolCall.function.name.toLowerCase().includes('kubectl') ||
+            toolCall.function.name.toLowerCase().includes('deploy') ||
+            toolCall.function.name.toLowerCase().includes('create')
           ) {
             console.log(
-              '🎯 Next.js project creation detected - will wait 30 seconds after completion'
+              '☸️  Kubernetes operation detected - will wait 10 seconds after completion'
             );
-            shouldWaitForProject = true;
+            shouldWaitForOperation = true;
           }
         },
         onError: (error) => {
@@ -433,11 +486,11 @@ If a Next.js project exists:
           throw new Error(`Stream error: ${error.error}`);
         },
         onFinish: async () => {
-          console.log('\n\n✅ Development session completed!\n');
+          console.log('\n\n✅ Kubernetes operations session completed!\n');
           console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-          if (shouldWaitForProject) {
-            await this.waitForProjectCreation();
+          if (shouldWaitForOperation) {
+            await this.waitForKubernetesOperation();
           }
 
           // Add assistant response to conversation history
@@ -457,18 +510,17 @@ If a Next.js project exists:
   }
 }
 
-async function runContext7Agent(): Promise<void> {
-  const agent = new Context7Agent();
+async function runKubernetesAgent(): Promise<void> {
+  const agent = new KubernetesAgent();
 
-  // Handle graceful shutdown
   process.on('SIGINT', async () => {
-    console.log('\n\n👋 Shutting down Context7 Agent...');
+    console.log('\n\n👋 Shutting down Kubernetes Agent...');
     await agent.shutdown();
     process.exit(0);
   });
 
   process.on('SIGTERM', async () => {
-    console.log('\n\n👋 Shutting down Context7 Agent...');
+    console.log('\n\n👋 Shutting down Kubernetes Agent...');
     await agent.shutdown();
     process.exit(0);
   });
@@ -476,9 +528,11 @@ async function runContext7Agent(): Promise<void> {
   await agent.initialize();
 }
 
-// Run the agent
-if (require.main === module || process.argv[1].endsWith('context7-agent.ts')) {
-  runContext7Agent().catch(console.error);
+if (
+  require.main === module ||
+  process.argv[1].endsWith('kubernetes-agent.ts')
+) {
+  runKubernetesAgent().catch(console.error);
 }
 
-export { Context7Agent, runContext7Agent };
+export { KubernetesAgent, runKubernetesAgent };
