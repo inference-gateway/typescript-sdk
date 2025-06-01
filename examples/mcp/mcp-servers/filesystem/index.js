@@ -321,6 +321,70 @@ function createMcpServer() {
   );
 
   mcpServer.tool(
+    'delete_directory',
+    {
+      path: z.string().describe('The directory path to delete'),
+      recursive: z
+        .boolean()
+        .optional()
+        .describe('Whether to delete recursively (default: false)'),
+    },
+    async ({ path: dirPath, recursive = false }) => {
+      if (!isPathAllowed(dirPath)) {
+        throw new Error(
+          `Access denied: ${dirPath} is not in allowed directories`
+        );
+      }
+
+      try {
+        console.info(
+          `Deleting directory: ${dirPath} (recursive: ${recursive})`
+        );
+
+        if (recursive) {
+          await fs.rm(dirPath, { recursive: true, force: true });
+        } else {
+          await fs.rmdir(dirPath);
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Successfully deleted directory: ${dirPath}`,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error(`Failed to delete directory ${dirPath}:`, error.message);
+
+        let errorMessage = `Failed to delete directory: ${dirPath}\n`;
+        if (error.code === 'ENOENT') {
+          errorMessage += 'Directory does not exist';
+        } else if (error.code === 'EACCES') {
+          errorMessage += 'Permission denied';
+        } else if (error.code === 'ENOTDIR') {
+          errorMessage += 'Path is not a directory';
+        } else if (error.code === 'ENOTEMPTY') {
+          errorMessage +=
+            'Directory is not empty (use recursive option to delete non-empty directories)';
+        } else {
+          errorMessage += error.message;
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: errorMessage,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  mcpServer.tool(
     'file_info',
     {
       path: z.string().describe('The file or directory path to get info for'),
@@ -507,7 +571,8 @@ async function startServer() {
     console.info('  - list_directory      - List directory contents');
     console.info('  - create_directory    - Create a new directory');
     console.info('  - delete_file         - Delete a file');
-    console.info('  - move_file           - Move/rename a file');
+    console.info('  - delete_directory    - Delete a directory');
+    console.info('  - file_info           - Get file or directory information');
     console.info('Allowed directories:', allowedDirectories);
 
     console.info('MCP Filesystem server ready for connections');
