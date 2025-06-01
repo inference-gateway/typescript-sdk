@@ -13,13 +13,8 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import {
-  createMcpLogger,
-  logMcpRequest,
-  logMcpSession,
-  logMcpToolCall,
-  logMcpError,
-} from './logger.js';
+import { search, SafeSearchType } from 'duck-duck-scrape';
+import { createMcpLogger } from './logger.js';
 
 const logger = createMcpLogger('mcp-web-search', '1.0.0');
 
@@ -248,20 +243,90 @@ function createMcpServer() {
         .max(20)
         .default(5)
         .describe('Maximum number of results to return'),
+      safe_search: z
+        .enum(['strict', 'moderate', 'off'])
+        .default('moderate')
+        .describe('Safe search setting'),
     },
-    async ({ query, limit = 5 }) => {
-      logger.info('Performing web search', { query, limit });
+    async ({ query, limit = 5, safe_search = 'moderate' }) => {
+      const operationId = randomUUID();
 
-      const searchResults = generateSearchResults(query, limit);
+      try {
+        logger.info('Performing DuckDuckGo web search', {
+          operationId,
+          query,
+          limit,
+          safe_search,
+        });
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Search Results for "${query}":\n\n${searchResults}`,
-          },
-        ],
-      };
+        // Map safe_search string to SafeSearchType enum
+        const safeSearchMap = {
+          strict: SafeSearchType.STRICT,
+          moderate: SafeSearchType.MODERATE,
+          off: SafeSearchType.OFF,
+        };
+
+        const searchOptions = {
+          safeSearch: safeSearchMap[safe_search],
+          time: null, // no time restriction
+          locale: 'en-us',
+          count: Math.min(limit, 20), // DuckDuckGo API limit
+        };
+
+        const searchResults = await search(query, searchOptions);
+
+        if (
+          !searchResults ||
+          !searchResults.results ||
+          searchResults.results.length === 0
+        ) {
+          logger.warn('No search results found', { operationId, query });
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `No search results found for "${query}".`,
+              },
+            ],
+          };
+        }
+
+        const results = searchResults.results.slice(0, limit);
+        const formattedResults = results
+          .map((result, index) => {
+            return `${index + 1}. ${result.title}\n   ${result.url}\n   ${
+              result.description
+            }\n`;
+          })
+          .join('\n');
+
+        logger.info('DuckDuckGo search completed successfully', {
+          operationId,
+          query,
+          resultCount: results.length,
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `DuckDuckGo Search Results for "${query}":\n\n${formattedResults}`,
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error('Failed to perform DuckDuckGo search', {
+          operationId,
+          query,
+          error: error.message,
+          stack: error.stack,
+        });
+
+        return createToolError(
+          new Error(`Failed to search DuckDuckGo: ${error.message}`),
+          { query, operationId }
+        );
+      }
     }
   );
 
@@ -311,33 +376,6 @@ function createMcpServer() {
   );
 
   return mcpServer;
-}
-
-/**
- * Generate simulated search results
- */
-function generateSearchResults(query, limit) {
-  const results = [];
-  const domains = [
-    'example.com',
-    'wikipedia.org',
-    'github.com',
-    'stackoverflow.com',
-    'medium.com',
-  ];
-
-  for (let i = 0; i < Math.min(limit, 10); i++) {
-    const domain = domains[i % domains.length];
-    const title = `${query} - Result ${i + 1}`;
-    const url = `https://${domain}/${query
-      .toLowerCase()
-      .replace(/\s+/g, '-')}-${i + 1}`;
-    const description = `This is a simulated search result for "${query}". It would normally contain relevant information about your search query.`;
-
-    results.push(`${i + 1}. ${title}\n   ${url}\n   ${description}\n`);
-  }
-
-  return results.join('\n');
 }
 
 app.post('/mcp', async (req, res) => {
@@ -454,7 +492,7 @@ app.listen(port, host, () => {
   logger.info('  GET  /health          - Health check');
   logger.info('Available tools:');
   logger.info('  - fetch_url           - Fetch content from a URL');
-  logger.info('  - search_web          - Perform web search (simulated)');
+  logger.info('  - search_web          - Perform web search using DuckDuckGo');
   logger.info('  - get_page_title      - Extract title from a web page');
 });
 
