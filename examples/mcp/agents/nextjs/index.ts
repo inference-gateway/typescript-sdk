@@ -57,7 +57,7 @@ class NextJSAgent {
       retryDelayMs: 60000,
       iterationCount: 0,
       totalTokensUsed: 0,
-      maxTokensPerRequest: 1000,
+      maxTokensPerRequest: 3000,
       maxHistoryLength: 10,
       sessionId: process.env.SESSION_ID || randomUUID(),
       memoryEnabled: true,
@@ -700,7 +700,7 @@ Call save-state tool immediately with sessionId="${this.config.sessionId}" and t
               content: `Call save-state tool now with sessionId="${this.config.sessionId}"`,
             },
           ],
-          max_tokens: 50,
+          max_tokens: this.config.maxTokensPerRequest,
         },
         {
           onMCPTool: (toolCall) => {
@@ -795,7 +795,7 @@ Call the save-state tool now.`,
                   content: `Call save-state tool immediately with sessionId="${this.config.sessionId}". Do not respond with text - only call the tool.`,
                 },
               ],
-              max_tokens: 100,
+              max_tokens: this.config.maxTokensPerRequest,
             },
             {
               onMCPTool: (toolCall) => {
@@ -912,7 +912,7 @@ Call the save-state tool now.`,
               content: `Please restore the session state using the restore-state tool and provide the restored data.`,
             },
           ],
-          max_tokens: 200,
+          max_tokens: this.config.maxTokensPerRequest,
         },
         {
           onContent: (content) => {
