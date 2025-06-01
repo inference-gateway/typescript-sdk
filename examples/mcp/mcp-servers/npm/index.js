@@ -26,20 +26,15 @@ import {
 
 const execAsync = promisify(exec);
 
-// Create standardized logger
 const logger = createMcpLogger('mcp-npm', '1.0.0');
 
-// Express app for HTTP transport
 const app = express();
 app.use(express.json());
 
-// Map to store transports by session ID
 const transports = {};
 
-// Working directory (configurable via environment)
 const workingDirectory = process.env.WORKING_DIRECTORY || '/tmp';
 
-// Whitelisted npm commands for security
 const ALLOWED_NPM_COMMANDS = [
   'init',
   'install',
@@ -73,7 +68,6 @@ function validateNpmCommand(command) {
     throw new Error('Empty command');
   }
 
-  // Remove 'npm' if it's the first part
   if (parts[0] === 'npm') {
     parts.shift();
   }
@@ -144,7 +138,6 @@ function createMcpServer() {
     version: '1.0.0',
   });
 
-  // Tool: Run npm command
   mcpServer.tool(
     'npm_run',
     {
@@ -207,7 +200,6 @@ function createMcpServer() {
     }
   );
 
-  // Tool: Initialize new npm project
   mcpServer.tool(
     'npm_init',
     {
@@ -229,10 +221,8 @@ function createMcpServer() {
       });
 
       try {
-        // Create project directory
         await execAsync(`mkdir -p "${projectDir}"`);
 
-        // Initialize npm project
         const initCommand = yes ? 'init -y' : 'init';
         const result = await executeNpmCommand(initCommand, projectDir);
 
@@ -276,7 +266,6 @@ function createMcpServer() {
     }
   );
 
-  // Tool: Install npm packages
   mcpServer.tool(
     'npm_install',
     {
@@ -362,7 +351,6 @@ function createMcpServer() {
     }
   );
 
-  // Tool: Create Next.js project
   mcpServer.tool(
     'create_nextjs_project',
     {
@@ -417,10 +405,8 @@ function createMcpServer() {
       });
 
       try {
-        // Build the npx create-next-app command with options
         let command = `npx create-next-app@latest "${name}" --yes`;
 
-        // Add flags based on options
         if (typescript) {
           command += ' --typescript';
         } else {
@@ -533,12 +519,10 @@ function createMcpServer() {
  * Setup MCP endpoints for proper Model Context Protocol communication
  */
 function setupSessionRoutes() {
-  // Handle POST requests for MCP communication
   app.post('/mcp', async (req, res) => {
     try {
       logMcpRequest(logger, req);
 
-      // Fix missing Accept headers for compatibility with Go MCP clients
       const accept = req.headers.accept || req.headers.Accept;
       if (
         !accept ||
@@ -549,25 +533,20 @@ function setupSessionRoutes() {
         req.headers.accept = 'application/json, text/event-stream';
       }
 
-      // Check for existing session ID
       const sessionId = req.headers['mcp-session-id'];
       let transport;
 
       if (sessionId && transports[sessionId]) {
-        // Reuse existing transport
         transport = transports[sessionId];
       } else {
-        // Create new transport for new session
         transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
           onsessioninitialized: (newSessionId) => {
             logMcpSession(logger, 'initialized', newSessionId);
-            // Store the transport by session ID
             transports[newSessionId] = transport;
           },
         });
 
-        // Clean up transport when closed
         transport.onclose = () => {
           if (transport.sessionId) {
             logMcpSession(logger, 'closed', transport.sessionId);
@@ -575,12 +554,10 @@ function setupSessionRoutes() {
           }
         };
 
-        // Create and connect MCP server
         const server = createMcpServer();
         await server.connect(transport);
       }
 
-      // Handle the MCP request
       await transport.handleRequest(req, res, req.body);
     } catch (error) {
       logMcpError(logger, error, {
@@ -600,7 +577,6 @@ function setupSessionRoutes() {
     }
   });
 
-  // Handle GET requests for SSE (server-to-client notifications)
   app.get('/mcp', async (req, res) => {
     const sessionId = req.headers['mcp-session-id'];
     if (!sessionId || !transports[sessionId]) {
@@ -612,7 +588,6 @@ function setupSessionRoutes() {
     await transport.handleRequest(req, res);
   });
 
-  // Handle DELETE requests for session termination
   app.delete('/mcp', async (req, res) => {
     const sessionId = req.headers['mcp-session-id'];
     if (!sessionId || !transports[sessionId]) {
@@ -647,7 +622,6 @@ function setupHealthCheck() {
 async function startServer() {
   const port = process.env.PORT || 3003;
 
-  // Setup routes
   setupSessionRoutes();
   setupHealthCheck();
 
@@ -673,10 +647,8 @@ async function startServer() {
   });
 }
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
   logger.info('Received SIGTERM, shutting down gracefully');
-  // Close all transports
   Object.values(transports).forEach((transport) => {
     if (transport.close) transport.close();
   });
@@ -685,14 +657,12 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   logger.info('Received SIGINT, shutting down gracefully');
-  // Close all transports
   Object.values(transports).forEach((transport) => {
     if (transport.close) transport.close();
   });
   process.exit(0);
 });
 
-// Start the server
 startServer().catch((error) => {
   logMcpError(logger, error, {
     operation: 'server-startup',
