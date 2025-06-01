@@ -485,7 +485,7 @@ If Kubernetes configurations exist:
           process.stdout.write(content);
           assistantResponse += content;
         },
-        onTool: (toolCall: any) => {
+        onMCPTool: (toolCall: any) => {
           console.log(`\n🛠️  Context7 Tool: ${toolCall.function.name}`);
           try {
             const args = JSON.parse(toolCall.function.arguments);

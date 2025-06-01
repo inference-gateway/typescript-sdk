@@ -429,7 +429,7 @@ If a Next.js project exists:
           process.stdout.write(content);
           assistantResponse += content;
         },
-        onTool: (toolCall) => {
+        onMCPTool: (toolCall) => {
           console.log(`\n🛠️  Context7 Tool: ${toolCall.function.name}`);
           try {
             const args = JSON.parse(toolCall.function.arguments);
