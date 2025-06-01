@@ -63,6 +63,14 @@ class Context7Agent {
     });
   }
 
+  private async waitForProjectCreation(): Promise<void> {
+    console.log(
+      '⏳ Waiting 30 seconds for Next.js project creation to complete...'
+    );
+    await this.delay(30000);
+    console.log('✅ Project creation wait period completed.\n');
+  }
+
   private getSystemPrompt(): string {
     return `
 You are an expert software development assistant with access to Context7 MCP tools for library documentation and research. Today is **June 1, 2025**.
@@ -112,6 +120,8 @@ You have access to either **Real** or **Mock** Context7 tools.
 
 **Always list the files in a directory before creating new files.**
 
+**When creating a Next.js project, always wait 30 seconds after project creation.**
+
 1. Clarify requirements and tech stack
 2. Lookup technologies using Context7 tools
 3. Retrieve current documentation and patterns
@@ -126,6 +136,7 @@ You have access to either **Real** or **Mock** Context7 tools.
 
 * **Use ONLY the App Router (/app)**, not the legacy Pages Router
 * **Never create both (/app and /pages directories**
+* **IMPORTANT: Always wait 30 seconds after creating a Next.js project before proceeding**
 * Structure should include:
   * app/layout.tsx – required root layout
   * app/page.tsx - homepage
@@ -376,6 +387,7 @@ If a Next.js project exists:
     });
 
     let assistantResponse = '';
+    let shouldWaitForProject = false;
 
     await this.config.client.streamChatCompletion(
       {
@@ -403,14 +415,30 @@ If a Next.js project exists:
             console.log(`📝 Raw Arguments: ${toolCall.function.arguments}`);
           }
           console.log(`🔍 Tool ID: ${toolCall.id}\n`);
+
+          if (
+            toolCall.function.name === 'create_next_project' ||
+            toolCall.function.name === 'create_nextjs_project' ||
+            toolCall.function.name === 'create_new_workspace' ||
+            toolCall.function.name.toLowerCase().includes('next')
+          ) {
+            console.log(
+              '🎯 Next.js project creation detected - will wait 30 seconds after completion'
+            );
+            shouldWaitForProject = true;
+          }
         },
         onError: (error) => {
           console.error(`\n❌ Stream Error: ${error.error}`);
           throw new Error(`Stream error: ${error.error}`);
         },
-        onFinish: () => {
+        onFinish: async () => {
           console.log('\n\n✅ Development session completed!\n');
           console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+          if (shouldWaitForProject) {
+            await this.waitForProjectCreation();
+          }
 
           // Add assistant response to conversation history
           if (assistantResponse.trim()) {
