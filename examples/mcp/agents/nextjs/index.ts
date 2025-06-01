@@ -5,14 +5,14 @@
  * using Context7 MCP tools for up-to-date documentation and library information.
  */
 
-import * as dotenv from 'dotenv';
-import * as path from 'path';
-import * as readline from 'readline';
 import {
   InferenceGatewayClient,
   MessageRole,
   Provider,
-} from '../../src/index.js';
+} from '@inference-gateway/sdk';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+import * as readline from 'readline';
 
 dotenv.config({ path: path.join(__dirname, '.env') });
 
@@ -35,7 +35,7 @@ class Context7Agent {
   constructor() {
     this.config = {
       client: new InferenceGatewayClient({
-        baseURL: 'http://localhost:8080/v1',
+        baseURL: 'http://inference-gateway:8080/v1',
       }),
       provider: (process.env.PROVIDER as Provider) || Provider.groq,
       model: process.env.LLM || 'llama-3.3-70b-versatile',

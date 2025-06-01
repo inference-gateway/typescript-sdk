@@ -1,18 +1,18 @@
 /**
- * Interactive Kubernetes Operations Agent
+ * Interactive Vite Development Agent
  *
- * This agent specializes in Kubernetes cluster management, deployment automation,
- * and container orchestration using Context7 MCP tools for up-to-date K8s documentation.
+ * This agent specializes in creating modern Vite-based applications with up-to-date
+ * documentation and best practices using Context7 MCP tools.
  */
 
-import * as dotenv from 'dotenv';
-import * as path from 'path';
-import * as readline from 'readline';
 import {
   InferenceGatewayClient,
   MessageRole,
   Provider,
-} from '../../src/index.js';
+} from '@inference-gateway/sdk';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+import * as readline from 'readline';
 
 dotenv.config({ path: path.join(__dirname, '.env') });
 
@@ -28,7 +28,7 @@ interface AgentConfig {
   retryDelayMs: number;
 }
 
-class KubernetesAgent {
+class ViteAgent {
   private config: AgentConfig;
   private rl: readline.Interface;
 
@@ -61,29 +61,29 @@ class KubernetesAgent {
     });
   }
 
-  private async waitForKubernetesOperation(): Promise<void> {
+  private async waitForViteProjectCreation(): Promise<void> {
     console.log(
-      '⏳ Waiting 10 seconds for Kubernetes operation to complete...'
+      '⏳ Waiting 15 seconds for Vite project creation to complete...'
     );
-    await this.delay(10000);
-    console.log('✅ Kubernetes operation wait period completed.\n');
+    await this.delay(15000);
+    console.log('✅ Vite project creation wait period completed.\n');
   }
 
   private getSystemPrompt(): string {
     return `
-You are an expert Kubernetes operations assistant with access to Context7 MCP tools for K8s documentation and research. Today is **June 1, 2025**.
+You are an expert Vite development assistant with access to Context7 MCP tools for library documentation and research. Today is **June 1, 2025**.
 
 ---
 
 ### 🔧 CORE RESPONSIBILITIES
 
-You help users with **Kubernetes cluster operations and container orchestration** by:
+You help users create **modern, lightning-fast Vite applications** by:
 
-1. Understanding deployment requirements and recommending optimal K8s strategies
-2. Using **Context7 tools** to retrieve up-to-date Kubernetes documentation and best practices
-3. Creating production-ready YAML manifests and Helm charts
-4. Following Kubernetes security and performance conventions
-5. Providing cluster management, monitoring, and troubleshooting guidance
+1. Understanding user requirements and recommending the best Vite-based stack
+2. Using **Context7 tools** to retrieve up-to-date Vite documentation and best practices
+3. Building complete projects with proper Vite configuration and optimization
+4. Following modern development conventions and Vite-specific patterns
+5. Creating fast, responsive, and well-structured applications
 
 ---
 
@@ -96,6 +96,7 @@ You have access to either **Real** or **Mock** Context7 tools.
 * c41_resolve-library-id: Resolve technology names to Context7-compatible IDs
 * c41_get-library-docs: Fetch full documentation, usage examples, and best practices
 
+**Mock Tools (for local/demo use):**
 
 * search_libraries: Search for libraries by name or functionality
 * get_library_details: Fetch library metadata and features
@@ -105,123 +106,96 @@ You have access to either **Real** or **Mock** Context7 tools.
 
 ### 📂 FILE SYSTEM RULES
 
-* All Kubernetes manifests and generated files must **use the /tmp directory exclusively**.
-* If **Kubernetes configurations already exist in /tmp**, continue working within them instead of creating new ones.
-* You must **never overwrite** existing configurations unless explicitly asked.
+* All projects and generated files must **use the /tmp directory exclusively**.
+* If a **Vite project already exists in /tmp**, continue working within it instead of creating a new one.
+* You must **never overwrite** an existing project unless explicitly asked.
 
 ---
 
 ### ⚙️ DEVELOPMENT WORKFLOW
 
-**Always use Context7 tools before creating K8s resources:**
+**Always use Context7 tools before coding:**
 
-**Always list the files in a directory before creating new manifests.**
+**Always list the files in a directory before creating new files.**
 
-**When applying K8s configurations, always wait 10 seconds after operation.**
+**When creating a Vite project, always wait 15 seconds after project creation.**
 
-1. Clarify requirements and deployment architecture
-2. Lookup Kubernetes and related technologies using Context7 tools
-3. Retrieve current documentation, patterns, and best practices
-4. Create or enhance configurations under /tmp, maintaining clean structure
-5. Follow K8s conventions, security policies, and resource management
-6. Include proper monitoring, logging, and health check configurations
-7. Prioritize scalability, reliability, and operational excellence
+1. Clarify requirements and tech stack
+2. Lookup Vite and related technologies using Context7 tools
+3. Retrieve current documentation and patterns
+4. Scaffold or enhance projects under /tmp, maintaining clean structure
+5. Follow Vite conventions and optimization patterns
+6. Include proper build configuration, testing, and development scripts
+7. Prioritize maintainability, performance, and developer experience
 
 ---
 
-### ☸️ KUBERNETES RESOURCE RULES
+### ⚡ VITE PROJECT RULES
 
-* **Use the latest Kubernetes API versions and best practices**
-* **Follow security-first approach with RBAC, network policies, and pod security**
+* **Use the latest Vite configuration patterns and best practices**
+* **Optimize for development speed and build performance**
 * **Structure should include:**
-  * Namespace definitions
-  * Deployment/StatefulSet manifests
-  * Service and Ingress configurations
-  * ConfigMaps and Secrets
-  * RBAC policies (ServiceAccount, Role, RoleBinding)
-  * NetworkPolicies for security
-  * HorizontalPodAutoscaler for scaling
-  * PodDisruptionBudget for availability
+  * vite.config.js/ts – main configuration file
+  * index.html – entry point
+  * src/main.js/ts – application entry
+  * src/App.vue/jsx/tsx – main component
+  * public/ - static assets
+  * src/components/, src/assets/, etc. as needed
 
-**Supported Kubernetes Resources:**
-* **Workloads:** Deployments, StatefulSets, DaemonSets, Jobs, CronJobs
-* **Services:** ClusterIP, NodePort, LoadBalancer, ExternalName
-* **Configuration:** ConfigMaps, Secrets, PersistentVolumes
-* **Security:** RBAC, NetworkPolicies, PodSecurityPolicies
-* **Scaling:** HPA, VPA, Cluster Autoscaler
-* **Networking:** Ingress, Service Mesh (Istio/Linkerd)
+**Supported Frameworks with Vite:**
+* React (with TypeScript/JavaScript)
+* Vue 3 (with TypeScript/JavaScript)
+* Svelte/SvelteKit
+* Vanilla JavaScript/TypeScript
+* Preact
+* Lit
+* Solid
 
-If Kubernetes configurations exist:
-* Validate API versions and resource definitions
-* Extend or modify as needed based on requirements
-* Optimize for performance, security, and cost
-
----
-
-### 🧪 KUBERNETES ECOSYSTEM (verify latest versions with Context7)
-
-**Core:** kubectl, kubelet, kube-apiserver, etcd, kube-controller-manager
-**Container Runtime:** containerd, Docker, CRI-O
-**Networking:** Calico, Flannel, Weave, Cilium
-**Service Mesh:** Istio, Linkerd, Consul Connect
-**Monitoring:** Prometheus, Grafana, Jaeger, Kiali
-**CI/CD:** ArgoCD, Flux, Tekton, Jenkins X
-**Package Management:** Helm, Kustomize, Operator Framework
-**Security:** Falco, Open Policy Agent (OPA), Twistlock
-**Storage:** Longhorn, Rook, OpenEBS, Portworx
+If a Vite project exists:
+* Validate configuration and structure
+* Extend or modify as needed based on the request
+* Optimize build and development settings
 
 ---
 
-### 🚀 COMMON KUBERNETES PATTERNS TO LEVERAGE
+### 🧪 VITE ECOSYSTEM (verify latest versions with Context7)
 
-* **Microservices Architecture** with proper service decomposition
-* **GitOps Deployment** with declarative configurations
-* **Blue-Green Deployments** for zero-downtime updates
-* **Canary Releases** for safe rollouts
-* **Resource Quotas** and limits for multi-tenancy
-* **Health Checks** (liveness, readiness, startup probes)
-* **Secrets Management** with external secret operators
-* **Observability** with distributed tracing and metrics
-
----
-
-### 🛡️ SECURITY BEST PRACTICES
-
-* **Principle of Least Privilege** with RBAC
-* **Network Segmentation** with NetworkPolicies
-* **Pod Security Standards** enforcement
-* **Image Security** scanning and admission controllers
-* **Secret Rotation** and external secret management
-* **Audit Logging** for compliance and monitoring
-* **Resource Isolation** with namespaces and quotas
+**Core:** Vite, Rollup, ES Modules, Hot Module Replacement (HMR)
+**Frontend Frameworks:** React, Vue, Svelte, Preact, Lit, Solid
+**Styling:** Tailwind CSS, PostCSS, CSS Modules, Sass/SCSS, Styled Components
+**Testing:** Vitest, Playwright, Cypress, Jest
+**Build Tools:** ESBuild, SWC, Rollup plugins
+**Utilities:** TypeScript, ESLint, Prettier, Autoprefixer
+**Package Managers:** npm, yarn, pnpm, bun
 
 ---
 
-### 📊 OPERATIONAL EXCELLENCE
+### 🚀 COMMON VITE FEATURES TO LEVERAGE
 
-* **Infrastructure as Code** with Terraform/Pulumi
-* **Automated Scaling** based on metrics
-* **Disaster Recovery** planning and testing
-* **Cost Optimization** with resource right-sizing
-* **Performance Monitoring** and alerting
-* **Capacity Planning** for growth
-* **Multi-cluster Management** for resilience
+* **Fast Development Server** with HMR
+* **Optimized Build** with code splitting
+* **Plugin Ecosystem** for extensibility
+* **TypeScript Support** out of the box
+* **CSS Preprocessing** and PostCSS
+* **Asset Optimization** and bundling
+* **Environment Variables** management
+* **Proxy Configuration** for API development
 
 ---
 
 ### ✅ SUMMARY
 
 * Always work in /tmp
-* If K8s configurations exist, enhance them — don't recreate
-* Use Context7 tools for everything: K8s decisions, patterns, and examples
-* Follow security-first, cloud-native principles
-* Adhere to modern best practices in cluster operations, security, and reliability
+* If a Vite project exists, enhance it — don't recreate
+* Use Context7 tools for everything: Vite decisions, patterns, and examples
+* Leverage Vite's speed and modern tooling advantages
+* Adhere to modern best practices in project setup, UI/UX, and code quality
 `;
   }
 
   async initialize(): Promise<void> {
     console.log(
-      `☸️  Kubernetes Operations Agent initialized using ${this.config.model} on ${this.config.provider}\n`
+      `⚡ Vite Development Agent initialized using ${this.config.model} on ${this.config.provider}\n`
     );
 
     let attempt = 0;
@@ -309,32 +283,29 @@ If Kubernetes configurations exist:
   }
 
   private showWelcomeMessage(): void {
-    console.log('☸️  Welcome to Kubernetes Operations Agent!');
+    console.log('⚡ Welcome to Vite Interactive Development Agent!');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(
-      '\n💡 I specialize in Kubernetes cluster operations and container orchestration.'
+      '\n💡 I specialize in creating lightning-fast Vite applications with modern tooling.'
     );
     console.log(
-      "   Just describe what you want to deploy or manage, and I'll use Context7"
+      "   Just describe what you want to build, and I'll use Context7 to get"
     );
     console.log(
-      '   to get up-to-date K8s documentation and create production-ready solutions.'
+      '   up-to-date Vite documentation and create an optimized solution for you.'
     );
     console.log('\n📝 Example requests:');
     console.log(
-      '   • "Deploy a scalable web application with load balancing and auto-scaling"'
+      '   • "Create a React + TypeScript app with Vite and Tailwind CSS"'
     );
     console.log(
-      '   • "Create a microservices architecture with service mesh and monitoring"'
+      '   • "Build a Vue 3 dashboard with Vite, Vitest, and component library"'
     );
     console.log(
-      '   • "Set up a CI/CD pipeline with GitOps and automated deployments"'
+      '   • "Make a Svelte SPA with Vite and optimal build configuration"'
     );
     console.log(
-      '   • "Configure RBAC and network policies for multi-tenant cluster"'
-    );
-    console.log(
-      '   • "Deploy a database cluster with persistent storage and backups"'
+      '   • "Create a vanilla TypeScript app with Vite and modern tooling"'
     );
     console.log('\n⚡ Commands:');
     console.log('   • Type your request to start building');
@@ -346,7 +317,7 @@ If Kubernetes configurations exist:
   private async startInteractiveSession(): Promise<void> {
     while (true) {
       const userInput = await this.getUserInput(
-        '☸️  What would you like to deploy or manage in Kubernetes? '
+        '⚡ What Vite application would you like to build? '
       );
 
       if (this.handleSpecialCommands(userInput)) {
@@ -373,7 +344,7 @@ If Kubernetes configurations exist:
     switch (command) {
       case 'exit':
       case 'quit':
-        console.log('\n👋 Thank you for using Kubernetes Agent! Goodbye!');
+        console.log('\n👋 Thank you for using Vite Agent! Goodbye!');
         this.rl.close();
         process.exit(0);
         return true;
@@ -428,7 +399,7 @@ If Kubernetes configurations exist:
   }
 
   private async processUserRequest(userInput: string): Promise<void> {
-    console.log(`\n🔍 Processing Kubernetes request: "${userInput}"`);
+    console.log(`\n🔍 Processing Vite request: "${userInput}"`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     this.config.conversationHistory.push({
@@ -437,7 +408,7 @@ If Kubernetes configurations exist:
     });
 
     let assistantResponse = '';
-    let shouldWaitForOperation = false;
+    let shouldWaitForProject = false;
 
     await this.config.client.streamChatCompletion(
       {
@@ -448,7 +419,7 @@ If Kubernetes configurations exist:
       {
         onOpen: () => {
           console.log(
-            '🔗 Starting Kubernetes operations session with Context7...\n'
+            '🔗 Starting Vite development session with Context7...\n'
           );
         },
         onReasoning: (reasoning) => {
@@ -469,16 +440,15 @@ If Kubernetes configurations exist:
           console.log(`🔍 Tool ID: ${toolCall.id}\n`);
 
           if (
-            toolCall.function.name.toLowerCase().includes('kubernetes') ||
-            toolCall.function.name.toLowerCase().includes('k8s') ||
-            toolCall.function.name.toLowerCase().includes('kubectl') ||
-            toolCall.function.name.toLowerCase().includes('deploy') ||
-            toolCall.function.name.toLowerCase().includes('create')
+            toolCall.function.name === 'create_vite_project' ||
+            toolCall.function.name === 'create_new_workspace' ||
+            toolCall.function.name.toLowerCase().includes('vite') ||
+            toolCall.function.name.toLowerCase().includes('project')
           ) {
             console.log(
-              '☸️  Kubernetes operation detected - will wait 10 seconds after completion'
+              '⚡ Vite project creation detected - will wait 15 seconds after completion'
             );
-            shouldWaitForOperation = true;
+            shouldWaitForProject = true;
           }
         },
         onError: (error) => {
@@ -486,11 +456,11 @@ If Kubernetes configurations exist:
           throw new Error(`Stream error: ${error.error}`);
         },
         onFinish: async () => {
-          console.log('\n\n✅ Kubernetes operations session completed!\n');
+          console.log('\n\n✅ Vite development session completed!\n');
           console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-          if (shouldWaitForOperation) {
-            await this.waitForKubernetesOperation();
+          if (shouldWaitForProject) {
+            await this.waitForViteProjectCreation();
           }
 
           // Add assistant response to conversation history
@@ -510,17 +480,17 @@ If Kubernetes configurations exist:
   }
 }
 
-async function runKubernetesAgent(): Promise<void> {
-  const agent = new KubernetesAgent();
+async function runViteAgent(): Promise<void> {
+  const agent = new ViteAgent();
 
   process.on('SIGINT', async () => {
-    console.log('\n\n👋 Shutting down Kubernetes Agent...');
+    console.log('\n\n👋 Shutting down Vite Agent...');
     await agent.shutdown();
     process.exit(0);
   });
 
   process.on('SIGTERM', async () => {
-    console.log('\n\n👋 Shutting down Kubernetes Agent...');
+    console.log('\n\n👋 Shutting down Vite Agent...');
     await agent.shutdown();
     process.exit(0);
   });
@@ -528,11 +498,8 @@ async function runKubernetesAgent(): Promise<void> {
   await agent.initialize();
 }
 
-if (
-  require.main === module ||
-  process.argv[1].endsWith('kubernetes-agent.ts')
-) {
-  runKubernetesAgent().catch(console.error);
+if (require.main === module || process.argv[1].endsWith('vite-agent.ts')) {
+  runViteAgent().catch(console.error);
 }
 
-export { KubernetesAgent, runKubernetesAgent };
+export { runViteAgent, ViteAgent };
