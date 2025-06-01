@@ -4,7 +4,15 @@ This directory contains comprehensive examples demonstrating how to use the Infe
 
 ## 🚀 Quick Start
 
+### Spin up the Inference Gateway and the MCP Server
+
+```bash
+docker compose -f docker-compose.yml up --build
+```
+
 ### Run Specific Examples
+
+On another terminal, you can run specific examples using the Inference Gateway:
 
 ```bash
 # Run interactive specialized agents
