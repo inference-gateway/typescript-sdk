@@ -1,11 +1,11 @@
 # MCP Web Search Server
 
-A Model Context Protocol (MCP) server that provides web search and URL fetching capabilities.
+A Model Context Protocol (MCP) server that provides web search and URL fetching capabilities using DuckDuckGo.
 
 ## Features
 
 - **fetch_url**: Fetch content from any URL with error handling and timeout support
-- **search_web**: Simulated web search functionality (can be replaced with real search APIs)
+- **search_web**: Real web search functionality using DuckDuckGo with safe search options
 - **get_page_title**: Extract page titles from web pages using HTML parsing
 
 ## Installation
@@ -85,10 +85,17 @@ Returns server health status.
   "name": "search_web",
   "arguments": {
     "query": "machine learning tutorials",
-    "limit": 5
+    "limit": 5,
+    "safe_search": "moderate"
   }
 }
 ```
+
+#### Safe Search Options
+
+- `strict`: Strict safe search filtering
+- `moderate`: Moderate safe search filtering (default)
+- `off`: No safe search filtering
 
 ### Get Page Title
 

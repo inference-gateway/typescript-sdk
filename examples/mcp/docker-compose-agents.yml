@@ -1,0 +1,52 @@
+services:
+  kubernetes-agent:
+    build:
+      context: ./agents/kubernetes
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - shared-data:/tmp
+    networks:
+      - inference-network
+
+  vite-agent:
+    build:
+      context: ./agents/vite
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - shared-data:/tmp
+    networks:
+      - inference-network
+
+  nextjs-agent:
+    build:
+      context: ./agents/nextjs
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - shared-data:/tmp
+    networks:
+      - inference-network
+
+  marketing-agent:
+    build:
+      context: ./agents/marketing
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - shared-data:/tmp
+    networks:
+      - inference-network
+
+volumes:
+  shared-data:
+    driver: local
+
+networks:
+  inference-network:
+    driver: bridge

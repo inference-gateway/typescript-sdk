@@ -1,7 +1,7 @@
 {
-  "name": "mcp-filesystem-server",
+  "name": "mcp-npm-server",
   "version": "1.0.0",
-  "description": "MCP Filesystem Server for file operations",
+  "description": "MCP NPM Server for running whitelisted npm commands",
   "type": "module",
   "main": "index.js",
   "scripts": {

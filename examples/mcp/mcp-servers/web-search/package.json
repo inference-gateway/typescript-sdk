@@ -13,7 +13,9 @@
     "axios": "^1.6.0",
     "cheerio": "^1.0.0-rc.12",
     "cors": "^2.8.5",
+    "duck-duck-scrape": "^2.2.7",
     "express": "^4.18.2",
+    "winston": "^3.17.0",
     "zod": "^3.22.0"
   },
   "engines": {
