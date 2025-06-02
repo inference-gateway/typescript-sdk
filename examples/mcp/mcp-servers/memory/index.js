@@ -473,6 +473,549 @@ function createMcpServer() {
   });
 
   mcpServer.tool(
+    'save-conversation',
+    {
+      sessionId: z.string().describe('Unique session identifier'),
+      messages: z
+        .array(
+          z.object({
+            role: z
+              .enum(['user', 'assistant', 'system'])
+              .describe('Message role'),
+            content: z.string().describe('Message content'),
+            timestamp: z
+              .string()
+              .optional()
+              .describe('Message timestamp (ISO string)'),
+          })
+        )
+        .describe('Array of conversation messages'),
+      context: z.string().optional().describe('Optional context description'),
+    },
+    async ({ sessionId, messages, context }) => {
+      const startTime = Date.now();
+
+      logger.info('save-conversation tool called', {
+        sessionId,
+        messageCount: messages.length,
+        hasContext: !!context,
+        roles: messages.map((m) => m.role),
+      });
+
+      try {
+        await ensureMemoryDir();
+
+        const timestampedMessages = messages.map((msg) => ({
+          ...msg,
+          timestamp: msg.timestamp || new Date().toISOString(),
+        }));
+
+        let existingData = {};
+        const memoryPath = getMemoryPath(sessionId);
+        try {
+          const fileContent = await fs.readFile(memoryPath, 'utf8');
+          existingData = JSON.parse(fileContent);
+        } catch {
+          logger.debug('No existing memory file found, creating new one', {
+            sessionId,
+          });
+        }
+
+        const memoryData = {
+          ...existingData,
+          sessionId,
+          conversation: {
+            messages: timestampedMessages,
+            context,
+            lastUpdated: new Date().toISOString(),
+          },
+          timestamp: new Date().toISOString(),
+        };
+
+        logger.debug('Preparing conversation data for save', {
+          sessionId,
+          dataSize: JSON.stringify(memoryData).length,
+          messageCount: timestampedMessages.length,
+        });
+
+        await fs.writeFile(memoryPath, JSON.stringify(memoryData, null, 2));
+
+        const duration = Date.now() - startTime;
+
+        logger.info('Conversation saved successfully', {
+          sessionId,
+          memoryPath,
+          duration,
+          messageCount: timestampedMessages.length,
+        });
+
+        logMcpToolCall(logger, 'save-conversation', sessionId, { sessionId });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Conversation saved successfully for session: ${sessionId}. Saved ${timestampedMessages.length} messages.`,
+            },
+          ],
+        };
+      } catch (error) {
+        const duration = Date.now() - startTime;
+
+        logger.error('Failed to save conversation', {
+          sessionId,
+          error: error.message,
+          stack: error.stack,
+          duration,
+        });
+
+        logMcpError(logger, error, { sessionId });
+        logMcpToolCall(logger, 'save-conversation', sessionId, { sessionId });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Failed to save conversation: ${error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  mcpServer.tool(
+    'add-message',
+    {
+      sessionId: z.string().describe('Unique session identifier'),
+      role: z.enum(['user', 'assistant', 'system']).describe('Message role'),
+      content: z.string().describe('Message content'),
+      timestamp: z
+        .string()
+        .optional()
+        .describe('Message timestamp (ISO string)'),
+    },
+    async ({ sessionId, role, content, timestamp }) => {
+      const startTime = Date.now();
+
+      logger.info('add-message tool called', {
+        sessionId,
+        role,
+        contentLength: content.length,
+        hasTimestamp: !!timestamp,
+      });
+
+      try {
+        await ensureMemoryDir();
+
+        const messageTimestamp = timestamp || new Date().toISOString();
+        const newMessage = {
+          role,
+          content,
+          timestamp: messageTimestamp,
+        };
+
+        // Load existing memory data
+        let memoryData = {};
+        const memoryPath = getMemoryPath(sessionId);
+        try {
+          const fileContent = await fs.readFile(memoryPath, 'utf8');
+          memoryData = JSON.parse(fileContent);
+        } catch {
+          // File doesn't exist yet, create base structure
+          logger.debug('No existing memory file found, creating new one', {
+            sessionId,
+          });
+          memoryData = {
+            sessionId,
+            timestamp: new Date().toISOString(),
+          };
+        }
+
+        // Initialize conversation structure if it doesn't exist
+        if (!memoryData.conversation) {
+          memoryData.conversation = {
+            messages: [],
+            context: null,
+            lastUpdated: new Date().toISOString(),
+          };
+        }
+
+        // Add the new message
+        memoryData.conversation.messages.push(newMessage);
+        memoryData.conversation.lastUpdated = new Date().toISOString();
+        memoryData.timestamp = new Date().toISOString();
+
+        logger.debug('Preparing message data for save', {
+          sessionId,
+          role,
+          totalMessages: memoryData.conversation.messages.length,
+        });
+
+        await fs.writeFile(memoryPath, JSON.stringify(memoryData, null, 2));
+
+        const duration = Date.now() - startTime;
+
+        logger.info('Message added successfully', {
+          sessionId,
+          role,
+          duration,
+          totalMessages: memoryData.conversation.messages.length,
+        });
+
+        logMcpToolCall(logger, 'add-message', sessionId, { sessionId, role });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Message added successfully for session: ${sessionId}. Role: ${role}. Total messages: ${memoryData.conversation.messages.length}`,
+            },
+          ],
+        };
+      } catch (error) {
+        const duration = Date.now() - startTime;
+
+        logger.error('Failed to add message', {
+          sessionId,
+          role,
+          error: error.message,
+          stack: error.stack,
+          duration,
+        });
+
+        logMcpError(logger, error, { sessionId, role });
+        logMcpToolCall(logger, 'add-message', sessionId, { sessionId, role });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Failed to add message: ${error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  mcpServer.tool(
+    'get-conversation',
+    {
+      sessionId: z.string().describe('Unique session identifier'),
+      filterRole: z
+        .enum(['user', 'assistant', 'system'])
+        .optional()
+        .describe('Optional: filter messages by role'),
+      limit: z
+        .number()
+        .optional()
+        .describe(
+          'Optional: limit number of messages returned (most recent first)'
+        ),
+    },
+    async ({ sessionId, filterRole, limit }) => {
+      const startTime = Date.now();
+
+      logger.info('get-conversation tool called', {
+        sessionId,
+        filterRole,
+        limit,
+      });
+
+      try {
+        const memoryPath = getMemoryPath(sessionId);
+
+        logger.debug('Attempting to read memory file for conversation', {
+          sessionId,
+          memoryPath,
+        });
+
+        try {
+          const fileContent = await fs.readFile(memoryPath, 'utf8');
+          const memoryData = JSON.parse(fileContent);
+
+          if (!memoryData.conversation || !memoryData.conversation.messages) {
+            const duration = Date.now() - startTime;
+
+            logger.info('No conversation found for session', {
+              sessionId,
+              duration,
+            });
+
+            logMcpToolCall(logger, 'get-conversation', sessionId, {
+              sessionId,
+            });
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `No conversation found for session: ${sessionId}`,
+                },
+              ],
+            };
+          }
+
+          let messages = [...memoryData.conversation.messages];
+
+          // Apply role filter if specified
+          if (filterRole) {
+            messages = messages.filter((msg) => msg.role === filterRole);
+          }
+
+          // Apply limit if specified (get most recent messages)
+          if (limit && limit > 0) {
+            messages = messages.slice(-limit);
+          }
+
+          const duration = Date.now() - startTime;
+
+          logger.info('Conversation retrieved successfully', {
+            sessionId,
+            totalMessages: memoryData.conversation.messages.length,
+            filteredMessages: messages.length,
+            filterRole,
+            limit,
+            duration,
+          });
+
+          logMcpToolCall(logger, 'get-conversation', sessionId, { sessionId });
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    sessionId: memoryData.sessionId,
+                    conversation: {
+                      messages,
+                      context: memoryData.conversation.context,
+                      lastUpdated: memoryData.conversation.lastUpdated,
+                      totalMessages: memoryData.conversation.messages.length,
+                      filteredMessages: messages.length,
+                    },
+                    timestamp: memoryData.timestamp,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        } catch (readError) {
+          if (readError.code === 'ENOENT') {
+            const duration = Date.now() - startTime;
+
+            logger.info('No memory file found for session', {
+              sessionId,
+              duration,
+            });
+            logMcpToolCall(logger, 'get-conversation', sessionId, {
+              sessionId,
+            });
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `No conversation found for session: ${sessionId}`,
+                },
+              ],
+            };
+          }
+
+          logger.error('Failed to read memory file for conversation', {
+            sessionId,
+            memoryPath,
+            error: readError.message,
+            code: readError.code,
+          });
+
+          throw readError;
+        }
+      } catch (error) {
+        const duration = Date.now() - startTime;
+
+        logger.error('Failed to get conversation', {
+          sessionId,
+          error: error.message,
+          stack: error.stack,
+          duration,
+        });
+
+        logMcpError(logger, error, { sessionId });
+        logMcpToolCall(logger, 'get-conversation', sessionId, { sessionId });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Failed to get conversation: ${error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  mcpServer.tool(
+    'clear-conversation',
+    {
+      sessionId: z.string().describe('Unique session identifier'),
+      keepOtherData: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe(
+          'Whether to keep other session data (state, errors) and only clear conversation'
+        ),
+    },
+    async ({ sessionId, keepOtherData = true }) => {
+      const startTime = Date.now();
+
+      logger.info('clear-conversation tool called', {
+        sessionId,
+        keepOtherData,
+      });
+
+      try {
+        const memoryPath = getMemoryPath(sessionId);
+
+        if (keepOtherData) {
+          // Load existing data and only clear conversation
+          try {
+            const fileContent = await fs.readFile(memoryPath, 'utf8');
+            const memoryData = JSON.parse(fileContent);
+
+            // Clear conversation but keep other data
+            delete memoryData.conversation;
+            memoryData.timestamp = new Date().toISOString();
+
+            await fs.writeFile(memoryPath, JSON.stringify(memoryData, null, 2));
+
+            const duration = Date.now() - startTime;
+
+            logger.info(
+              'Conversation cleared successfully (keeping other data)',
+              {
+                sessionId,
+                duration,
+              }
+            );
+
+            logMcpToolCall(logger, 'clear-conversation', sessionId, {
+              sessionId,
+            });
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Conversation cleared successfully for session: ${sessionId} (other data preserved)`,
+                },
+              ],
+            };
+          } catch (readError) {
+            if (readError.code === 'ENOENT') {
+              const duration = Date.now() - startTime;
+
+              logger.info('No conversation found to clear', {
+                sessionId,
+                duration,
+              });
+              logMcpToolCall(logger, 'clear-conversation', sessionId, {
+                sessionId,
+              });
+
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `No conversation found to clear for session: ${sessionId}`,
+                  },
+                ],
+              };
+            }
+            throw readError;
+          }
+        } else {
+          // Clear entire session file
+          try {
+            await fs.unlink(memoryPath);
+
+            const duration = Date.now() - startTime;
+
+            logger.info('Entire session cleared successfully', {
+              sessionId,
+              duration,
+            });
+            logMcpToolCall(logger, 'clear-conversation', sessionId, {
+              sessionId,
+            });
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Entire session cleared successfully: ${sessionId}`,
+                },
+              ],
+            };
+          } catch (unlinkError) {
+            if (unlinkError.code === 'ENOENT') {
+              const duration = Date.now() - startTime;
+
+              logger.info('No session found to clear', { sessionId, duration });
+              logMcpToolCall(logger, 'clear-conversation', sessionId, {
+                sessionId,
+              });
+
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `No session found to clear: ${sessionId}`,
+                  },
+                ],
+              };
+            }
+            throw unlinkError;
+          }
+        }
+      } catch (error) {
+        const duration = Date.now() - startTime;
+
+        logger.error('Failed to clear conversation', {
+          sessionId,
+          keepOtherData,
+          error: error.message,
+          code: error.code,
+          stack: error.stack,
+          duration,
+        });
+
+        logMcpError(logger, error, { sessionId });
+        logMcpToolCall(logger, 'clear-conversation', sessionId, { sessionId });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Failed to clear conversation: ${error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  mcpServer.tool(
     'clear-session',
     {
       sessionId: z.string().describe('Unique session identifier'),

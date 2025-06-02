@@ -273,7 +273,7 @@ If a Next.js project exists:
 
 * Always work in /tmp
 * If a project exists, enhance it — don't recreate
-* Use Context7 tools for everything: tech decisions, patterns, and examples
+* Always Use Context7 tools for everything: tech decisions, patterns, and examples
 * Adhere to modern best practices in project setup, UI/UX, and code quality
 `;
   }
@@ -564,7 +564,7 @@ If a Next.js project exists:
           );
         },
         onReasoning: (reasoning) => {
-          console.log(`\n🤔 Agent Reasoning: ${reasoning}`);
+          process.stdout.write(`\n🤔 Agent Reasoning: ${reasoning}`);
         },
         onContent: (content) => {
           process.stdout.write(content);
@@ -715,8 +715,11 @@ Call save-state tool immediately with sessionId="${this.config.sessionId}" and t
               console.log('✅ State save tool invoked successfully');
             }
           },
-          onContent: () => {
-            // Suppress content output for memory saves
+          onReasoning: (reasoning) => {
+            process.stdout.write(`\n🤔 Memory Reasoning: ${reasoning}`);
+          },
+          onContent: (content) => {
+            process.stdout.write(content);
           },
           onError: (error) => {
             console.warn('⚠️  Memory save failed:', error.error);
@@ -821,8 +824,8 @@ Call the save-state tool now.`,
                   }
                 }
               },
-              onContent: () => {
-                // Suppress content output for memory saves
+              onContent: (content) => {
+                process.stdout.write(content);
               },
               onError: (error) => {
                 console.warn(
@@ -915,6 +918,9 @@ Call the save-state tool now.`,
           max_tokens: this.config.maxTokensPerRequest,
         },
         {
+          onReasoning: (reasoning) => {
+            process.stdout.write(`\n🤔 Memory Reasoning: ${reasoning}`);
+          },
           onContent: (content) => {
             if (content.includes('{') && content.includes('}')) {
               try {
@@ -923,7 +929,9 @@ Call the save-state tool now.`,
                   restoredData = JSON.parse(jsonMatch[0]);
                 }
               } catch {
-                // Ignore parsing errors
+                process.stderr.write(
+                  `\n⚠️  Failed to parse restored data: ${content}\n`
+                );
               }
             }
           },
