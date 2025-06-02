@@ -118,6 +118,26 @@ class MarketingAgent {
   }
 
   /**
+   * Extract error message from various error types
+   */
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (typeof error === 'string') {
+      return error;
+    }
+    if (error && typeof error === 'object') {
+      const errorObj = error as any;
+      if (errorObj.message) return String(errorObj.message);
+      if (errorObj.error) return String(errorObj.error);
+      if (errorObj.reason) return String(errorObj.reason);
+      return JSON.stringify(error);
+    }
+    return String(error);
+  }
+
+  /**
    * Record an error to both local history and memory
    */
   private async recordError(
@@ -136,7 +156,13 @@ class MarketingAgent {
       toolName: toolCall?.function?.name,
       toolId: toolCall?.id,
       toolArguments: toolCall?.function?.arguments
-        ? JSON.parse(toolCall.function.arguments)
+        ? (() => {
+            try {
+              return JSON.parse(toolCall.function.arguments);
+            } catch {
+              return toolCall.function.arguments;
+            }
+          })()
         : undefined,
       userInput: userInput?.substring(0, 100),
       recoveryAttempted: false,
@@ -144,16 +170,20 @@ class MarketingAgent {
 
     this.config.errorHistory.push(errorRecord);
 
-    // Keep only last 10 errors to prevent memory bloat
     if (this.config.errorHistory.length > 10) {
       this.config.errorHistory = this.config.errorHistory.slice(-10);
     }
 
     console.log(`📝 Recording ${errorType}: ${errorMessage}`);
 
-    // Save to memory if enabled
     if (this.config.memoryEnabled) {
-      await this.saveErrorToMemory(errorRecord);
+      try {
+        await this.saveErrorToMemory(errorRecord);
+      } catch (memoryError) {
+        console.log(
+          `⚠️  Failed to save error to memory: ${this.getErrorMessage(memoryError)}`
+        );
+      }
     }
   }
 
@@ -202,13 +232,16 @@ CRITICAL: Call save-error-state tool NOW with this data.`,
           max_tokens: this.config.maxTokensPerRequest,
         },
         {
-          onChunk: (chunk) => {
-            if (chunk.choices?.[0]?.delta?.content) {
-              process.stdout.write(chunk.choices[0].delta.content);
-            }
+          onReasoning: (reasoning) => {
+            process.stdout.write(reasoning);
+          },
+          onContent: (content) => {
+            process.stdout.write(content);
           },
           onError: (error) => {
-            console.error(`❌ Memory save error: ${error}`);
+            console.error(
+              `❌ Memory save error: ${this.getErrorMessage(error)}`
+            );
           },
         },
         this.config.provider,
@@ -218,7 +251,7 @@ CRITICAL: Call save-error-state tool NOW with this data.`,
       console.log('💾 Error state saved to memory system');
     } catch (memoryError) {
       console.log(
-        `⚠️  Failed to save error to memory: ${(memoryError as Error).message}`
+        `⚠️  Failed to save error to memory: ${this.getErrorMessage(memoryError)}`
       );
     }
   }
@@ -232,6 +265,8 @@ CRITICAL: Call save-error-state tool NOW with this data.`,
     }
 
     return `You are a Marketing Intelligence Agent specializing in market research, competitive analysis, brand monitoring, and marketing strategy development.${errorHistoryPrompt}
+
+Today is ${new Date().toLocaleDateString()}.
 
 CORE CAPABILITIES:
 - Market research and trend analysis using Brave Search
@@ -273,7 +308,6 @@ Always provide structured, actionable marketing insights with clear next steps.`
     let attempt = 0;
     while (attempt < this.config.maxRetries) {
       try {
-        // Health check
         const isHealthy = await this.config.client.healthCheck();
         if (!isHealthy) {
           console.error('❌ Gateway unhealthy. Run: docker-compose up --build');
@@ -282,7 +316,6 @@ Always provide structured, actionable marketing insights with clear next steps.`
 
         const tools = await this.config.client.listTools();
 
-        // Check for Brave Search tools
         const braveSearchTools = tools.data.filter((tool) =>
           [
             'brave_web_search',
@@ -355,9 +388,10 @@ Always provide structured, actionable marketing insights with clear next steps.`
         break;
       } catch (error) {
         attempt++;
+        const errorMessage = this.getErrorMessage(error);
         console.error(
           `❌ Initialization attempt ${attempt}/${this.config.maxRetries} failed:`,
-          (error as Error).message
+          errorMessage
         );
 
         if (attempt >= this.config.maxRetries) {
@@ -490,10 +524,11 @@ Ready for your marketing research request! 🚀
               }
             },
             onError: async (error) => {
-              console.error(`❌ Stream error: ${error}`);
+              const errorMessage = this.getErrorMessage(error);
+              console.error(`❌ Stream error: ${errorMessage}`);
               await this.recordError(
                 'stream_error',
-                (error as Error).message,
+                errorMessage,
                 'Streaming chat completion failed',
                 currentToolCall,
                 userInput
@@ -522,14 +557,15 @@ Ready for your marketing research request! 🚀
         break;
       } catch (error) {
         attempt++;
+        const errorMessage = this.getErrorMessage(error);
         console.error(
           `❌ Attempt ${attempt}/${this.config.maxRetries} failed:`,
-          (error as Error).message
+          errorMessage
         );
 
         await this.recordError(
           'stream_error',
-          (error as Error).message,
+          errorMessage,
           `Processing attempt ${attempt} failed`,
           undefined,
           userInput
@@ -604,7 +640,7 @@ Ready for your marketing research request! 🚀
         if (this.config.abortController.signal.aborted) {
           break;
         }
-        console.error('❌ Error in main loop:', (error as Error).message);
+        console.error('❌ Error in main loop:', this.getErrorMessage(error));
       }
     }
   }
