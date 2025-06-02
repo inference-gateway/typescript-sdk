@@ -268,6 +268,8 @@ CRITICAL: Call save-error-state tool NOW with this data.`,
 
 Today is ${new Date().toLocaleDateString()}.
 
+IMPORTANT: NEVER use XML for tool calls. Always use JSON format.
+
 CORE CAPABILITIES:
 - Market research and trend analysis using Brave Search
 - Competitive intelligence and brand monitoring
