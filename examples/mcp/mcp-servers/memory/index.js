@@ -12,8 +12,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import express from 'express';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
+import MemoryManager from './memory-manager.js';
 import {
   createMcpLogger,
   logMcpRequest,
@@ -31,39 +30,15 @@ const transports = {};
 
 const memoryDir = process.env.MEMORY_DIR || '/tmp/memory';
 
+// Initialize the memory manager
+const memoryManager = new MemoryManager(memoryDir);
+
 logger.info('MCP Memory Server initializing', {
   memoryDir,
   nodeVersion: process.version,
   platform: process.platform,
   environment: process.env.NODE_ENV || 'development',
 });
-
-/**
- * Ensure memory directory exists
- */
-async function ensureMemoryDir() {
-  try {
-    logger.debug('Ensuring memory directory exists', { memoryDir });
-    await fs.mkdir(memoryDir, { recursive: true });
-    logger.debug('Memory directory ready', { memoryDir });
-  } catch (error) {
-    logger.error('Failed to create memory directory', {
-      memoryDir,
-      error: error.message,
-      stack: error.stack,
-    });
-    throw error;
-  }
-}
-
-/**
- * Get memory file path for a given session
- */
-function getMemoryPath(sessionId) {
-  const memoryPath = path.join(memoryDir, `${sessionId}.json`);
-  logger.debug('Generated memory path', { sessionId, memoryPath });
-  return memoryPath;
-}
 
 /**
  * Create and configure the MCP server
@@ -88,46 +63,21 @@ function createMcpServer() {
     async ({ sessionId, state, context }) => {
       const startTime = Date.now();
 
-      logger.info('save-state tool called', {
+      logger.debug('save-state tool called', {
         sessionId,
-        hasContext: !!context,
-        stateKeys: Object.keys(state || {}),
         stateSize: JSON.stringify(state).length,
       });
 
       try {
-        await ensureMemoryDir();
-
-        const memoryData = {
-          sessionId,
-          state,
-          context,
-          timestamp: new Date().toISOString(),
-          lastError: null,
-        };
-
-        logger.debug('Preparing memory data for save', {
-          sessionId,
-          dataSize: JSON.stringify(memoryData).length,
-          hasContext: !!context,
-        });
-
-        logger.info(`Saving state for session: ${sessionId}`, {
-          sessionId,
-          state: JSON.stringify(state),
-          context,
-        });
-
-        const memoryPath = getMemoryPath(sessionId);
-        await fs.writeFile(memoryPath, JSON.stringify(memoryData, null, 2));
+        // Use fast in-memory operation
+        await memoryManager.saveState(sessionId, state, context);
 
         const duration = Date.now() - startTime;
 
         logger.info('State saved successfully', {
           sessionId,
-          memoryPath,
           duration,
-          dataSize: JSON.stringify(memoryData).length,
+          dataSize: JSON.stringify(state).length,
         });
 
         logMcpToolCall(logger, 'save-state', sessionId, { sessionId });
@@ -195,33 +145,13 @@ function createMcpServer() {
       });
 
       try {
-        await ensureMemoryDir();
-
-        const memoryData = {
-          sessionId,
-          state,
-          context,
-          timestamp: new Date().toISOString(),
-          lastError: {
-            ...error,
-            timestamp: new Date().toISOString(),
-          },
-        };
-
-        logger.debug('Preparing error memory data for save', {
-          sessionId,
-          dataSize: JSON.stringify(memoryData).length,
-          errorType: error.code || 'unknown',
-        });
-
-        const memoryPath = getMemoryPath(sessionId);
-        await fs.writeFile(memoryPath, JSON.stringify(memoryData, null, 2));
+        // Use fast in-memory operation with error tracking
+        await memoryManager.saveErrorState(sessionId, state, error, context);
 
         const duration = Date.now() - startTime;
 
         logger.info('Error state saved successfully', {
           sessionId,
-          memoryPath,
           duration,
           errorMessage: error.message,
         });
@@ -277,93 +207,63 @@ function createMcpServer() {
     async ({ sessionId }) => {
       const startTime = Date.now();
 
-      logger.info('restore-state tool called', { sessionId });
+      logger.debug('restore-state tool called', { sessionId });
 
       try {
-        const memoryPath = getMemoryPath(sessionId);
+        // Use fast in-memory operation
+        const memoryData = await memoryManager.restoreState(sessionId);
 
-        logger.debug('Attempting to read memory file', {
-          sessionId,
-          memoryPath,
-        });
+        const duration = Date.now() - startTime;
 
-        try {
-          const fileContent = await fs.readFile(memoryPath, 'utf8');
-          const memoryData = JSON.parse(fileContent);
-
-          const duration = Date.now() - startTime;
-
-          logger.info('State restored successfully', {
+        if (!memoryData) {
+          logger.debug('No saved state found for session', {
             sessionId,
-            hasError: !!memoryData.lastError,
-            timestamp: memoryData.timestamp,
-            contextPresent: !!memoryData.context,
             duration,
-            fileSize: fileContent.length,
           });
-
-          logMcpToolCall(logger, 'restore-state', sessionId, { sessionId });
 
           return {
             content: [
               {
                 type: 'text',
-                text: JSON.stringify(
-                  {
-                    sessionId: memoryData.sessionId,
-                    state: memoryData.state,
-                    context: memoryData.context,
-                    timestamp: memoryData.timestamp,
-                    lastError: memoryData.lastError,
-                    hasError: !!memoryData.lastError,
-                  },
-                  null,
-                  2
-                ),
+                text: `No saved state found for session: ${sessionId}`,
               },
             ],
           };
-        } catch (readError) {
-          if (readError.code === 'ENOENT') {
-            const duration = Date.now() - startTime;
-
-            logger.info('No saved state found for session', {
-              sessionId,
-              duration,
-            });
-            logMcpToolCall(logger, 'restore-state', sessionId, { sessionId });
-
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `No saved state found for session: ${sessionId}`,
-                },
-              ],
-            };
-          }
-
-          logger.error('Failed to read memory file', {
-            sessionId,
-            memoryPath,
-            error: readError.message,
-            code: readError.code,
-          });
-
-          throw readError;
         }
+
+        logger.debug('State restored successfully', {
+          sessionId,
+          hasError: !!memoryData.lastError,
+          duration,
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  sessionId: memoryData.sessionId,
+                  state: memoryData.state,
+                  context: memoryData.context,
+                  timestamp: memoryData.timestamp,
+                  lastError: memoryData.lastError,
+                  hasError: !!memoryData.lastError,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
       } catch (error) {
         const duration = Date.now() - startTime;
 
         logger.error('Failed to restore state', {
           sessionId,
           error: error.message,
-          stack: error.stack,
           duration,
         });
-
-        logMcpError('restore-state', error, { sessionId });
-        logMcpToolCall('restore-state', { sessionId }, false, duration);
 
         return {
           content: [
@@ -384,57 +284,12 @@ function createMcpServer() {
     logger.info('list-sessions tool called');
 
     try {
-      await ensureMemoryDir();
-      const files = await fs.readdir(memoryDir);
-      const jsonFiles = files.filter((file) => file.endsWith('.json'));
-
-      logger.debug('Found session files', {
-        totalFiles: files.length,
-        jsonFiles: jsonFiles.length,
-        files: jsonFiles,
-      });
-
-      const sessions = [];
-      let successCount = 0;
-      let errorCount = 0;
-
-      for (const file of jsonFiles) {
-        try {
-          const sessionId = path.basename(file, '.json');
-          const filePath = path.join(memoryDir, file);
-          const memoryData = JSON.parse(await fs.readFile(filePath, 'utf8'));
-
-          sessions.push({
-            sessionId,
-            context: memoryData.context,
-            timestamp: memoryData.timestamp,
-            hasError: !!memoryData.lastError,
-            lastError: memoryData.lastError?.message,
-          });
-
-          successCount++;
-
-          logger.debug('Session file processed successfully', {
-            sessionId,
-            file,
-            hasError: !!memoryData.lastError,
-          });
-        } catch (readError) {
-          errorCount++;
-
-          logger.warn('Failed to read session file', {
-            file,
-            error: readError.message,
-          });
-        }
-      }
-
+      // Use fast in-memory operation
+      const sessions = memoryManager.listSessions();
       const duration = Date.now() - startTime;
 
       logger.info('Sessions listed successfully', {
         totalSessions: sessions.length,
-        successCount,
-        errorCount,
         duration,
       });
 
@@ -503,48 +358,22 @@ function createMcpServer() {
       });
 
       try {
-        await ensureMemoryDir();
-
         const timestampedMessages = messages.map((msg) => ({
           ...msg,
           timestamp: msg.timestamp || new Date().toISOString(),
         }));
 
-        let existingData = {};
-        const memoryPath = getMemoryPath(sessionId);
-        try {
-          const fileContent = await fs.readFile(memoryPath, 'utf8');
-          existingData = JSON.parse(fileContent);
-        } catch {
-          logger.debug('No existing memory file found, creating new one', {
-            sessionId,
-          });
-        }
-
-        const memoryData = {
-          ...existingData,
+        // Use fast in-memory operation
+        await memoryManager.saveConversation(
           sessionId,
-          conversation: {
-            messages: timestampedMessages,
-            context,
-            lastUpdated: new Date().toISOString(),
-          },
-          timestamp: new Date().toISOString(),
-        };
-
-        logger.debug('Preparing conversation data for save', {
-          sessionId,
-          dataSize: JSON.stringify(memoryData).length,
-          messageCount: timestampedMessages.length,
-        });
-
-        await fs.writeFile(memoryPath, JSON.stringify(memoryData, null, 2));
+          timestampedMessages,
+          context
+        );
 
         const duration = Date.now() - startTime;
 
         logger.info('Conversation saved successfully', {
           sessionId,
-          memoryPath,
           duration,
           messageCount: timestampedMessages.length,
         });
@@ -607,8 +436,6 @@ function createMcpServer() {
       });
 
       try {
-        await ensureMemoryDir();
-
         const messageTimestamp = timestamp || new Date().toISOString();
         const newMessage = {
           role,
@@ -616,44 +443,11 @@ function createMcpServer() {
           timestamp: messageTimestamp,
         };
 
-        // Load existing memory data
-        let memoryData = {};
-        const memoryPath = getMemoryPath(sessionId);
-        try {
-          const fileContent = await fs.readFile(memoryPath, 'utf8');
-          memoryData = JSON.parse(fileContent);
-        } catch {
-          // File doesn't exist yet, create base structure
-          logger.debug('No existing memory file found, creating new one', {
-            sessionId,
-          });
-          memoryData = {
-            sessionId,
-            timestamp: new Date().toISOString(),
-          };
-        }
-
-        // Initialize conversation structure if it doesn't exist
-        if (!memoryData.conversation) {
-          memoryData.conversation = {
-            messages: [],
-            context: null,
-            lastUpdated: new Date().toISOString(),
-          };
-        }
-
-        // Add the new message
-        memoryData.conversation.messages.push(newMessage);
-        memoryData.conversation.lastUpdated = new Date().toISOString();
-        memoryData.timestamp = new Date().toISOString();
-
-        logger.debug('Preparing message data for save', {
+        // Use fast in-memory operation
+        const totalMessages = await memoryManager.addMessage(
           sessionId,
-          role,
-          totalMessages: memoryData.conversation.messages.length,
-        });
-
-        await fs.writeFile(memoryPath, JSON.stringify(memoryData, null, 2));
+          newMessage
+        );
 
         const duration = Date.now() - startTime;
 
@@ -661,7 +455,7 @@ function createMcpServer() {
           sessionId,
           role,
           duration,
-          totalMessages: memoryData.conversation.messages.length,
+          totalMessages,
         });
 
         logMcpToolCall(logger, 'add-message', sessionId, { sessionId, role });
@@ -670,7 +464,7 @@ function createMcpServer() {
           content: [
             {
               type: 'text',
-              text: `Message added successfully for session: ${sessionId}. Role: ${role}. Total messages: ${memoryData.conversation.messages.length}`,
+              text: `Message added successfully for session: ${sessionId}. Role: ${role}. Total messages: ${totalMessages}`,
             },
           ],
         };
@@ -726,117 +520,76 @@ function createMcpServer() {
       });
 
       try {
-        const memoryPath = getMemoryPath(sessionId);
+        // Use fast in-memory operation
+        const conversationData = await memoryManager.getConversation(sessionId);
 
-        logger.debug('Attempting to read memory file for conversation', {
-          sessionId,
-          memoryPath,
-        });
+        const duration = Date.now() - startTime;
 
-        try {
-          const fileContent = await fs.readFile(memoryPath, 'utf8');
-          const memoryData = JSON.parse(fileContent);
-
-          if (!memoryData.conversation || !memoryData.conversation.messages) {
-            const duration = Date.now() - startTime;
-
-            logger.info('No conversation found for session', {
-              sessionId,
-              duration,
-            });
-
-            logMcpToolCall(logger, 'get-conversation', sessionId, {
-              sessionId,
-            });
-
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `No conversation found for session: ${sessionId}`,
-                },
-              ],
-            };
-          }
-
-          let messages = [...memoryData.conversation.messages];
-
-          // Apply role filter if specified
-          if (filterRole) {
-            messages = messages.filter((msg) => msg.role === filterRole);
-          }
-
-          // Apply limit if specified (get most recent messages)
-          if (limit && limit > 0) {
-            messages = messages.slice(-limit);
-          }
-
-          const duration = Date.now() - startTime;
-
-          logger.info('Conversation retrieved successfully', {
+        if (!conversationData || !conversationData.messages) {
+          logger.info('No conversation found for session', {
             sessionId,
-            totalMessages: memoryData.conversation.messages.length,
-            filteredMessages: messages.length,
-            filterRole,
-            limit,
             duration,
           });
 
-          logMcpToolCall(logger, 'get-conversation', sessionId, { sessionId });
+          logMcpToolCall(logger, 'get-conversation', sessionId, {
+            sessionId,
+          });
 
           return {
             content: [
               {
                 type: 'text',
-                text: JSON.stringify(
-                  {
-                    sessionId: memoryData.sessionId,
-                    conversation: {
-                      messages,
-                      context: memoryData.conversation.context,
-                      lastUpdated: memoryData.conversation.lastUpdated,
-                      totalMessages: memoryData.conversation.messages.length,
-                      filteredMessages: messages.length,
-                    },
-                    timestamp: memoryData.timestamp,
-                  },
-                  null,
-                  2
-                ),
+                text: `No conversation found for session: ${sessionId}`,
               },
             ],
           };
-        } catch (readError) {
-          if (readError.code === 'ENOENT') {
-            const duration = Date.now() - startTime;
-
-            logger.info('No memory file found for session', {
-              sessionId,
-              duration,
-            });
-            logMcpToolCall(logger, 'get-conversation', sessionId, {
-              sessionId,
-            });
-
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `No conversation found for session: ${sessionId}`,
-                },
-              ],
-            };
-          }
-
-          logger.error('Failed to read memory file for conversation', {
-            sessionId,
-            memoryPath,
-            error: readError.message,
-            code: readError.code,
-          });
-
-          throw readError;
         }
+
+        let messages = [...conversationData.messages];
+
+        // Apply role filter if specified
+        if (filterRole) {
+          messages = messages.filter((msg) => msg.role === filterRole);
+        }
+
+        // Apply limit if specified (get most recent messages)
+        if (limit && limit > 0) {
+          messages = messages.slice(-limit);
+        }
+
+        logger.info('Conversation retrieved successfully', {
+          sessionId,
+          totalMessages: conversationData.messages.length,
+          filteredMessages: messages.length,
+          filterRole,
+          limit,
+          duration,
+        });
+
+        logMcpToolCall(logger, 'get-conversation', sessionId, { sessionId });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  sessionId,
+                  conversation: {
+                    messages,
+                    context: conversationData.context,
+                    lastUpdated: conversationData.lastUpdated,
+                    totalMessages: conversationData.messages.length,
+                    filteredMessages: messages.length,
+                  },
+                  timestamp: conversationData.timestamp,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
       } catch (error) {
         const duration = Date.now() - startTime;
 
@@ -884,109 +637,59 @@ function createMcpServer() {
       });
 
       try {
-        const memoryPath = getMemoryPath(sessionId);
+        // Use fast in-memory operation
+        const cleared = await memoryManager.clearConversation(
+          sessionId,
+          keepOtherData
+        );
 
-        if (keepOtherData) {
-          // Load existing data and only clear conversation
-          try {
-            const fileContent = await fs.readFile(memoryPath, 'utf8');
-            const memoryData = JSON.parse(fileContent);
+        const duration = Date.now() - startTime;
 
-            // Clear conversation but keep other data
-            delete memoryData.conversation;
-            memoryData.timestamp = new Date().toISOString();
+        if (!cleared) {
+          logger.info('No conversation found to clear', {
+            sessionId,
+            duration,
+          });
+          logMcpToolCall(logger, 'clear-conversation', sessionId, {
+            sessionId,
+          });
 
-            await fs.writeFile(memoryPath, JSON.stringify(memoryData, null, 2));
-
-            const duration = Date.now() - startTime;
-
-            logger.info(
-              'Conversation cleared successfully (keeping other data)',
+          return {
+            content: [
               {
-                sessionId,
-                duration,
-              }
-            );
-
-            logMcpToolCall(logger, 'clear-conversation', sessionId, {
-              sessionId,
-            });
-
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `Conversation cleared successfully for session: ${sessionId} (other data preserved)`,
-                },
-              ],
-            };
-          } catch (readError) {
-            if (readError.code === 'ENOENT') {
-              const duration = Date.now() - startTime;
-
-              logger.info('No conversation found to clear', {
-                sessionId,
-                duration,
-              });
-              logMcpToolCall(logger, 'clear-conversation', sessionId, {
-                sessionId,
-              });
-
-              return {
-                content: [
-                  {
-                    type: 'text',
-                    text: `No conversation found to clear for session: ${sessionId}`,
-                  },
-                ],
-              };
-            }
-            throw readError;
-          }
-        } else {
-          // Clear entire session file
-          try {
-            await fs.unlink(memoryPath);
-
-            const duration = Date.now() - startTime;
-
-            logger.info('Entire session cleared successfully', {
-              sessionId,
-              duration,
-            });
-            logMcpToolCall(logger, 'clear-conversation', sessionId, {
-              sessionId,
-            });
-
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `Entire session cleared successfully: ${sessionId}`,
-                },
-              ],
-            };
-          } catch (unlinkError) {
-            if (unlinkError.code === 'ENOENT') {
-              const duration = Date.now() - startTime;
-
-              logger.info('No session found to clear', { sessionId, duration });
-              logMcpToolCall(logger, 'clear-conversation', sessionId, {
-                sessionId,
-              });
-
-              return {
-                content: [
-                  {
-                    type: 'text',
-                    text: `No session found to clear: ${sessionId}`,
-                  },
-                ],
-              };
-            }
-            throw unlinkError;
-          }
+                type: 'text',
+                text: `No conversation found to clear for session: ${sessionId}`,
+              },
+            ],
+          };
         }
+
+        const message = keepOtherData
+          ? `Conversation cleared successfully for session: ${sessionId} (other data preserved)`
+          : `Entire session cleared successfully: ${sessionId}`;
+
+        logger.info(
+          keepOtherData
+            ? 'Conversation cleared successfully (keeping other data)'
+            : 'Entire session cleared successfully',
+          {
+            sessionId,
+            duration,
+          }
+        );
+
+        logMcpToolCall(logger, 'clear-conversation', sessionId, {
+          sessionId,
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: message,
+            },
+          ],
+        };
       } catch (error) {
         const duration = Date.now() - startTime;
 
@@ -994,7 +697,6 @@ function createMcpServer() {
           sessionId,
           keepOtherData,
           error: error.message,
-          code: error.code,
           stack: error.stack,
           duration,
         });
@@ -1026,16 +728,24 @@ function createMcpServer() {
       logger.info('clear-session tool called', { sessionId });
 
       try {
-        const memoryPath = getMemoryPath(sessionId);
-
-        logger.debug('Attempting to delete session file', {
-          sessionId,
-          memoryPath,
-        });
-
-        await fs.unlink(memoryPath);
+        // Use fast in-memory operation
+        const cleared = await memoryManager.clearSession(sessionId);
 
         const duration = Date.now() - startTime;
+
+        if (!cleared) {
+          logger.info('No session found to clear', { sessionId, duration });
+          logMcpToolCall('clear-session', { sessionId }, true, duration);
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `No session found to clear: ${sessionId}`,
+              },
+            ],
+          };
+        }
 
         logger.info('Session cleared successfully', { sessionId, duration });
         logMcpToolCall('clear-session', { sessionId }, true, duration);
@@ -1051,24 +761,9 @@ function createMcpServer() {
       } catch (error) {
         const duration = Date.now() - startTime;
 
-        if (error.code === 'ENOENT') {
-          logger.info('No session found to clear', { sessionId, duration });
-          logMcpToolCall('clear-session', { sessionId }, true, duration);
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `No session found to clear: ${sessionId}`,
-              },
-            ],
-          };
-        }
-
         logger.error('Failed to clear session', {
           sessionId,
           error: error.message,
-          code: error.code,
           stack: error.stack,
           duration,
         });
@@ -1258,16 +953,41 @@ logger.info('Starting MCP Memory Server', {
   environment: process.env.NODE_ENV || 'development',
 });
 
-app.listen(PORT, () => {
-  logger.info('MCP Memory Server started successfully', {
-    port: PORT,
-    memoryDir,
-    endpoints: ['/mcp', '/health'],
-  });
-});
+async function startServer() {
+  try {
+    await memoryManager.initialize();
+    logger.info('MemoryManager initialized successfully');
 
-process.on('SIGTERM', () => {
+    app.listen(PORT, () => {
+      logger.info('MCP Memory Server started successfully', {
+        port: PORT,
+        memoryDir,
+        endpoints: ['/mcp', '/health'],
+        sessionsLoaded: memoryManager.getStats().sessionsInMemory,
+      });
+    });
+  } catch (error) {
+    logger.error('Failed to start server', {
+      error: error.message,
+      stack: error.stack,
+    });
+    process.exit(1);
+  }
+}
+
+startServer();
+
+process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
+
+  try {
+    await memoryManager.shutdown();
+    logger.info('MemoryManager shutdown completed');
+  } catch (error) {
+    logger.error('Error during MemoryManager shutdown', {
+      error: error.message,
+    });
+  }
 
   Object.keys(transports).forEach((sessionId) => {
     logger.debug('Closing transport for session', { sessionId });
@@ -1281,8 +1001,18 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
+
+  try {
+    // Shutdown MemoryManager first to persist data
+    await memoryManager.shutdown();
+    logger.info('MemoryManager shutdown completed');
+  } catch (error) {
+    logger.error('Error during MemoryManager shutdown', {
+      error: error.message,
+    });
+  }
 
   Object.keys(transports).forEach((sessionId) => {
     logger.debug('Closing transport for session', { sessionId });

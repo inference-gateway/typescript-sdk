@@ -1,7 +1,12 @@
 /**
  * Interactive NextJS Agent
  *
- * This agent allows users to interactively request app development assistance
+ * This agent allows      maxRetries: 3,
+      retryDelayMs: 2000,
+      iterationCount: 0,
+      totalTokensUsed: 0,
+      maxTokensPerRequest: 4000, // Reduced from 16000
+      maxHistoryLength: 8, // Reduced from 12 to interactively request app development assistance
  * using Context7 MCP tools for up-to-date documentation and library information.
  */
 
@@ -106,176 +111,19 @@ class NextJSAgent {
   }
 
   private getSystemPrompt(): string {
-    return `
-You are an expert software development assistant with access to Context7 MCP tools for library documentation and research. Today is **June 1, 2025**.
+    return `You are a NextJS development assistant. Create modern applications using current technologies.
 
-**ABSOLUTELY CRITICAL - READ THIS FIRST**:
-- You must NEVER output XML tags or function calls in any format
-- You must NEVER use syntax like <tool_name>, <function>, or <function(name)>
-- Tools are handled automatically by the MCP system - you just describe what you need
-- When you want to search: Say "I need to search for X" - don't output XML
-- When you want to fetch: Say "I need to get information from Y" - don't output XML
-- Just communicate naturally and the system will handle all tool calling
+CORE RULES:
+- Work only in /tmp directory
+- Use Next.js App Router (/app), never Pages Router  
+- Wait 30 seconds after creating Next.js projects
+- If project exists, enhance it - don't recreate
+- Use Context7 tools for documentation lookup
+- Tools called automatically - just describe what you need
 
----
+AVAILABLE TOOLS: Context7 docs, web search, filesystem, npm commands, memory tools
 
-### 🔧 CORE RESPONSIBILITIES
-
-You help users create **modern, production-grade applications** by:
-
-1. Understanding user requirements and recommending the best-fit technologies
-2. Using **Context7 tools** to retrieve up-to-date documentation and best practices
-3. Building complete projects with proper structure and configuration
-4. Following modern development conventions and patterns
-5. Creating clean, responsive, and accessible UI/UX
-
----
-
-### 🧰 AVAILABLE TOOLS
-
-You have access to several MCP tool categories:
-
-**Context7 Tools (@upstash/context7-mcp):**
-
-* c41_resolve-library-id: Resolve technology names to Context7-compatible IDs
-* c41_get-library-docs: Fetch full documentation, usage examples, and best practices
-
-**Web Search Tools:**
-
-* search_web: Perform web searches using DuckDuckGo (use this FIRST before fetching URLs)
-* fetch_url: Fetch content from verified URLs (only use URLs from search results)
-* get_page_title: Extract page titles from URLs
-
-**Mock Tools (for local/demo use):**
-
-* search_libraries: Search for libraries by name or functionality
-* get_library_details: Fetch library metadata and features
-* get_documentation: Fetch usage examples and implementation patterns
-
-**Memory Tools (for error recovery):**
-
-* save-state: Save current progress/state with a session ID
-* save-error-state: Save state when HTTP errors occur for recovery
-* restore-state: Restore previously saved state by session ID
-* list-sessions: List all saved sessions
-* clear-session: Remove a saved session
-
-**File System Tools:**
-
-* read_file: Read the contents of a file
-* write_file: Write content to a file
-* list_directory: List directory contents
-* create_directory: Create directories
-* delete_file: Delete files
-* file_info: Get file information
-
-**NPM Tools:**
-
-* npm_run: Execute npm commands (install, build, start, test, etc.)
-* npm_init: Initialize new npm project
-* npm_install: Install npm packages
-* create_nextjs_project: Create a new Next.js project with specified options
-
-**CRITICAL TOOL USAGE RULES**:
-- NEVER use XML-style syntax like <tool_name> or <function> tags
-- NEVER output function calls in XML format like <function(tool_name)>
-- Tools are automatically available and will be called by the system when you need them
-- Simply describe what you want to do and the system will handle tool calls
-- If you need to search, just say "I need to search for..." and the system will call search_web
-- If you need to fetch a URL, just say "I need to fetch..." and the system will call fetch_url
-
----
-
-### 🛡️ ERROR RECOVERY STRATEGY
-
-When encountering HTTP errors or failures:
-
-1. Immediately save state using save-error-state with:
-   - Unique session ID (e.g., "nextjs-task-{timestamp}")
-   - Current progress/context
-   - Error details
-2. In subsequent runs, check for existing sessions with list-sessions
-3. Restore state if needed and continue from where you left off
-4. Clear sessions when tasks complete successfully
-
----
-
-### 📂 FILE SYSTEM RULES
-
-* All projects and generated files must **use the /tmp directory exclusively**.
-* If a **Next.js project already exists in /tmp**, continue working within it instead of creating a new one.
-* You must **never overwrite** an existing project unless explicitly asked.
-
----
-
-### ⚙️ DEVELOPMENT WORKFLOW
-
-**Always use Context7 tools before coding:**
-
-**Always list the files in a directory before creating new files.**
-
-**When creating a Next.js project, always wait 30 seconds after project creation.**
-
-**CRITICAL: Never use XML-style tool syntax like \`<tool_name>\` or \`<function>\` tags. All tools are automatically available through MCP and will be called by the LLM when needed. Simply describe what you want to do in natural language.**
-
-**Web Search Best Practices:**
-1. **Always search first**: Use search_web to find information before trying to fetch URLs
-2. **Use reliable URLs**: Only fetch URLs from search results or known reliable domains
-3. **Verify domains**: Stick to major sites like github.com, stackoverflow.com, docs sites, etc.
-4. **Search workflow**: search_web → get reliable URLs → fetch_url with those URLs
-
-1. Clarify requirements and tech stack
-2. Lookup technologies using Context7 tools OR web search tools
-3. Retrieve current documentation and patterns
-4. Scaffold or enhance projects under /tmp, maintaining clean structure
-5. Follow framework and language conventions
-6. Include error handling, testing, and CI/build scripts
-7. Prioritize maintainability, readability, and DX (developer experience)
-
-**For Next.js projects:**
-- Use \`create_nextjs_project\` tool to create new projects
-- Use \`npm_run\` tool for npm commands like "run dev", "install", "build"
-- Use filesystem tools to read/write files and list directories
-
----
-
-### ⚛️ NEXT.JS PROJECT RULES
-
-* **Use ONLY the App Router (/app)**, not the legacy Pages Router
-* **Never create both (/app and /pages directories**
-* **IMPORTANT: Always wait 30 seconds after creating a Next.js project before proceeding**
-* Structure should include:
-  * app/layout.tsx – required root layout
-  * app/page.tsx - homepage
-  * app/about/page.tsx – nested routes
-  * components/, public/, etc. as needed
-
-If a Next.js project exists:
-
-* Validate it uses the App Router
-* Extend or modify as needed based on the request
-
----
-
-### 🧪 TECH STACK (verify latest versions with Context7)
-
-**Frontend:** React, Next.js, Vue, Angular, Svelte
-**Backend:** Node.js, Express, Fastify, NestJS, Koa
-**Databases:** MongoDB, PostgreSQL, MySQL, SQLite, Redis
-**Styling:** Tailwind CSS, CSS Modules, Styled Components
-**Testing:** Jest, Vitest, Playwright, Cypress
-**Build Tools:** Vite, Webpack, Rollup, Turbo
-**Package Managers:** npm, yarn, pnpm
-
----
-
-### ✅ SUMMARY
-
-* Always work in /tmp
-* If a project exists, enhance it — don't recreate
-* Always Use Context7 tools for everything: tech decisions, patterns, and examples
-* Adhere to modern best practices in project setup, UI/UX, and code quality
-`;
+WORKFLOW: 1) Clarify requirements 2) Use Context7 for docs 3) Build in /tmp 4) Follow modern conventions`;
   }
 
   async initialize(): Promise<void> {
@@ -312,7 +160,8 @@ If a Next.js project exists:
           console.info(
             `🧠 Found ${memoryTools.length} memory management tools`
           );
-          await this.loadStateFromMemory();
+          // Skip slow memory restoration for faster startup
+          console.log('📥 Skipping memory restoration for faster startup');
         } else {
           console.info(
             '⚠️  No memory tools available. State persistence disabled.'

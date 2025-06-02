@@ -21,6 +21,19 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 declare const require: any;
 declare const module: any;
 
+interface ErrorRecord {
+  timestamp: string;
+  iterationCount: number;
+  errorType: 'stream_error' | 'tool_error' | 'mcp_error' | 'memory_error';
+  errorMessage: string;
+  context: string;
+  toolName?: string;
+  toolId?: string;
+  toolArguments?: any;
+  userInput?: string;
+  recoveryAttempted: boolean;
+}
+
 interface AgentConfig {
   client: InferenceGatewayClient;
   provider: Provider;
@@ -35,6 +48,13 @@ interface AgentConfig {
   sessionId: string;
   memoryEnabled: boolean;
   abortController: globalThis.AbortController;
+  errorHistory: ErrorRecord[];
+  lastFailedToolCall?: {
+    name: string;
+    id: string;
+    arguments: any;
+    timestamp: string;
+  };
 }
 
 class KubernetesAgent {
@@ -62,6 +82,8 @@ class KubernetesAgent {
       sessionId: process.env.SESSION_ID || randomUUID(),
       memoryEnabled: true,
       abortController: new globalThis.AbortController(),
+      errorHistory: [],
+      lastFailedToolCall: undefined,
     };
 
     this.rl = readline.createInterface({
@@ -105,199 +127,247 @@ class KubernetesAgent {
     console.log('✅ Kubernetes operation wait period completed.\n');
   }
 
+  /**
+   * Record an error to both local history and memory
+   */
+  private async recordError(
+    errorType: ErrorRecord['errorType'],
+    errorMessage: string,
+    context: string,
+    toolCall?: any,
+    userInput?: string
+  ): Promise<void> {
+    const errorRecord: ErrorRecord = {
+      timestamp: new Date().toISOString(),
+      iterationCount: this.config.iterationCount,
+      errorType,
+      errorMessage,
+      context,
+      toolName: toolCall?.function?.name,
+      toolId: toolCall?.id,
+      toolArguments: toolCall?.function?.arguments
+        ? JSON.parse(toolCall.function.arguments)
+        : undefined,
+      userInput: userInput?.substring(0, 100),
+      recoveryAttempted: false,
+    };
+
+    this.config.errorHistory.push(errorRecord);
+
+    // Keep only last 10 errors to prevent memory bloat
+    if (this.config.errorHistory.length > 10) {
+      this.config.errorHistory = this.config.errorHistory.slice(-10);
+    }
+
+    console.log(`📝 Recording ${errorType}: ${errorMessage}`);
+
+    // Save to memory if enabled
+    if (this.config.memoryEnabled) {
+      await this.saveErrorToMemory(errorRecord);
+    }
+  }
+
+  /**
+   * Save error state to memory with detailed context
+   */
+  private async saveErrorToMemory(errorRecord: ErrorRecord): Promise<void> {
+    if (!this.config.memoryEnabled) return;
+
+    try {
+      const errorState = {
+        conversationHistory: this.config.conversationHistory.slice(-3),
+        iterationCount: this.config.iterationCount,
+        totalTokensUsed: this.config.totalTokensUsed,
+        timestamp: new Date().toISOString(),
+        errorHistory: this.config.errorHistory,
+        lastError: errorRecord,
+      };
+
+      console.log(
+        `🚨 Saving error state to memory for session: ${this.config.sessionId}`
+      );
+
+      let toolCallDetected = false;
+      let saveSuccessful = false;
+
+      await this.config.client.streamChatCompletion(
+        {
+          model: this.config.model,
+          messages: [
+            {
+              role: MessageRole.system,
+              content: `You are a memory manager handling error recovery. You MUST call the save-error-state tool immediately with the error details below.
+
+CRITICAL ERROR OCCURRED:
+Error Type: ${errorRecord.errorType}
+Error Message: ${errorRecord.errorMessage}
+Context: ${errorRecord.context}
+Tool: ${errorRecord.toolName || 'N/A'}
+Tool ID: ${errorRecord.toolId || 'N/A'}
+User Input: ${errorRecord.userInput || 'N/A'}
+Timestamp: ${errorRecord.timestamp}
+
+SessionID: ${this.config.sessionId}
+Error State: ${JSON.stringify(errorState)}
+
+Call save-error-state tool immediately with sessionId="${this.config.sessionId}" and the error state above.`,
+            },
+            {
+              role: MessageRole.user,
+              content: `URGENT: Save error state now using save-error-state tool for session "${this.config.sessionId}". Include full error context.`,
+            },
+          ],
+          max_tokens: this.config.maxTokensPerRequest,
+        },
+        {
+          onMCPTool: (toolCall) => {
+            toolCallDetected = true;
+            console.log(
+              `📱 Error memory tool called: ${toolCall.function.name}`
+            );
+
+            if (
+              toolCall.function.name === 'save-error-state' ||
+              toolCall.function.name === 'save-state'
+            ) {
+              saveSuccessful = true;
+              console.log('✅ Error state save tool invoked successfully');
+            }
+          },
+          onReasoning: () => {
+            // Suppress reasoning output for error saves to reduce noise
+          },
+          onContent: () => {
+            // Suppress content output for error saves to reduce noise
+          },
+          onError: (error) => {
+            console.warn('⚠️ Error memory save failed:', error.error);
+          },
+          onFinish: () => {
+            if (toolCallDetected && saveSuccessful) {
+              console.log('✅ Error state saved to memory successfully');
+            } else {
+              console.warn('⚠️ Failed to save error state to memory');
+            }
+          },
+        },
+        this.config.provider,
+        this.config.abortController.signal
+      );
+    } catch (error) {
+      console.warn(
+        '⚠️ Failed to save error state to memory:',
+        (error as Error).message
+      );
+    }
+  }
+
+  /**
+   * Load and process previous errors from memory
+   */
+  private async loadErrorHistory(): Promise<void> {
+    if (!this.config.memoryEnabled) return;
+
+    try {
+      console.log(
+        `📥 Loading error history for session: ${this.config.sessionId}`
+      );
+
+      let errorData: any = null;
+
+      await this.config.client.streamChatCompletion(
+        {
+          model: this.config.model,
+          messages: [
+            {
+              role: MessageRole.system,
+              content: `You have access to memory management tools. Check for and restore any saved error states for session "${this.config.sessionId}". If errors were previously recorded, provide details about what went wrong.`,
+            },
+            {
+              role: MessageRole.user,
+              content: `Check memory for previous errors in session "${this.config.sessionId}" and restore any error states found.`,
+            },
+          ],
+          max_tokens: this.config.maxTokensPerRequest,
+        },
+        {
+          onContent: (content) => {
+            if (content.includes('error') || content.includes('Error')) {
+              console.log(
+                `📋 Previous error context: ${content.substring(0, 200)}...`
+              );
+            }
+            if (content.includes('{') && content.includes('}')) {
+              try {
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  errorData = JSON.parse(jsonMatch[0]);
+                }
+              } catch {
+                // Ignore parsing errors for error recovery
+              }
+            }
+          },
+          onMCPTool: (toolCall) => {
+            console.log(
+              `📱 Error recovery tool called: ${toolCall.function.name}`
+            );
+          },
+          onError: () => {
+            console.log('ℹ️ No previous error state found');
+          },
+          onFinish: () => {
+            if (errorData && errorData.errorHistory) {
+              this.config.errorHistory = errorData.errorHistory || [];
+              console.log(
+                `✅ Restored ${this.config.errorHistory.length} previous error records`
+              );
+
+              if (this.config.errorHistory.length > 0) {
+                const lastError =
+                  this.config.errorHistory[this.config.errorHistory.length - 1];
+                console.log(
+                  `🔍 Last error was: ${lastError.errorType} - ${lastError.errorMessage}`
+                );
+                console.log(`   Context: ${lastError.context}`);
+                if (lastError.toolName) {
+                  console.log(
+                    `   Failed tool: ${lastError.toolName} (${lastError.toolId})`
+                  );
+                }
+              }
+            }
+          },
+        },
+        this.config.provider,
+        this.config.abortController.signal
+      );
+    } catch (error) {
+      console.log(`ℹ️ No error history found: ${(error as Error).message}`);
+    }
+  }
+
   private getSystemPrompt(): string {
-    return `
-You are an expert Kubernetes operations assistant with access to Context7 MCP tools for K8s documentation and research. Today is **June 1, 2025**.
+    let errorHistoryPrompt = '';
 
-**ABSOLUTELY CRITICAL - READ THIS FIRST**:
-- You must NEVER output XML tags or function calls in any format
-- You must NEVER use syntax like <tool_name>, <function>, or <function(name)>
-- Tools are handled automatically by the MCP system - you just describe what you need
-- When you want to search: Say "I need to search for X" - don't output XML
-- When you want to fetch: Say "I need to get information from Y" - don't output XML
-- Just communicate naturally and the system will handle all tool calling
+    if (this.config.errorHistory.length > 0) {
+      const recentErrors = this.config.errorHistory.slice(-2);
+      errorHistoryPrompt = `\nERROR CONTEXT: Previous ${recentErrors.length} errors encountered. Adapt approach accordingly.\n`;
+    }
 
----
+    return `You are a Kubernetes operations assistant. Help with cluster management and container orchestration.${errorHistoryPrompt}
 
-### 🔧 CORE RESPONSIBILITIES
+CORE RULES:
+- Work only in /tmp directory  
+- If K8s configs exist, enhance them - don't recreate
+- Use Context7 tools for documentation lookup
+- Tools called automatically - just describe what you need
+- Follow security-first approach with RBAC and network policies
+- Wait 10 seconds after applying K8s configurations
 
-You help users with **Kubernetes cluster operations and container orchestration** by:
+AVAILABLE TOOLS: Context7 docs, filesystem, memory tools for recovery
 
-1. Understanding deployment requirements and recommending optimal K8s strategies
-2. Using **Context7 tools** to retrieve up-to-date Kubernetes documentation and best practices
-3. Creating production-ready YAML manifests and Helm charts
-4. Following Kubernetes security and performance conventions
-5. Providing cluster management, monitoring, and troubleshooting guidance
-
----
-
-### 🧰 AVAILABLE TOOLS
-
-You have access to several MCP tool categories:
-
-**Context7 Tools (@upstash/context7-mcp):**
-
-* c41_resolve-library-id: Resolve technology names to Context7-compatible IDs
-* c41_get-library-docs: Fetch full documentation, usage examples, and best practices
-
-**Mock Tools (for local/demo use):**
-
-* search_libraries: Search for libraries by name or functionality
-* get_library_details: Fetch library metadata and features
-* get_documentation: Fetch usage examples and implementation patterns
-
-**Memory Tools (for error recovery):**
-
-* save-state: Save current progress/state with a session ID
-* save-error-state: Save state when HTTP errors occur for recovery
-* restore-state: Restore previously saved state by session ID
-* list-sessions: List all saved sessions
-* clear-session: Remove a saved session
-
-**File System Tools:**
-
-* Available for file operations in /tmp directory
-
-**CRITICAL TOOL USAGE RULES**:
-- NEVER use XML-style syntax like <tool_name> or <function> tags
-- NEVER output function calls in XML format like <function(tool_name)>
-- Tools are automatically available and will be called by the system when you need them
-- Simply describe what you want to do and the system will handle tool calls
-- If you need to search, just say "I need to search for..." and the system will call the appropriate tool
-- If you need to fetch info, just say "I need to get..." and the system will call the appropriate tool
-
----
-
-### 🛡️ ERROR RECOVERY STRATEGY
-
-When encountering HTTP errors or failures:
-
-1. Immediately save state using save-error-state with:
-   - Unique session ID (e.g., "k8s-task-{timestamp}")
-   - Current progress/context
-   - Error details
-2. In subsequent runs, check for existing sessions with list-sessions
-3. Restore state if needed and continue from where you left off
-4. Clear sessions when tasks complete successfully
-
----
-
-### 📂 FILE SYSTEM RULES
-
-* All Kubernetes manifests and generated files must **use the /tmp directory exclusively**.
-* If **Kubernetes configurations already exist in /tmp**, continue working within them instead of creating new ones.
-* You must **never overwrite** existing configurations unless explicitly asked.
-
----
-
-### ⚙️ DEVELOPMENT WORKFLOW
-
-**Always use Context7 tools before creating K8s resources:**
-
-**Always list the files in a directory before creating new manifests.**
-
-**When applying K8s configurations, always wait 10 seconds after operation.**
-
-**CRITICAL: Never use XML-style tool syntax like \`<tool_name>\` or \`<function>\` tags. All tools are automatically available through MCP and will be called by the LLM when needed. Simply describe what you want to do in natural language.**
-
-1. Clarify requirements and deployment architecture
-2. Lookup Kubernetes and related technologies using Context7 tools
-3. Retrieve current documentation, patterns, and best practices
-4. Create or enhance configurations under /tmp, maintaining clean structure
-5. Follow K8s conventions, security policies, and resource management
-6. Include proper monitoring, logging, and health check configurations
-7. Prioritize scalability, reliability, and operational excellence
-
----
-
-### ☸️ KUBERNETES RESOURCE RULES
-
-* **Use the latest Kubernetes API versions and best practices**
-* **Follow security-first approach with RBAC, network policies, and pod security**
-* **Structure should include:**
-  * Namespace definitions
-  * Deployment/StatefulSet manifests
-  * Service and Ingress configurations
-  * ConfigMaps and Secrets
-  * RBAC policies (ServiceAccount, Role, RoleBinding)
-  * NetworkPolicies for security
-  * HorizontalPodAutoscaler for scaling
-  * PodDisruptionBudget for availability
-
-**Supported Kubernetes Resources:**
-* **Workloads:** Deployments, StatefulSets, DaemonSets, Jobs, CronJobs
-* **Services:** ClusterIP, NodePort, LoadBalancer, ExternalName
-* **Configuration:** ConfigMaps, Secrets, PersistentVolumes
-* **Security:** RBAC, NetworkPolicies, PodSecurityPolicies
-* **Scaling:** HPA, VPA, Cluster Autoscaler
-* **Networking:** Ingress, Service Mesh (Istio/Linkerd)
-
-If Kubernetes configurations exist:
-* Validate API versions and resource definitions
-* Extend or modify as needed based on requirements
-* Optimize for performance, security, and cost
-
----
-
-### 🧪 KUBERNETES ECOSYSTEM (verify latest versions with Context7)
-
-**Core:** kubectl, kubelet, kube-apiserver, etcd, kube-controller-manager
-**Container Runtime:** containerd, Docker, CRI-O
-**Networking:** Calico, Flannel, Weave, Cilium
-**Service Mesh:** Istio, Linkerd, Consul Connect
-**Monitoring:** Prometheus, Grafana, Jaeger, Kiali
-**CI/CD:** ArgoCD, Flux, Tekton, Jenkins X
-**Package Management:** Helm, Kustomize, Operator Framework
-**Security:** Falco, Open Policy Agent (OPA), Twistlock
-**Storage:** Longhorn, Rook, OpenEBS, Portworx
-
----
-
-### 🚀 COMMON KUBERNETES PATTERNS TO LEVERAGE
-
-* **Microservices Architecture** with proper service decomposition
-* **GitOps Deployment** with declarative configurations
-* **Blue-Green Deployments** for zero-downtime updates
-* **Canary Releases** for safe rollouts
-* **Resource Quotas** and limits for multi-tenancy
-* **Health Checks** (liveness, readiness, startup probes)
-* **Secrets Management** with external secret operators
-* **Observability** with distributed tracing and metrics
-
----
-
-### 🛡️ SECURITY BEST PRACTICES
-
-* **Principle of Least Privilege** with RBAC
-* **Network Segmentation** with NetworkPolicies
-* **Pod Security Standards** enforcement
-* **Image Security** scanning and admission controllers
-* **Secret Rotation** and external secret management
-* **Audit Logging** for compliance and monitoring
-* **Resource Isolation** with namespaces and quotas
-
----
-
-### 📊 OPERATIONAL EXCELLENCE
-
-* **Infrastructure as Code** with Terraform/Pulumi
-* **Automated Scaling** based on metrics
-* **Disaster Recovery** planning and testing
-* **Cost Optimization** with resource right-sizing
-* **Performance Monitoring** and alerting
-* **Capacity Planning** for growth
-* **Multi-cluster Management** for resilience
-
----
-
-### ✅ SUMMARY
-
-* Always work in /tmp
-* If K8s configurations exist, enhance them — don't recreate
-* Use Context7 tools for everything: K8s decisions, patterns, and examples
-* Follow security-first, cloud-native principles
-* Adhere to modern best practices in cluster operations, security, and reliability
-`;
+WORKFLOW: 1) Clarify requirements 2) Use Context7 for K8s docs 3) Create manifests in /tmp 4) Follow best practices`;
   }
 
   async initialize(): Promise<void> {
@@ -335,7 +405,8 @@ If Kubernetes configurations exist:
           console.info(
             `🧠 Found ${memoryTools.length} memory management tools`
           );
-          await this.loadStateFromMemory();
+          // Skip slow memory restoration for faster startup - only load on demand
+          console.log('📥 Skipping memory restoration for faster startup');
         } else {
           console.info(
             '⚠️  No memory tools available. State persistence disabled.'
@@ -639,6 +710,14 @@ If Kubernetes configurations exist:
           }
           console.log(`🔍 Tool ID: ${toolCall.id}\n`);
 
+          // Store the tool call details for error recovery if needed
+          this.config.lastFailedToolCall = {
+            name: toolCall.function.name,
+            id: toolCall.id,
+            arguments: toolCall.function.arguments,
+            timestamp: new Date().toISOString(),
+          };
+
           if (
             toolCall.function.name.toLowerCase().includes('kubernetes') ||
             toolCall.function.name.toLowerCase().includes('k8s') ||
@@ -656,16 +735,21 @@ If Kubernetes configurations exist:
             shouldWaitForOperation = true;
           }
         },
-        onError: (error) => {
+        onError: async (error) => {
           console.error(`\n❌ Stream Error: ${error.error}`);
 
-          if (this.config.memoryEnabled) {
-            this.saveStateToMemory(
-              `Error occurred during request processing: ${error.error}`
-            ).catch(console.warn);
-          }
+          // Record the error with detailed context
+          await this.recordError(
+            'stream_error',
+            error.error || 'Unknown stream error',
+            `Stream error during iteration ${this.config.iterationCount}. Last tool call: ${this.config.lastFailedToolCall?.name || 'none'}`,
+            this.config.lastFailedToolCall,
+            userInput
+          );
 
-          throw new Error(`Stream error: ${error.error}`);
+          throw new Error(
+            `Stream error: ${error.error || 'Unknown stream error'}`
+          );
         },
         onFinish: async () => {
           console.log('\n\n✅ Kubernetes operations session completed!\n');
@@ -951,17 +1035,19 @@ Call the save-state tool now.`,
   }
 
   /**
-   * Load state from memory MCP server (via chat completion)
+   * Combined fast memory state and error history loading
    */
-  private async loadStateFromMemory(): Promise<boolean> {
-    if (!this.config.memoryEnabled) return false;
+  private async quickLoadStateAndErrorHistory(): Promise<void> {
+    if (!this.config.memoryEnabled) return;
 
     try {
       console.log(
         `📥 Attempting to restore state for session: ${this.config.sessionId}`
       );
 
+      // Single LLM call to check both state and errors
       let restoredData: any = null;
+      let errorData: any = null;
 
       await this.config.client.streamChatCompletion(
         {
@@ -969,28 +1055,31 @@ Call the save-state tool now.`,
           messages: [
             {
               role: MessageRole.system,
-              content: `You have access to memory management tools. Restore the saved state for session "${this.config.sessionId}".`,
+              content: `You have access to memory management tools. Quickly restore the saved state for session "${this.config.sessionId}" and check for any previous errors. Use the restore-state tool once.`,
             },
             {
               role: MessageRole.user,
-              content: `Please restore the session state using the restore-state tool and provide the restored data.`,
+              content: `Restore session state and error history for "${this.config.sessionId}" using restore-state tool.`,
             },
           ],
-          max_tokens: this.config.maxTokensPerRequest,
+          max_tokens: 2000, // Reduced token limit for faster response
         },
         {
-          onReasoning: (reasoning) => {
-            process.stdout.write(reasoning);
-          },
           onContent: (content) => {
             if (content.includes('{') && content.includes('}')) {
               try {
                 const jsonMatch = content.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
-                  restoredData = JSON.parse(jsonMatch[0]);
+                  const data = JSON.parse(jsonMatch[0]);
+                  if (data.state) {
+                    restoredData = data;
+                  }
+                  if (data.errorHistory || data.lastError) {
+                    errorData = data;
+                  }
                 }
               } catch {
-                console.error(`⚠️  Failed to parse restored data: ${content}`);
+                // Ignore parsing errors for quick startup
               }
             }
           },
@@ -1001,6 +1090,7 @@ Call the save-state tool now.`,
             console.log('ℹ️  No previous state found');
           },
           onFinish: () => {
+            // Restore state if found
             if (restoredData && restoredData.state) {
               this.config.conversationHistory =
                 restoredData.state.conversationHistory || [];
@@ -1009,9 +1099,7 @@ Call the save-state tool now.`,
               this.config.totalTokensUsed =
                 restoredData.state.totalTokensUsed || 0;
 
-              console.log(
-                `✅ Restored state from ${restoredData.state.timestamp}`
-              );
+              console.log(`✅ Restored state from ${restoredData.timestamp}`);
               console.log(
                 `📊 Restored ${this.config.conversationHistory.length} messages`
               );
@@ -1019,16 +1107,33 @@ Call the save-state tool now.`,
                 `🔢 Restored iteration count: ${this.config.iterationCount}`
               );
             }
+
+            // Restore error history if found
+            if (errorData && errorData.errorHistory) {
+              this.config.errorHistory = errorData.errorHistory || [];
+              console.log(
+                `✅ Restored ${this.config.errorHistory.length} previous error records`
+              );
+
+              if (this.config.errorHistory.length > 0) {
+                const lastError =
+                  this.config.errorHistory[this.config.errorHistory.length - 1];
+                console.log(
+                  `🔍 Last error was: ${lastError.errorType} - ${lastError.errorMessage}`
+                );
+              }
+            }
+
+            if (!restoredData && !errorData) {
+              console.log('ℹ️  No previous state found');
+            }
           },
         },
         this.config.provider,
         this.config.abortController.signal
       );
-
-      return !!restoredData;
     } catch (error) {
       console.log(`ℹ️  No previous state found: ${(error as Error).message}`);
-      return false;
     }
   }
 
