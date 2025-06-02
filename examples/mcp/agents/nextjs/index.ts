@@ -564,7 +564,7 @@ If a Next.js project exists:
           );
         },
         onReasoning: (reasoning) => {
-          process.stdout.write(`\n🤔 Agent Reasoning: ${reasoning}`);
+          console.log(`\n🤔 Agent Reasoning: ${reasoning}`);
         },
         onContent: (content) => {
           process.stdout.write(content);
@@ -716,7 +716,7 @@ Call save-state tool immediately with sessionId="${this.config.sessionId}" and t
             }
           },
           onReasoning: (reasoning) => {
-            process.stdout.write(`\n🤔 Memory Reasoning: ${reasoning}`);
+            console.log(`\n🤔 Memory Reasoning: ${reasoning}`);
           },
           onContent: (content) => {
             process.stdout.write(content);
@@ -919,7 +919,7 @@ Call the save-state tool now.`,
         },
         {
           onReasoning: (reasoning) => {
-            process.stdout.write(`\n🤔 Memory Reasoning: ${reasoning}`);
+            console.log(`\n🤔 Memory Reasoning: ${reasoning}`);
           },
           onContent: (content) => {
             if (content.includes('{') && content.includes('}')) {
@@ -929,9 +929,7 @@ Call the save-state tool now.`,
                   restoredData = JSON.parse(jsonMatch[0]);
                 }
               } catch {
-                process.stderr.write(
-                  `\n⚠️  Failed to parse restored data: ${content}\n`
-                );
+                console.error(`⚠️  Failed to parse restored data: ${content}`);
               }
             }
           },
