@@ -54,7 +54,7 @@ class NextJSAgent {
       model: process.env.LLM || 'llama-3.3-70b-versatile',
       conversationHistory: [],
       maxRetries: 3,
-      retryDelayMs: 60000,
+      retryDelayMs: 10000,
       iterationCount: 0,
       totalTokensUsed: 0,
       maxTokensPerRequest: 3000,

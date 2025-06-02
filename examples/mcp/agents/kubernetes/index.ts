@@ -10,9 +10,11 @@ import {
   MessageRole,
   Provider,
 } from '@inference-gateway/sdk';
+import { randomUUID } from 'crypto';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as readline from 'readline';
+import { clearTimeout, setTimeout } from 'timers';
 
 dotenv.config({ path: path.join(__dirname, '.env') });
 
@@ -28,6 +30,11 @@ interface AgentConfig {
   retryDelayMs: number;
   iterationCount: number;
   totalTokensUsed: number;
+  maxTokensPerRequest: number;
+  maxHistoryLength: number;
+  sessionId: string;
+  memoryEnabled: boolean;
+  abortController: globalThis.AbortController;
 }
 
 class KubernetesAgent {
@@ -35,17 +42,26 @@ class KubernetesAgent {
   private rl: readline.Interface;
 
   constructor() {
+    console.log('🔧 Debug - Environment variables:');
+    console.log('   PROVIDER:', process.env.PROVIDER);
+    console.log('   LLM:', process.env.LLM);
+
     this.config = {
       client: new InferenceGatewayClient({
-        baseURL: 'http://localhost:8080/v1',
+        baseURL: 'http://inference-gateway:8080/v1',
       }),
       provider: (process.env.PROVIDER as Provider) || Provider.groq,
       model: process.env.LLM || 'llama-3.3-70b-versatile',
       conversationHistory: [],
       maxRetries: 3,
-      retryDelayMs: 60000,
+      retryDelayMs: 10000,
       iterationCount: 0,
       totalTokensUsed: 0,
+      maxTokensPerRequest: 3000,
+      maxHistoryLength: 10,
+      sessionId: process.env.SESSION_ID || randomUUID(),
+      memoryEnabled: true,
+      abortController: new globalThis.AbortController(),
     };
 
     this.rl = readline.createInterface({
@@ -60,8 +76,24 @@ class KubernetesAgent {
   }
 
   private async delay(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-      global.setTimeout(() => resolve(), ms);
+    return new Promise((resolve, reject) => {
+      if (this.config.abortController.signal.aborted) {
+        reject(new Error('Aborted'));
+        return;
+      }
+
+      const timeout = global.setTimeout(() => resolve(), ms);
+
+      const abortHandler = () => {
+        global.clearTimeout(timeout);
+        reject(new Error('Aborted'));
+      };
+
+      this.config.abortController.signal.addEventListener(
+        'abort',
+        abortHandler,
+        { once: true }
+      );
     });
   }
 
@@ -76,6 +108,14 @@ class KubernetesAgent {
   private getSystemPrompt(): string {
     return `
 You are an expert Kubernetes operations assistant with access to Context7 MCP tools for K8s documentation and research. Today is **June 1, 2025**.
+
+**ABSOLUTELY CRITICAL - READ THIS FIRST**:
+- You must NEVER output XML tags or function calls in any format
+- You must NEVER use syntax like <tool_name>, <function>, or <function(name)>
+- Tools are handled automatically by the MCP system - you just describe what you need
+- When you want to search: Say "I need to search for X" - don't output XML
+- When you want to fetch: Say "I need to get information from Y" - don't output XML
+- Just communicate naturally and the system will handle all tool calling
 
 ---
 
@@ -118,6 +158,14 @@ You have access to several MCP tool categories:
 
 * Available for file operations in /tmp directory
 
+**CRITICAL TOOL USAGE RULES**:
+- NEVER use XML-style syntax like <tool_name> or <function> tags
+- NEVER output function calls in XML format like <function(tool_name)>
+- Tools are automatically available and will be called by the system when you need them
+- Simply describe what you want to do and the system will handle tool calls
+- If you need to search, just say "I need to search for..." and the system will call the appropriate tool
+- If you need to fetch info, just say "I need to get..." and the system will call the appropriate tool
+
 ---
 
 ### 🛡️ ERROR RECOVERY STRATEGY
@@ -149,6 +197,8 @@ When encountering HTTP errors or failures:
 **Always list the files in a directory before creating new manifests.**
 
 **When applying K8s configurations, always wait 10 seconds after operation.**
+
+**CRITICAL: Never use XML-style tool syntax like \`<tool_name>\` or \`<function>\` tags. All tools are automatically available through MCP and will be called by the LLM when needed. Simply describe what you want to do in natural language.**
 
 1. Clarify requirements and deployment architecture
 2. Lookup Kubernetes and related technologies using Context7 tools
@@ -276,6 +326,22 @@ If Kubernetes configurations exist:
             'get_documentation',
           ].includes(tool.name)
         );
+
+        const memoryTools = tools.data.filter((tool) =>
+          ['save-state', 'restore-state', 'list-sessions'].includes(tool.name)
+        );
+
+        if (memoryTools.length > 0) {
+          console.info(
+            `🧠 Found ${memoryTools.length} memory management tools`
+          );
+          await this.loadStateFromMemory();
+        } else {
+          console.info(
+            '⚠️  No memory tools available. State persistence disabled.'
+          );
+          this.config.memoryEnabled = false;
+        }
 
         const context7Tools = [...realContext7Tools, ...mockContext7Tools];
 
@@ -405,8 +471,24 @@ If Kubernetes configurations exist:
       case 'exit':
       case 'quit':
         console.log('\n👋 Thank you for using Kubernetes Agent! Goodbye!');
-        this.rl.close();
-        process.exit(0);
+
+        if (this.config.memoryEnabled) {
+          console.log('💾 Saving session state before exit...');
+          this.saveStateToMemoryForced('Manual exit via user command')
+            .then(() => {
+              console.log('✅ Session state saved successfully');
+              this.rl.close();
+              process.exit(0);
+            })
+            .catch((error: Error) => {
+              console.warn('⚠️  Failed to save session state:', error.message);
+              this.rl.close();
+              process.exit(0);
+            });
+        } else {
+          this.rl.close();
+          process.exit(0);
+        }
         return true;
 
       case 'clear':
@@ -462,32 +544,90 @@ If Kubernetes configurations exist:
     console.log(`\n🔍 Processing Kubernetes request: "${userInput}"`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
+    this.config.iterationCount++;
+    const iterationStartTime = Date.now();
+
+    console.log(`🔄 Starting Iteration #${this.config.iterationCount}`);
+    console.log(
+      `📝 User Input: "${userInput.substring(0, 100)}${userInput.length > 100 ? '...' : ''}"`
+    );
+    console.log(`⏰ Start Time: ${new Date().toLocaleTimeString()}`);
+    console.log('─'.repeat(60));
+
     this.config.conversationHistory.push({
       role: MessageRole.user,
       content: userInput,
     });
 
+    if (this.config.memoryEnabled) {
+      await this.saveStateToMemory(
+        `Before processing request: "${userInput.substring(0, 50)}..."`
+      );
+    }
+
+    this.resetAbortController();
+
     let assistantResponse = '';
     let shouldWaitForOperation = false;
+
+    console.log(
+      `🔧 Debug - Using provider: ${this.config.provider}, model: ${this.config.model}`
+    );
 
     await this.config.client.streamChatCompletion(
       {
         model: this.config.model,
-        messages: this.config.conversationHistory,
-        max_tokens: 2000,
+        messages: this.getOptimizedConversationHistory(),
+        max_tokens: this.config.maxTokensPerRequest,
       },
       {
         onOpen: () => {
           console.log(
-            '🔗 Starting Kubernetes operations session with Context7...\n'
+            '\n🔗 Starting Kubernetes operations session with Context7...\n'
           );
         },
         onReasoning: (reasoning) => {
-          console.log(`\n🤔 Agent Reasoning: ${reasoning}`);
+          process.stdout.write(reasoning);
         },
         onContent: (content) => {
           process.stdout.write(content);
           assistantResponse += content;
+        },
+        onUsageMetrics: (usage) => {
+          const iterationDuration = Date.now() - iterationStartTime;
+          this.config.totalTokensUsed += usage.total_tokens;
+
+          console.log(
+            `\n\n💰 Iteration #${this.config.iterationCount} Token Usage:`
+          );
+          console.log(
+            `   📊 Prompt tokens: ${usage.prompt_tokens.toLocaleString()}`
+          );
+          console.log(
+            `   ✍️  Completion tokens: ${usage.completion_tokens.toLocaleString()}`
+          );
+          console.log(
+            `   🎯 Total tokens: ${usage.total_tokens.toLocaleString()}`
+          );
+          console.log(`   ⏱️  Duration: ${iterationDuration}ms`);
+          console.log(
+            `   🚀 Tokens/sec: ${Math.round((usage.total_tokens / iterationDuration) * 1000)}`
+          );
+
+          console.log(`\n📈 Cumulative Session Usage:`);
+          console.log(`   🔢 Total Iterations: ${this.config.iterationCount}`);
+          console.log(
+            `   🎯 Total Tokens Used: ${this.config.totalTokensUsed.toLocaleString()}`
+          );
+          console.log(
+            `   📈 Average Tokens per Iteration: ${Math.round(this.config.totalTokensUsed / this.config.iterationCount).toLocaleString()}`
+          );
+
+          const estimatedCost = this.config.totalTokensUsed * 0.000001;
+          console.log(
+            `   💰 Estimated Total Cost: $${estimatedCost.toFixed(6)}`
+          );
+          console.log('─'.repeat(60));
         },
         onMCPTool: (toolCall: any) => {
           console.log(`\n🛠️  Context7 Tool: ${toolCall.function.name}`);
@@ -504,7 +644,11 @@ If Kubernetes configurations exist:
             toolCall.function.name.toLowerCase().includes('k8s') ||
             toolCall.function.name.toLowerCase().includes('kubectl') ||
             toolCall.function.name.toLowerCase().includes('deploy') ||
-            toolCall.function.name.toLowerCase().includes('create')
+            toolCall.function.name.toLowerCase().includes('create') ||
+            toolCall.function.name.toLowerCase().includes('apply') ||
+            toolCall.function.name.toLowerCase().includes('helm') ||
+            toolCall.function.name === 'write_file' ||
+            toolCall.function.name === 'create_directory'
           ) {
             console.log(
               '☸️  Kubernetes operation detected - will wait 10 seconds after completion'
@@ -514,6 +658,13 @@ If Kubernetes configurations exist:
         },
         onError: (error) => {
           console.error(`\n❌ Stream Error: ${error.error}`);
+
+          if (this.config.memoryEnabled) {
+            this.saveStateToMemory(
+              `Error occurred during request processing: ${error.error}`
+            ).catch(console.warn);
+          }
+
           throw new Error(`Stream error: ${error.error}`);
         },
         onFinish: async () => {
@@ -532,12 +683,427 @@ If Kubernetes configurations exist:
             });
           }
         },
-      }
+      },
+      this.config.provider,
+      this.config.abortController.signal
     );
   }
 
   async shutdown(): Promise<void> {
+    if (this.config.memoryEnabled) {
+      console.log('💾 Saving session state before shutdown...');
+      try {
+        const shutdownTimeout = setTimeout(() => {
+          console.warn('⚠️  Shutdown timeout reached, forcing exit...');
+          process.exit(1);
+        }, 10000);
+
+        await this.saveStateToMemoryForced(
+          'Manual shutdown via SIGINT/SIGTERM signal'
+        );
+
+        clearTimeout(shutdownTimeout);
+        console.log('✅ Session state saved successfully');
+      } catch (error) {
+        console.warn(
+          '⚠️  Failed to save session state:',
+          (error as Error).message
+        );
+      }
+    }
+
     this.rl.close();
+  }
+
+  abortOperations(): void {
+    if (!this.config.abortController.signal.aborted) {
+      this.config.abortController.abort('Shutdown signal received');
+    }
+  }
+
+  /**
+   * Save current state to memory MCP server
+   */
+  private async saveStateToMemory(context: string): Promise<void> {
+    if (!this.config.memoryEnabled) return;
+
+    try {
+      const state = {
+        conversationHistory: this.config.conversationHistory.slice(-5),
+        iterationCount: this.config.iterationCount,
+        totalTokensUsed: this.config.totalTokensUsed,
+        timestamp: new Date().toISOString(),
+      };
+
+      console.log(
+        `💾 Saving state to memory for session: ${this.config.sessionId}`
+      );
+
+      let toolCallDetected = false;
+      let saveSuccessful = false;
+
+      await this.config.client.streamChatCompletion(
+        {
+          model: this.config.model,
+          messages: [
+            {
+              role: MessageRole.system,
+              content: `You are a memory manager. You MUST call the save-state tool now with the provided data. Don't explain - just call the tool immediately.
+
+SessionID: ${this.config.sessionId}
+State: ${JSON.stringify(state)}
+Context: ${context}
+
+Call save-state tool immediately with sessionId="${this.config.sessionId}" and the state object above.`,
+            },
+            {
+              role: MessageRole.user,
+              content: `Call save-state tool now with sessionId="${this.config.sessionId}"`,
+            },
+          ],
+          max_tokens: this.config.maxTokensPerRequest,
+        },
+        {
+          onMCPTool: (toolCall) => {
+            toolCallDetected = true;
+            console.log(`📱 Memory tool called: ${toolCall.function.name}`);
+
+            if (
+              toolCall.function.name === 'save-state' ||
+              toolCall.function.name === 'save-error-state'
+            ) {
+              saveSuccessful = true;
+              console.log('✅ State save tool invoked successfully');
+            }
+          },
+          onReasoning: (reasoning) => {
+            process.stdout.write(reasoning);
+          },
+          onContent: (content) => {
+            process.stdout.write(content);
+          },
+          onError: (error) => {
+            console.warn('⚠️  Memory save failed:', error.error);
+          },
+          onFinish: () => {
+            if (toolCallDetected && saveSuccessful) {
+              console.log('✅ Memory save completed successfully');
+            } else if (!toolCallDetected) {
+              console.warn(
+                '⚠️  No memory tool was called - memory may not be available'
+              );
+            } else {
+              console.warn('⚠️  Memory tool called but save may have failed');
+            }
+          },
+        },
+        this.config.provider,
+        this.config.abortController.signal
+      );
+    } catch (error) {
+      console.warn(
+        '⚠️  Failed to save state to memory:',
+        (error as Error).message
+      );
+    }
+  }
+
+  /**
+   * Save current state to memory MCP server with forced tool usage
+   */
+  private async saveStateToMemoryForced(context: string): Promise<void> {
+    if (!this.config.memoryEnabled) return;
+
+    try {
+      const state = {
+        conversationHistory: this.config.conversationHistory.slice(-5),
+        iterationCount: this.config.iterationCount,
+        totalTokensUsed: this.config.totalTokensUsed,
+        timestamp: new Date().toISOString(),
+      };
+
+      console.log(
+        `💾 Forcing memory save for session: ${this.config.sessionId}`
+      );
+
+      let toolCallDetected = false;
+      let saveSuccessful = false;
+      const maxAttempts = 3;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (this.config.abortController.signal.aborted) {
+          console.warn('⚠️  Memory save aborted during shutdown');
+          throw new Error('Memory save aborted');
+        }
+
+        console.log(`🔄 Memory save attempt ${attempt}/${maxAttempts}`);
+
+        try {
+          await this.config.client.streamChatCompletion(
+            {
+              model: this.config.model,
+              messages: [
+                {
+                  role: MessageRole.system,
+                  content: `You are a memory manager. You MUST call the save-state tool immediately. No explanations, no acknowledgments - just call the tool.
+
+CRITICAL: You MUST call save-state tool with these exact parameters:
+- sessionId: "${this.config.sessionId}"
+- state: ${JSON.stringify(state)}
+- context: "${context}"
+
+Call the save-state tool now.`,
+                },
+                {
+                  role: MessageRole.user,
+                  content: `Call save-state tool immediately with sessionId="${this.config.sessionId}". Do not respond with text - only call the tool.`,
+                },
+              ],
+              max_tokens: this.config.maxTokensPerRequest,
+            },
+            {
+              onMCPTool: (toolCall) => {
+                toolCallDetected = true;
+                console.log(`📱 Memory tool called: ${toolCall.function.name}`);
+
+                if (
+                  toolCall.function.name === 'save-state' ||
+                  toolCall.function.name === 'save-error-state'
+                ) {
+                  saveSuccessful = true;
+                  console.log('✅ Memory tool invoked successfully');
+                  try {
+                    const args = JSON.parse(toolCall.function.arguments);
+                    console.log(
+                      `📝 Tool arguments:`,
+                      JSON.stringify(args, null, 2)
+                    );
+                  } catch {
+                    console.error(
+                      `📝 Raw tool arguments: ${toolCall.function.arguments}`
+                    );
+                  }
+                }
+              },
+              onContent: (content) => {
+                process.stdout.write(content);
+              },
+              onError: (error) => {
+                console.warn(
+                  `⚠️  Memory save attempt ${attempt} failed:`,
+                  error.error
+                );
+              },
+              onFinish: () => {
+                if (toolCallDetected && saveSuccessful) {
+                  console.log(
+                    `✅ Memory save completed successfully on attempt ${attempt}`
+                  );
+                } else if (!toolCallDetected) {
+                  console.warn(
+                    `⚠️  Attempt ${attempt}: No memory tool was called`
+                  );
+                } else {
+                  console.warn(
+                    `⚠️  Attempt ${attempt}: Memory tool called but save may have failed`
+                  );
+                }
+              },
+            },
+            this.config.provider,
+            this.config.abortController.signal
+          );
+
+          if (toolCallDetected && saveSuccessful) {
+            break;
+          }
+
+          if (attempt < maxAttempts) {
+            if (this.config.abortController.signal.aborted) {
+              console.warn('⚠️  Memory save aborted during retry wait');
+              throw new Error('Memory save aborted');
+            }
+            console.log(`⏳ Waiting 2 seconds before retry...`);
+            await this.delay(2000);
+          }
+        } catch (attemptError) {
+          console.warn(
+            `⚠️  Memory save attempt ${attempt} error:`,
+            (attemptError as Error).message
+          );
+          if (attempt === maxAttempts) {
+            throw attemptError;
+          }
+        }
+      }
+
+      if (!toolCallDetected || !saveSuccessful) {
+        console.error(
+          `❌ Failed to save memory after ${maxAttempts} attempts - memory tools may not be available`
+        );
+      }
+    } catch (error) {
+      console.warn(
+        '⚠️  Failed to save state to memory:',
+        (error as Error).message
+      );
+    }
+  }
+
+  /**
+   * Load state from memory MCP server (via chat completion)
+   */
+  private async loadStateFromMemory(): Promise<boolean> {
+    if (!this.config.memoryEnabled) return false;
+
+    try {
+      console.log(
+        `📥 Attempting to restore state for session: ${this.config.sessionId}`
+      );
+
+      let restoredData: any = null;
+
+      await this.config.client.streamChatCompletion(
+        {
+          model: this.config.model,
+          messages: [
+            {
+              role: MessageRole.system,
+              content: `You have access to memory management tools. Restore the saved state for session "${this.config.sessionId}".`,
+            },
+            {
+              role: MessageRole.user,
+              content: `Please restore the session state using the restore-state tool and provide the restored data.`,
+            },
+          ],
+          max_tokens: this.config.maxTokensPerRequest,
+        },
+        {
+          onReasoning: (reasoning) => {
+            process.stdout.write(reasoning);
+          },
+          onContent: (content) => {
+            if (content.includes('{') && content.includes('}')) {
+              try {
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  restoredData = JSON.parse(jsonMatch[0]);
+                }
+              } catch {
+                console.error(`⚠️  Failed to parse restored data: ${content}`);
+              }
+            }
+          },
+          onMCPTool: (toolCall) => {
+            console.log(`📱 Memory tool called: ${toolCall.function.name}`);
+          },
+          onError: () => {
+            console.log('ℹ️  No previous state found');
+          },
+          onFinish: () => {
+            if (restoredData && restoredData.state) {
+              this.config.conversationHistory =
+                restoredData.state.conversationHistory || [];
+              this.config.iterationCount =
+                restoredData.state.iterationCount || 0;
+              this.config.totalTokensUsed =
+                restoredData.state.totalTokensUsed || 0;
+
+              console.log(
+                `✅ Restored state from ${restoredData.state.timestamp}`
+              );
+              console.log(
+                `📊 Restored ${this.config.conversationHistory.length} messages`
+              );
+              console.log(
+                `🔢 Restored iteration count: ${this.config.iterationCount}`
+              );
+            }
+          },
+        },
+        this.config.provider,
+        this.config.abortController.signal
+      );
+
+      return !!restoredData;
+    } catch (error) {
+      console.log(`ℹ️  No previous state found: ${(error as Error).message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Truncate conversation history to stay within token limits
+   */
+  private truncateConversationHistory(): void {
+    if (
+      this.config.conversationHistory.length <=
+      this.config.maxHistoryLength + 1
+    ) {
+      return;
+    }
+
+    console.log(
+      `✂️  Truncating conversation history from ${this.config.conversationHistory.length} to ${this.config.maxHistoryLength + 1} messages`
+    );
+
+    const systemPrompt = this.config.conversationHistory[0];
+
+    const recentMessages = this.config.conversationHistory.slice(
+      -this.config.maxHistoryLength
+    );
+
+    const truncatedMessages = this.config.conversationHistory.slice(
+      1,
+      -this.config.maxHistoryLength
+    );
+
+    if (truncatedMessages.length > 0) {
+      this.saveStateToMemoryForced(
+        `Truncated ${truncatedMessages.length} older messages`
+      ).catch((error) => {
+        console.warn(
+          '⚠️  Failed to save truncated messages to memory:',
+          (error as Error).message
+        );
+      });
+    }
+
+    this.config.conversationHistory = [systemPrompt, ...recentMessages];
+  }
+
+  /**
+   * Estimate token count for a message (rough approximation)
+   */
+  private estimateTokenCount(text: string): number {
+    // Rough approximation: 1 token ≈ 4 characters
+    return Math.ceil(text.length / 4);
+  }
+
+  /**
+   * Get optimized conversation history for the current request
+   */
+  private getOptimizedConversationHistory(): Array<{
+    role: MessageRole;
+    content: string;
+  }> {
+    this.truncateConversationHistory();
+
+    const totalEstimatedTokens = this.config.conversationHistory.reduce(
+      (sum, msg) => sum + this.estimateTokenCount(msg.content),
+      0
+    );
+
+    console.log(`📊 Estimated tokens in conversation: ${totalEstimatedTokens}`);
+
+    return this.config.conversationHistory;
+  }
+
+  private resetAbortController(): void {
+    if (!this.config.abortController.signal.aborted) {
+      this.config.abortController.abort('Starting new request');
+    }
+    this.config.abortController = new globalThis.AbortController();
   }
 }
 
@@ -546,12 +1112,14 @@ async function runKubernetesAgent(): Promise<void> {
 
   process.on('SIGINT', async () => {
     console.log('\n\n👋 Shutting down Kubernetes Agent...');
+    agent.abortOperations();
     await agent.shutdown();
     process.exit(0);
   });
 
   process.on('SIGTERM', async () => {
     console.log('\n\n👋 Shutting down Kubernetes Agent...');
+    agent.abortOperations();
     await agent.shutdown();
     process.exit(0);
   });

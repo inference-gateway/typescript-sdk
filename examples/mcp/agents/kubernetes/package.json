@@ -5,13 +5,7 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "clean": "rm -rf shared/next-app shared/update-check",
-    "example:nextjs-agent": "tsx example-nextjs-agent.ts",
-    "example:vite-agent": "tsx example-vite-agent.ts",
-    "example:kubernetes-agent": "tsx example-kubernetes-agent.ts",
-    "compose:up": "docker-compose up -d",
-    "compose:down": "docker-compose down",
-    "compose:logs": "docker-compose logs -f"
+    "start": "tsx index.ts"
   },
   "keywords": [],
   "author": "",
