@@ -69,16 +69,17 @@ class KubernetesAgent {
     this.config = {
       client: new InferenceGatewayClient({
         baseURL: 'http://inference-gateway:8080/v1',
+        timeout: 120000,
       }),
       provider: (process.env.PROVIDER as Provider) || Provider.groq,
       model: process.env.LLM || 'llama-3.3-70b-versatile',
       conversationHistory: [],
-      maxRetries: 3,
-      retryDelayMs: 10000,
+      maxRetries: 5,
+      retryDelayMs: 5000,
       iterationCount: 0,
       totalTokensUsed: 0,
-      maxTokensPerRequest: 3000,
-      maxHistoryLength: 10,
+      maxTokensPerRequest: 2500,
+      maxHistoryLength: 6,
       sessionId: process.env.SESSION_ID || randomUUID(),
       memoryEnabled: true,
       abortController: new globalThis.AbortController(),
@@ -736,19 +737,32 @@ WORKFLOW: 1) Clarify requirements 2) Use Context7 for K8s docs 3) Create manifes
           }
         },
         onError: async (error) => {
-          console.error(`\n❌ Stream Error: ${error.error}`);
+          // Check if this is a "terminated" or stream failure error
+          const errorMsg = error.error || '';
+          if (
+            errorMsg.includes('terminated') ||
+            errorMsg.includes('stream') ||
+            errorMsg.includes('context canceled') ||
+            errorMsg.includes('upstream provider error')
+          ) {
+            // This will be handled by the retry logic in the main loop
+            console.error(`\n❌ Stream Error (retryable): ${errorMsg}`);
+            throw new Error(`Retryable stream error: ${errorMsg}`);
+          }
+
+          console.error(`\n❌ Stream Error: ${errorMsg}`);
 
           // Record the error with detailed context
           await this.recordError(
             'stream_error',
-            error.error || 'Unknown stream error',
+            errorMsg || 'Unknown stream error',
             `Stream error during iteration ${this.config.iterationCount}. Last tool call: ${this.config.lastFailedToolCall?.name || 'none'}`,
             this.config.lastFailedToolCall,
             userInput
           );
 
           throw new Error(
-            `Stream error: ${error.error || 'Unknown stream error'}`
+            `Stream error: ${errorMsg || 'Unknown stream error'}`
           );
         },
         onFinish: async () => {

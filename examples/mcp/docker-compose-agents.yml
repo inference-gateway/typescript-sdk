@@ -32,6 +32,17 @@ services:
     networks:
       - inference-network
 
+  marketing-agent:
+    build:
+      context: ./agents/marketing
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - shared-data:/tmp
+    networks:
+      - inference-network
+
 volumes:
   shared-data:
     driver: local

@@ -10,7 +10,7 @@ services:
       # Enable MCP support
       MCP_ENABLE: 'true'
       MCP_EXPOSE: 'true'
-      MCP_SERVERS: 'http://mcp-filesystem:3000/mcp,http://mcp-web-search:3001/mcp,http://mcp-context7:3002/mcp,http://mcp-npm:3003/mcp,http://mcp-memory:3004/mcp'
+      MCP_SERVERS: 'http://mcp-filesystem:3000/mcp,http://mcp-context7:3002/mcp,http://mcp-npm:3003/mcp,http://mcp-memory:3004/mcp,http://mcp-brave-search:3005/mcp'
 
       # Server settings
       SERVER_HOST: '0.0.0.0'
@@ -38,13 +38,15 @@ services:
     depends_on:
       mcp-filesystem:
         condition: service_healthy
-      mcp-web-search:
-        condition: service_healthy
+      # mcp-web-search:
+      #   condition: service_healthy
       mcp-context7:
         condition: service_healthy
       mcp-npm:
         condition: service_healthy
       mcp-memory:
+        condition: service_healthy
+      mcp-brave-search:
         condition: service_healthy
     networks:
       - inference-network
@@ -80,33 +82,33 @@ services:
       start_period: 45s
     restart: unless-stopped
 
-  mcp-web-search:
-    build:
-      context: ./mcp-servers/web-search
-      dockerfile_inline: |
-        FROM node:22-alpine
-        WORKDIR /app
-        RUN apk add --no-cache curl
-        COPY package.json ./
-        RUN npm install
-        COPY . .
-        EXPOSE 3001
-        CMD ["npm", "start"]
-    environment:
-      NODE_ENV: 'production'
-      MCP_SERVER_NAME: 'web-search'
-      MCP_SERVER_VERSION: '1.0.0'
-      PORT: '3001'
-      HOST: '0.0.0.0'
-    networks:
-      - inference-network
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3001/health']
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 45s
-    restart: unless-stopped
+  # mcp-web-search:
+  #   build:
+  #     context: ./mcp-servers/web-search
+  #     dockerfile_inline: |
+  #       FROM node:22-alpine
+  #       WORKDIR /app
+  #       RUN apk add --no-cache curl
+  #       COPY package.json ./
+  #       RUN npm install
+  #       COPY . .
+  #       EXPOSE 3001
+  #       CMD ["npm", "start"]
+  #   environment:
+  #     NODE_ENV: 'production'
+  #     MCP_SERVER_NAME: 'web-search'
+  #     MCP_SERVER_VERSION: '1.0.0'
+  #     PORT: '3001'
+  #     HOST: '0.0.0.0'
+  #   networks:
+  #     - inference-network
+  #   healthcheck:
+  #     test: ['CMD', 'curl', '-f', 'http://localhost:3001/health']
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 45s
+  #   restart: unless-stopped
 
   mcp-context7:
     build:
@@ -198,36 +200,69 @@ services:
       start_period: 45s
     restart: unless-stopped
 
-  mcp-inspector:
+  # mcp-inspector:
+  #   build:
+  #     context: .
+  #     dockerfile_inline: |
+  #       FROM node:22-alpine
+  #       WORKDIR /app
+  #       RUN apk add --no-cache curl git
+  #       RUN npm install -g @modelcontextprotocol/inspector
+  #       EXPOSE 6274
+  #       CMD ["npx", "@modelcontextprotocol/inspector"]
+  #   environment:
+  #     NODE_ENV: 'production'
+  #     CLIENT_PORT: '6274'
+  #   ports:
+  #     - '6274:6274'
+  #   networks:
+  #     - inference-network
+  #   depends_on:
+  #     mcp-filesystem:
+  #       condition: service_healthy
+  #     mcp-web-search:
+  #       condition: service_healthy
+  #     mcp-context7:
+  #       condition: service_healthy
+  #     mcp-npm:
+  #       condition: service_healthy
+  #     mcp-memory:
+  #       condition: service_healthy
+  #     mcp-brave-search:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ['CMD', 'curl', '-f', 'http://localhost:6274']
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 45s
+  #   restart: unless-stopped
+
+  mcp-brave-search:
     build:
-      context: .
+      context: ./mcp-servers/brave-search
       dockerfile_inline: |
         FROM node:22-alpine
         WORKDIR /app
-        RUN apk add --no-cache curl git
-        RUN npm install -g @modelcontextprotocol/inspector
-        EXPOSE 6274
-        CMD ["npx", "@modelcontextprotocol/inspector"]
+        RUN apk add --no-cache curl
+        COPY package.json ./
+        RUN npm install
+        COPY . .
+        EXPOSE 3005
+        CMD ["npm", "start"]
     environment:
       NODE_ENV: 'production'
-      CLIENT_PORT: '6274'
+      MCP_SERVER_NAME: 'brave-search'
+      MCP_SERVER_VERSION: '1.0.0'
+      MCP_TRANSPORT: 'streamableHttp'
+      PORT: '3005'
+      BRAVE_API_KEY: '${BRAVE_API_KEY:-}'
     ports:
-      - '6274:6274'
+      - '3005:3005'
     networks:
       - inference-network
-    depends_on:
-      mcp-filesystem:
-        condition: service_healthy
-      mcp-web-search:
-        condition: service_healthy
-      mcp-context7:
-        condition: service_healthy
-      mcp-npm:
-        condition: service_healthy
-      mcp-memory:
-        condition: service_healthy
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:6274']
+      test: ['CMD', 'curl', '-f', 'http://localhost:3005/health']
       interval: 30s
       timeout: 10s
       retries: 5

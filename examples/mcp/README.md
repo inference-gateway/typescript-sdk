@@ -16,9 +16,10 @@ On another terminal, you can run specific examples using the Inference Gateway:
 
 ```bash
 # Run interactive specialized agents
-docker compose -f docker-compose-agents.yml run --rm -it nextjs-agent      # 🤖 Next.js development agent
-docker compose -f docker-compose-agents.yml run --rm -it vite-agent        # ⚡ Vite application agent
-docker compose -f docker-compose-agents.yml run --rm -it kubernetes-agent  # ☸️ Kubernetes operations agent
+docker compose -f docker-compose-agents.yml run --rm -it --build nextjs-agent      # 🤖 Next.js development agent
+docker compose -f docker-compose-agents.yml run --rm -it --build vite-agent        # ⚡ Vite application agent
+docker compose -f docker-compose-agents.yml run --rm -it --build kubernetes-agent  # ☸️ Kubernetes operations agent
+docker compose -f docker-compose-agents.yml run --rm -it --build marketing-agent   # 📈 Marketing research agent
 ```
 
 ## 🧠 Memory & Error Recovery

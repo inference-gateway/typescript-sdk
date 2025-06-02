@@ -1,13 +1,6 @@
 /**
  * Interactive NextJS Agent
  *
- * This agent allows      maxRetries: 3,
-      retryDelayMs: 2000,
-      iterationCount: 0,
-      totalTokensUsed: 0,
-      maxTokensPerRequest: 4000, // Reduced from 16000
-      maxHistoryLength: 8, // Reduced from 12 to interactively request app development assistance
- * using Context7 MCP tools for up-to-date documentation and library information.
  */
 
 import {
@@ -54,16 +47,17 @@ class NextJSAgent {
     this.config = {
       client: new InferenceGatewayClient({
         baseURL: 'http://inference-gateway:8080/v1',
+        timeout: 120000,
       }),
       provider: (process.env.PROVIDER as Provider) || Provider.groq,
       model: process.env.LLM || 'llama-3.3-70b-versatile',
       conversationHistory: [],
-      maxRetries: 3,
-      retryDelayMs: 10000,
+      maxRetries: 5,
+      retryDelayMs: 5000,
       iterationCount: 0,
       totalTokensUsed: 0,
-      maxTokensPerRequest: 3000,
-      maxHistoryLength: 10,
+      maxTokensPerRequest: 2500,
+      maxHistoryLength: 6,
       sessionId: process.env.SESSION_ID || randomUUID(),
       memoryEnabled: true,
       abortController: new globalThis.AbortController(),
@@ -456,7 +450,7 @@ WORKFLOW: 1) Clarify requirements 2) Use Context7 for docs 3) Build in /tmp 4) F
           console.log('─'.repeat(60));
         },
         onMCPTool: (toolCall) => {
-          console.log(`\n🛠️  Context7 Tool: ${toolCall.function.name}`);
+          console.log(`\n🛠️  NextJS Tool: ${toolCall.function.name}`);
           try {
             const args = JSON.parse(toolCall.function.arguments);
             console.log(`📝 Arguments:`, JSON.stringify(args, null, 2));
