@@ -116,7 +116,7 @@ try {
         },
       ],
     },
-    Provider.OpenAI
+    Provider.openai
   ); // Provider is optional
 
   console.log('Response:', response.choices[0].message.content);
@@ -159,7 +159,7 @@ try {
       onFinish: () => console.log('\nStream completed'),
       onError: (error) => console.error('Stream error:', error),
     },
-    Provider.Groq // Provider is optional
+    Provider.groq // Provider is optional
   );
 } catch (error) {
   console.error('Error:', error);
@@ -241,7 +241,7 @@ const client = new InferenceGatewayClient({
 });
 
 try {
-  const response = await client.proxy(Provider.OpenAI, 'embeddings', {
+  const response = await client.proxy(Provider.openai, 'embeddings', {
     method: 'POST',
     body: JSON.stringify({
       model: 'text-embedding-ada-002',
