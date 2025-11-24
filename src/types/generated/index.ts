@@ -15,7 +15,6 @@ export interface paths {
      * Lists the currently available models, and provides basic information about each one such as the owner and availability.
      * @description Lists the currently available models, and provides basic information
      *     about each one such as the owner and availability.
-     *
      */
     get: operations['listModels'];
     put?: never;
@@ -39,7 +38,6 @@ export interface paths {
      * Create a chat completion
      * @description Generates a chat completion based on the provided input.
      *     The completion can be streamed to the client as it is generated.
-     *
      */
     post: operations['createChatCompletion'];
     delete?: never;
@@ -58,51 +56,8 @@ export interface paths {
     /**
      * Lists the currently available MCP tools
      * @description Lists the currently available MCP tools. Only accessible when EXPOSE_MCP is enabled.
-     *
      */
     get: operations['listTools'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/a2a/agents': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Lists the currently available A2A agents
-     * @description Lists the currently available A2A agents. Only accessible when EXPOSE_A2A is enabled.
-     *
-     */
-    get: operations['listAgents'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/a2a/agents/{id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Gets a specific A2A agent by ID
-     * @description Gets a specific A2A agent by its unique identifier. Only accessible when EXPOSE_A2A is enabled.
-     *
-     */
-    get: operations['getAgent'];
     put?: never;
     post?: never;
     delete?: never;
@@ -127,7 +82,6 @@ export interface paths {
      * @description Proxy GET request to provider
      *     The request body depends on the specific provider and endpoint being called.
      *     If you decide to use this approach, please follow the provider-specific documentations.
-     *
      */
     get: operations['proxyGet'];
     /**
@@ -135,7 +89,6 @@ export interface paths {
      * @description Proxy PUT request to provider
      *     The request body depends on the specific provider and endpoint being called.
      *     If you decide to use this approach, please follow the provider-specific documentations.
-     *
      */
     put: operations['proxyPut'];
     /**
@@ -143,7 +96,6 @@ export interface paths {
      * @description Proxy POST request to provider
      *     The request body depends on the specific provider and endpoint being called.
      *     If you decide to use this approach, please follow the provider-specific documentations.
-     *
      */
     post: operations['proxyPost'];
     /**
@@ -151,7 +103,6 @@ export interface paths {
      * @description Proxy DELETE request to provider
      *     The request body depends on the specific provider and endpoint being called.
      *     If you decide to use this approach, please follow the provider-specific documentations.
-     *
      */
     delete: operations['proxyDelete'];
     options?: never;
@@ -161,7 +112,6 @@ export interface paths {
      * @description Proxy PATCH request to provider
      *     The request body depends on the specific provider and endpoint being called.
      *     If you decide to use this approach, please follow the provider-specific documentations.
-     *
      */
     patch: operations['proxyPatch'];
     trace?: never;
@@ -177,7 +127,6 @@ export interface paths {
      * Health check
      * @description Health check endpoint
      *     Returns a 200 status code if the service is healthy
-     *
      */
     get: operations['healthCheck'];
     put?: never;
@@ -194,7 +143,8 @@ export interface components {
   schemas: {
     /** @enum {string} */
     Provider: Provider;
-    /** @description Provider-specific response format. Examples:
+    /**
+     * @description Provider-specific response format. Examples:
      *
      *     OpenAI GET /v1/models?provider=openai response:
      *     ```json
@@ -229,7 +179,7 @@ export interface components {
      *       ]
      *     }
      *     ```
-     *      */
+     */
     ProviderSpecificResponse: Record<string, never>;
     /**
      * @description Authentication type for providers
@@ -258,13 +208,47 @@ export interface components {
     /** @description Message structure for provider requests */
     Message: {
       role: components['schemas']['MessageRole'];
-      content: string;
+      content: string | components['schemas']['ContentPart'][];
       tool_calls?: components['schemas']['ChatCompletionMessageToolCall'][];
       tool_call_id?: string;
       /** @description The reasoning content of the chunk message. */
       reasoning_content?: string;
       /** @description The reasoning of the chunk message. Same as reasoning_content. */
       reasoning?: string;
+    };
+    /** @description A content part within a multimodal message */
+    ContentPart:
+      | components['schemas']['TextContentPart']
+      | components['schemas']['ImageContentPart'];
+    /** @description Text content part */
+    TextContentPart: {
+      /**
+       * @description Content type identifier
+       * @enum {string}
+       */
+      type: TextContentPartType;
+      /** @description The text content */
+      text: string;
+    };
+    /** @description Image content part */
+    ImageContentPart: {
+      /**
+       * @description Content type identifier
+       * @enum {string}
+       */
+      type: ImageContentPartType;
+      image_url: components['schemas']['ImageURL'];
+    };
+    /** @description Image URL configuration */
+    ImageURL: {
+      /** @description URL of the image (data URLs supported) */
+      url: string;
+      /**
+       * @description Image detail level for vision processing
+       * @default auto
+       * @enum {string}
+       */
+      detail: ImageURLDetail;
     };
     /** @description Common model information */
     Model: {
@@ -294,69 +278,6 @@ export interface components {
        * @default []
        */
       data: components['schemas']['MCPTool'][];
-    };
-    /** @description Response structure for listing A2A agents */
-    ListAgentsResponse: {
-      /**
-       * @description Always "list"
-       * @example list
-       */
-      object: string;
-      /**
-       * @description Array of available A2A agents
-       * @default []
-       */
-      data: components['schemas']['A2AAgentCard'][];
-    };
-    /** @description An AgentCard conveys key information:
-     *     - Overall details (version, name, description, uses)
-     *     - Skills: A set of capabilities the agent can perform
-     *     - Default modalities/content types supported by the agent.
-     *     - Authentication requirements */
-    A2AAgentCard: {
-      /** @description Optional capabilities supported by the agent. */
-      capabilities: {
-        [key: string]: unknown;
-      };
-      /** @description The set of interaction modes that the agent supports across all skills. This can be overridden per-skill.
-       *     Supported media types for input. */
-      defaultInputModes: string[];
-      /** @description Supported media types for output. */
-      defaultOutputModes: string[];
-      /** @description A human-readable description of the agent. Used to assist users and
-       *     other agents in understanding what the agent can do. */
-      description: string;
-      /** @description A URL to documentation for the agent. */
-      documentationUrl?: string;
-      /** @description A URL to an icon for the agent. */
-      iconUrl?: string;
-      /** @description Unique identifier for the agent (base64-encoded SHA256 hash of the agent URL). */
-      id: string;
-      /** @description Human readable name of the agent. */
-      name: string;
-      /** @description The service provider of the agent */
-      provider?: {
-        [key: string]: unknown;
-      };
-      /** @description Security requirements for contacting the agent. */
-      security?: {
-        [key: string]: unknown;
-      }[];
-      /** @description Security scheme details used for authenticating with this agent. */
-      securitySchemes?: {
-        [key: string]: unknown;
-      };
-      /** @description Skills are a unit of capability that an agent can perform. */
-      skills: {
-        [key: string]: unknown;
-      }[];
-      /** @description true if the agent supports providing an extended agent card when the user is authenticated.
-       *     Defaults to false if not specified. */
-      supportsAuthenticatedExtendedCard?: boolean;
-      /** @description A URL to the address the agent is hosted at. */
-      url: string;
-      /** @description The version of the agent - format is up to the provider. */
-      version: string;
     };
     /** @description An MCP tool definition */
     MCPTool: {
@@ -410,8 +331,10 @@ export interface components {
       type: components['schemas']['ChatCompletionToolType'];
       function: components['schemas']['FunctionObject'];
     };
-    /** @description The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format.
-     *     Omitting `parameters` defines a function with an empty parameter list. */
+    /**
+     * @description The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format.
+     *     Omitting `parameters` defines a function with an empty parameter list.
+     */
     FunctionParameters: {
       [key: string]: unknown;
     };
@@ -441,35 +364,30 @@ export interface components {
        */
       total_tokens: number;
     };
-    /** @description Options for streaming response. Only set this when you set `stream: true`.
-     *      */
+    /** @description Options for streaming response. Only set this when you set `stream: true`. */
     ChatCompletionStreamOptions: {
-      /** @description If set, an additional chunk will be streamed before the `data: [DONE]` message. The `usage` field on this chunk shows the token usage statistics for the entire request, and the `choices` field will always be an empty array. All other chunks will also include a `usage` field, but with a null value.
-       *      */
+      /** @description If set, an additional chunk will be streamed before the `data: [DONE]` message. The `usage` field on this chunk shows the token usage statistics for the entire request, and the `choices` field will always be an empty array. All other chunks will also include a `usage` field, but with a null value. */
       include_usage: boolean;
     };
     CreateChatCompletionRequest: {
       /** @description Model ID to use */
       model: string;
-      /** @description A list of messages comprising the conversation so far.
-       *      */
+      /** @description A list of messages comprising the conversation so far. */
       messages: components['schemas']['Message'][];
-      /** @description An upper bound for the number of tokens that can be generated for a completion, including visible output tokens and reasoning tokens.
-       *      */
+      /** @description An upper bound for the number of tokens that can be generated for a completion, including visible output tokens and reasoning tokens. */
       max_tokens?: number;
       /**
        * @description If set to true, the model response data will be streamed to the client as it is generated using [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).
-       *
        * @default false
        */
       stream: boolean;
       stream_options?: components['schemas']['ChatCompletionStreamOptions'];
-      /** @description A list of tools the model may call. Currently, only functions are supported as a tool. Use this to provide a list of functions the model may generate JSON inputs for. A max of 128 functions are supported.
-       *      */
+      /** @description A list of tools the model may call. Currently, only functions are supported as a tool. Use this to provide a list of functions the model may generate JSON inputs for. A max of 128 functions are supported. */
       tools?: components['schemas']['ChatCompletionTool'][];
-      /** @description The format of the reasoning content. Can be `raw` or `parsed`.
+      /**
+       * @description The format of the reasoning content. Can be `raw` or `parsed`.
        *     When specified as raw some reasoning models will output <think /> tags. When specified as parsed the model will output the reasoning under  `reasoning` or `reasoning_content` attribute.
-       *      */
+       */
       reasoning_format?: string;
     };
     /** @description The function that the model called. */
@@ -491,7 +409,6 @@ export interface components {
        *     `length` if the maximum number of tokens specified in the request was reached,
        *     `content_filter` if content was omitted due to a flag from our content filters,
        *     `tool_calls` if the model called a tool.
-       *
        * @enum {string}
        */
       finish_reason: ChatCompletionChoiceFinish_reason;
@@ -569,34 +486,37 @@ export interface components {
      *     `length` if the maximum number of tokens specified in the request was reached,
      *     `content_filter` if content was omitted due to a flag from our content filters,
      *     `tool_calls` if the model called a tool.
-     *
      * @enum {string}
      */
     FinishReason: ChatCompletionChoiceFinish_reason;
-    /** @description Represents a streamed chunk of a chat completion response returned
+    /**
+     * @description Represents a streamed chunk of a chat completion response returned
      *     by the model, based on the provided input.
-     *      */
+     */
     CreateChatCompletionStreamResponse: {
       /** @description A unique identifier for the chat completion. Each chunk has the same ID. */
       id: string;
-      /** @description A list of chat completion choices. Can contain more than one elements if `n` is greater than 1. Can also be empty for the
+      /**
+       * @description A list of chat completion choices. Can contain more than one elements if `n` is greater than 1. Can also be empty for the
        *     last chunk if you set `stream_options: {"include_usage": true}`.
-       *      */
+       */
       choices: components['schemas']['ChatCompletionStreamChoice'][];
       /** @description The Unix timestamp (in seconds) of when the chat completion was created. Each chunk has the same timestamp. */
       created: number;
       /** @description The model to generate the completion. */
       model: string;
-      /** @description This fingerprint represents the backend configuration that the model runs with.
+      /**
+       * @description This fingerprint represents the backend configuration that the model runs with.
        *     Can be used in conjunction with the `seed` request parameter to understand when backend changes have been made that might impact determinism.
-       *      */
+       */
       system_fingerprint?: string;
       /** @description The object type, which is always `chat.completion.chunk`. */
       object: string;
       usage?: components['schemas']['CompletionUsage'];
-      /** @description The format of the reasoning content. Can be `raw` or `parsed`.
+      /**
+       * @description The format of the reasoning content. Can be `raw` or `parsed`.
        *     When specified as raw some reasoning models will output <think /> tags. When specified as parsed the model will output the reasoning under reasoning_content.
-       *      */
+       */
       reasoning_format?: string;
     };
     Config: unknown;
@@ -635,27 +555,18 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /** @example {
+        /**
+         * @example {
          *       "error": "MCP tools endpoint is not exposed. Set EXPOSE_MCP=true to enable."
-         *     } */
+         *     }
+         */
         'application/json': components['schemas']['Error'];
       };
     };
-    /** @description A2A agents endpoint is not exposed */
-    A2ANotExposed: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        /** @example {
-         *       "error": "A2A agents endpoint is not exposed. Set EXPOSE_A2A=true to enable."
-         *     } */
-        'application/json': components['schemas']['Error'];
-      };
-    };
-    /** @description ProviderResponse depends on the specific provider and endpoint being called
+    /**
+     * @description ProviderResponse depends on the specific provider and endpoint being called
      *     If you decide to use this approach, please follow the provider-specific documentations.
-     *      */
+     */
     ProviderResponse: {
       headers: {
         [name: string]: unknown;
@@ -667,9 +578,10 @@ export interface components {
   };
   parameters: never;
   requestBodies: {
-    /** @description ProviderRequest depends on the specific provider and endpoint being called
+    /**
+     * @description ProviderRequest depends on the specific provider and endpoint being called
      *     If you decide to use this approach, please follow the provider-specific documentations.
-     *      */
+     */
     ProviderRequest: {
       content: {
         'application/json': {
@@ -686,9 +598,10 @@ export interface components {
         };
       };
     };
-    /** @description ProviderRequest depends on the specific provider and endpoint being called
+    /**
+     * @description ProviderRequest depends on the specific provider and endpoint being called
      *     If you decide to use this approach, please follow the provider-specific documentations.
-     *      */
+     */
     CreateChatCompletionRequest: {
       content: {
         'application/json': components['schemas']['CreateChatCompletionRequest'];
@@ -698,31 +611,27 @@ export interface components {
   headers: never;
   pathItems: never;
 }
-export type SchemaProvider = components['schemas']['Provider'];
 export type SchemaProviderSpecificResponse =
   components['schemas']['ProviderSpecificResponse'];
-export type SchemaProviderAuthType = components['schemas']['ProviderAuthType'];
 export type SchemaSsEvent = components['schemas']['SSEvent'];
 export type SchemaEndpoints = components['schemas']['Endpoints'];
 export type SchemaError = components['schemas']['Error'];
-export type SchemaMessageRole = components['schemas']['MessageRole'];
 export type SchemaMessage = components['schemas']['Message'];
+export type SchemaContentPart = components['schemas']['ContentPart'];
+export type SchemaTextContentPart = components['schemas']['TextContentPart'];
+export type SchemaImageContentPart = components['schemas']['ImageContentPart'];
+export type SchemaImageUrl = components['schemas']['ImageURL'];
 export type SchemaModel = components['schemas']['Model'];
 export type SchemaListModelsResponse =
   components['schemas']['ListModelsResponse'];
 export type SchemaListToolsResponse =
   components['schemas']['ListToolsResponse'];
-export type SchemaListAgentsResponse =
-  components['schemas']['ListAgentsResponse'];
-export type SchemaA2AAgentCard = components['schemas']['A2AAgentCard'];
 export type SchemaMcpTool = components['schemas']['MCPTool'];
 export type SchemaFunctionObject = components['schemas']['FunctionObject'];
 export type SchemaChatCompletionTool =
   components['schemas']['ChatCompletionTool'];
 export type SchemaFunctionParameters =
   components['schemas']['FunctionParameters'];
-export type SchemaChatCompletionToolType =
-  components['schemas']['ChatCompletionToolType'];
 export type SchemaCompletionUsage = components['schemas']['CompletionUsage'];
 export type SchemaChatCompletionStreamOptions =
   components['schemas']['ChatCompletionStreamOptions'];
@@ -744,7 +653,6 @@ export type SchemaChatCompletionMessageToolCallChunk =
   components['schemas']['ChatCompletionMessageToolCallChunk'];
 export type SchemaChatCompletionTokenLogprob =
   components['schemas']['ChatCompletionTokenLogprob'];
-export type SchemaFinishReason = components['schemas']['FinishReason'];
 export type SchemaCreateChatCompletionStreamResponse =
   components['schemas']['CreateChatCompletionStreamResponse'];
 export type SchemaConfig = components['schemas']['Config'];
@@ -752,7 +660,6 @@ export type ResponseBadRequest = components['responses']['BadRequest'];
 export type ResponseUnauthorized = components['responses']['Unauthorized'];
 export type ResponseInternalError = components['responses']['InternalError'];
 export type ResponseMcpNotExposed = components['responses']['MCPNotExposed'];
-export type ResponseA2ANotExposed = components['responses']['A2ANotExposed'];
 export type ResponseProviderResponse =
   components['responses']['ProviderResponse'];
 export type RequestBodyProviderRequest =
@@ -833,64 +740,6 @@ export interface operations {
       };
       401: components['responses']['Unauthorized'];
       403: components['responses']['MCPNotExposed'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  listAgents: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ListAgentsResponse'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['A2ANotExposed'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  getAgent: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description The unique identifier of the agent */
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['A2AAgentCard'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['A2ANotExposed'];
-      /** @description Agent not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Error'];
-        };
-      };
       500: components['responses']['InternalError'];
     };
   };
@@ -1010,6 +859,7 @@ export interface operations {
 }
 export enum Provider {
   ollama = 'ollama',
+  ollama_cloud = 'ollama_cloud',
   groq = 'groq',
   openai = 'openai',
   cloudflare = 'cloudflare',
@@ -1017,6 +867,7 @@ export enum Provider {
   anthropic = 'anthropic',
   deepseek = 'deepseek',
   google = 'google',
+  mistral = 'mistral',
 }
 export enum ProviderAuthType {
   bearer = 'bearer',
@@ -1038,6 +889,17 @@ export enum MessageRole {
   user = 'user',
   assistant = 'assistant',
   tool = 'tool',
+}
+export enum TextContentPartType {
+  text = 'text',
+}
+export enum ImageContentPartType {
+  image_url = 'image_url',
+}
+export enum ImageURLDetail {
+  auto = 'auto',
+  low = 'low',
+  high = 'high',
 }
 export enum ChatCompletionToolType {
   function = 'function',
