@@ -1,0 +1,14 @@
+version = 1
+
+[install]
+nodejs_24.pkg-path = "nodejs_24"
+nodejs_24.version = "^24.11.0"
+
+claude-code.pkg-path = "claude-code"
+claude-code.version = "^2.0.30"
+
+prettier.pkg-path = "prettier"
+prettier.version = "^3.6.2"
+
+markdownlint-cli.pkg-path = "markdownlint-cli"
+markdownlint-cli.version = "^0.45.0"
