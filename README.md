@@ -10,6 +10,7 @@ An SDK written in TypeScript for the [Inference Gateway](https://github.com/eden
     - [Listing MCP Tools](#listing-mcp-tools)
     - [Creating Chat Completions](#creating-chat-completions)
     - [Streaming Chat Completions](#streaming-chat-completions)
+    - [Vision / Image Input](#vision--image-input)
     - [Tool Calls](#tool-calls)
     - [Proxying Requests](#proxying-requests)
     - [Health Check](#health-check)
@@ -165,6 +166,83 @@ try {
 } catch (error) {
   console.error('Error:', error);
 }
+```
+
+### Vision / Image Input
+
+To send images to vision-capable models, use multimodal content with the
+`image_url` content part type:
+
+```typescript
+import {
+  InferenceGatewayClient,
+  MessageRole,
+  TextContentPartType,
+  ImageContentPartType,
+  ImageURLDetail,
+  Provider,
+} from '@inference-gateway/sdk';
+
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
+
+try {
+  const response = await client.createChatCompletion(
+    {
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: MessageRole.user,
+          content: [
+            {
+              type: TextContentPartType.text,
+              text: 'What is in this image?',
+            },
+            {
+              type: ImageContentPartType.image_url,
+              image_url: {
+                url: 'https://example.com/image.jpg',
+                detail: ImageURLDetail.auto, // 'auto', 'low', or 'high'
+              },
+            },
+          ],
+        },
+      ],
+    },
+    Provider.openai
+  );
+
+  console.log('Response:', response.choices[0].message.content);
+} catch (error) {
+  console.error('Error:', error);
+}
+```
+
+You can also use base64-encoded images with data URLs:
+
+```typescript
+const response = await client.createChatCompletion({
+  model: 'gpt-4o',
+  messages: [
+    {
+      role: MessageRole.user,
+      content: [
+        {
+          type: TextContentPartType.text,
+          text: 'Describe this image',
+        },
+        {
+          type: ImageContentPartType.image_url,
+          image_url: {
+            url: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...',
+            detail: ImageURLDetail.high,
+          },
+        },
+      ],
+    },
+  ],
+});
 ```
 
 ### Tool Calls

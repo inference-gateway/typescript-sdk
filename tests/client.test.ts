@@ -7,8 +7,11 @@ import type {
 import {
   ChatCompletionChoiceFinish_reason,
   ChatCompletionToolType,
+  ImageContentPartType,
+  ImageURLDetail,
   MessageRole,
   Provider,
+  TextContentPartType,
 } from '@/types/generated';
 import { TransformStream } from 'node:stream/web';
 import { TextEncoder } from 'node:util';
@@ -255,6 +258,70 @@ describe('InferenceGatewayClient', () => {
       expect(result).toEqual(mockResponse);
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:8080/v1/chat/completions?provider=anthropic',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ ...mockRequest, stream: false }),
+        })
+      );
+    });
+
+    it('should create a chat completion with vision/image content', async () => {
+      const mockRequest = {
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: MessageRole.user,
+            content: [
+              {
+                type: TextContentPartType.text,
+                text: 'What is in this image?',
+              },
+              {
+                type: ImageContentPartType.image_url,
+                image_url: {
+                  url: 'https://example.com/image.jpg',
+                  detail: ImageURLDetail.auto,
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      const mockResponse: SchemaCreateChatCompletionResponse = {
+        id: 'chatcmpl-789',
+        object: 'chat.completion',
+        created: 1677652288,
+        model: 'gpt-4o',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: MessageRole.assistant,
+              content: 'The image shows a beautiful sunset over the ocean.',
+            },
+            finish_reason: ChatCompletionChoiceFinish_reason.stop,
+          },
+        ],
+        usage: {
+          prompt_tokens: 100,
+          completion_tokens: 12,
+          total_tokens: 112,
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await client.createChatCompletion(
+        mockRequest,
+        Provider.openai
+      );
+      expect(result).toEqual(mockResponse);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/chat/completions?provider=openai',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({ ...mockRequest, stream: false }),
