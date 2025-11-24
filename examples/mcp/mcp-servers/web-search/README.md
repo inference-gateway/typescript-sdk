@@ -1,11 +1,13 @@
 # MCP Web Search Server
 
-A Model Context Protocol (MCP) server that provides web search and URL fetching capabilities using DuckDuckGo.
+A Model Context Protocol (MCP) server that provides web search and URL fetching
+capabilities using DuckDuckGo.
 
 ## Features
 
 - **fetch_url**: Fetch content from any URL with error handling and timeout support
-- **search_web**: Real web search functionality using DuckDuckGo with safe search options
+- **search_web**: Real web search functionality using DuckDuckGo with safe
+  search options
 - **get_page_title**: Extract page titles from web pages using HTML parsing
 
 ## Installation
@@ -28,13 +30,14 @@ npm run dev
 npm start
 ```
 
-The server will start on port 3001 by default. You can change this by setting the `PORT` environment variable.
+The server will start on port 3001 by default. You can change this by setting
+the `PORT` environment variable.
 
 ## API Endpoints
 
 ### Server Information
 
-```
+```text
 GET /mcp
 ```
 
@@ -42,7 +45,7 @@ Returns server capabilities and metadata.
 
 ### List Tools
 
-```
+```text
 POST /mcp/tools/list
 ```
 
@@ -50,7 +53,7 @@ Returns all available MCP tools.
 
 ### Execute Tools
 
-```
+```text
 POST /mcp/tools/call
 ```
 
@@ -58,7 +61,7 @@ Execute a specific tool with provided arguments.
 
 ### Health Check
 
-```
+```text
 GET /health
 ```
 
@@ -116,7 +119,8 @@ Returns server health status.
 
 ## Integration with Inference Gateway
 
-This server is designed to work with the Inference Gateway's MCP support. Add it to your gateway configuration:
+This server is designed to work with the Inference Gateway's MCP support. Add
+it to your gateway configuration:
 
 ```yaml
 MCP_SERVERS: 'web-search=http://mcp-web-search:3001/mcp'
@@ -132,6 +136,7 @@ To add new tools:
 
 ## Security Considerations
 
-- This is a demonstration server and should not be used in production without proper security measures
+- This is a demonstration server and should not be used in production without
+  proper security measures
 - Add rate limiting, authentication, and input validation for production use
 - Consider using environment variables for sensitive configuration

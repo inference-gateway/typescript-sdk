@@ -1,6 +1,8 @@
 # List Example
 
-This example demonstrates how to use the Inference Gateway SDK for listing models and MCP tools. It includes making requests to the SDK and handling responses using the TypeScript SDK.
+This example demonstrates how to use the Inference Gateway SDK for listing
+models and MCP tools. It includes making requests to the SDK and handling
+responses using the TypeScript SDK.
 
 ## Features Demonstrated
 
@@ -11,7 +13,9 @@ This example demonstrates how to use the Inference Gateway SDK for listing model
 
 ## Getting Started
 
-1. Ensure you have the Inference Gateway running locally or have access to an instance. If not, please read the [Quick Start](../README.md#quick-start) section in the main README.
+1. Ensure you have the Inference Gateway running locally or have access to an
+   instance. If not, please read the [Quick Start](../README.md#quick-start)
+   section in the main README.
 
 2. Install the SDK if you haven't already:
 

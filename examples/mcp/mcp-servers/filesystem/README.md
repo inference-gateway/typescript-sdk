@@ -1,6 +1,7 @@
 # MCP Filesystem Server
 
-A Model Context Protocol (MCP) server that provides filesystem operations for file and directory management.
+A Model Context Protocol (MCP) server that provides filesystem operations for
+file and directory management.
 
 ## Features
 
@@ -39,7 +40,8 @@ npm run dev
 npm start
 ```
 
-The server will start on port 3000 by default. You can change this by setting the `PORT` environment variable.
+The server will start on port 3000 by default. You can change this by setting
+the `PORT` environment variable.
 
 ## Configuration
 
@@ -62,7 +64,7 @@ npm start
 
 ### Server Information
 
-```
+```text
 GET /mcp
 ```
 
@@ -70,7 +72,7 @@ Returns server capabilities and metadata.
 
 ### List Tools
 
-```
+```text
 POST /mcp/tools/list
 ```
 
@@ -78,7 +80,7 @@ Returns all available MCP tools.
 
 ### Execute Tools
 
-```
+```text
 POST /mcp/tools/call
 ```
 
@@ -86,7 +88,7 @@ Execute a specific tool with provided arguments.
 
 ### Health Check
 
-```
+```text
 GET /health
 ```
 
@@ -163,7 +165,8 @@ Returns server health status and configuration.
 
 ## Integration with Inference Gateway
 
-This server is designed to work with the Inference Gateway's MCP support. Add it to your gateway configuration:
+This server is designed to work with the Inference Gateway's MCP support. Add
+it to your gateway configuration:
 
 ```yaml
 MCP_SERVERS: 'filesystem=http://mcp-filesystem:3000/mcp'
@@ -171,7 +174,8 @@ MCP_SERVERS: 'filesystem=http://mcp-filesystem:3000/mcp'
 
 ## Sample Files
 
-The server automatically creates sample files in allowed directories on startup to help with testing and demonstration.
+The server automatically creates sample files in allowed directories on startup
+to help with testing and demonstration.
 
 ## Error Handling
 
@@ -194,7 +198,8 @@ To add new filesystem tools:
 
 ## Security Considerations
 
-- This server implements basic security measures but should be reviewed for production use
+- This server implements basic security measures but should be reviewed for
+  production use
 - Consider additional authentication and authorization mechanisms
 - Monitor file system usage and implement quotas if needed
 - Regularly audit allowed directories and permissions

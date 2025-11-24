@@ -1,6 +1,8 @@
 # Chat Example
 
-This example demonstrates how to use the Inference Gateway SDK for chat applications. It includes creating chat completions, streaming responses, multi-turn conversations, and function calling using the TypeScript SDK.
+This example demonstrates how to use the Inference Gateway SDK for chat
+applications. It includes creating chat completions, streaming responses,
+multi-turn conversations, and function calling using the TypeScript SDK.
 
 ## Features Demonstrated
 
@@ -11,7 +13,9 @@ This example demonstrates how to use the Inference Gateway SDK for chat applicat
 
 ## Getting Started
 
-1. Ensure you have the Inference Gateway running locally or have access to an instance. If not, please read the [Quick Start](../README.md#quick-start) section in the main README.
+1. Ensure you have the Inference Gateway running locally or have access to an
+   instance. If not, please read the [Quick Start](../README.md#quick-start)
+   section in the main README.
 
 2. Install the SDK if you haven't already:
 
@@ -62,7 +66,8 @@ This example works with any provider supported by the Inference Gateway:
 
 ## Notes
 
-- The function calling example simulates weather API calls - in a real application, you would implement actual function execution
+- The function calling example simulates weather API calls - in a real
+  application, you would implement actual function execution
 - Streaming responses provide real-time output, perfect for interactive applications
 - Multi-turn conversations maintain context across multiple exchanges
 - Temperature and max_tokens parameters can be adjusted for different use cases

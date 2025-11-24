@@ -1,6 +1,8 @@
 # Marketing Agent with Brave Search
 
-This example demonstrates how to use the Marketing Intelligence Agent with Brave Search capabilities for comprehensive market research and competitive analysis.
+This example demonstrates how to use the Marketing Intelligence Agent with
+Brave Search capabilities for comprehensive market research and competitive
+analysis.
 
 ## Setup
 
@@ -34,6 +36,7 @@ This example demonstrates how to use the Marketing Intelligence Agent with Brave
    ```
 
 4. **Run the marketing agent**
+
    ```bash
    # In a new terminal
    cd agents/marketing
@@ -71,31 +74,31 @@ Here are some example queries you can try with the marketing agent:
 
 ### Market Research
 
-```
+```text
 Research the electric vehicle market trends for 2024
 ```
 
 ### Competitive Analysis
 
-```
+```text
 Compare Tesla vs BMW in the luxury EV segment
 ```
 
 ### Brand Monitoring
 
-```
+```text
 Find recent news and sentiment about Apple's latest iPhone launch
 ```
 
 ### Content Strategy
 
-```
+```text
 What are the top marketing trends for SaaS companies in 2024?
 ```
 
 ### Industry Analysis
 
-```
+```text
 Research the AI startup ecosystem and recent funding rounds
 ```
 

@@ -17,6 +17,7 @@ This guide will help you run all TypeScript SDK examples quickly.
    ```
 
 2. Add your API keys to `.env`:
+
    ```bash
    # Choose one or more providers
    GROQ_API_KEY=your_groq_key_here

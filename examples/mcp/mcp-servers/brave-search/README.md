@@ -1,6 +1,7 @@
 # Brave Search MCP Server
 
-A Model Context Protocol (MCP) server that provides search capabilities using the Brave Search API with HTTP transport support.
+A Model Context Protocol (MCP) server that provides search capabilities using
+the Brave Search API with HTTP transport support.
 
 ## Features
 
@@ -20,11 +21,11 @@ A Model Context Protocol (MCP) server that provides search capabilities using th
 
 1. Install dependencies:
 
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
-2. Set up environment variables:
+1. Set up environment variables:
 
 ```bash
 export BRAVE_API_KEY="your-brave-search-api-key"
@@ -40,7 +41,8 @@ export LOG_LEVEL=info  # Optional, defaults to info
 npm start
 ```
 
-The server will start on `http://localhost:3000` with the MCP endpoint available at `/mcp`.
+The server will start on `http://localhost:3000` with the MCP endpoint
+available at `/mcp`.
 
 ### Health Check
 
@@ -55,12 +57,14 @@ curl http://localhost:3000/health
 1. **brave_web_search**
 
    - Searches the web using Brave Search
-   - Parameters: `query` (string), `count` (number, optional), `safesearch` (string, optional)
+   - Parameters: `query` (string), `count` (number, optional), `safesearch`
+     (string, optional)
 
 2. **brave_news_search**
 
    - Searches for recent news articles
-   - Parameters: `query` (string), `count` (number, optional), `freshness` (string, optional)
+   - Parameters: `query` (string), `count` (number, optional), `freshness`
+     (string, optional)
 
 3. **marketing_research**
    - Performs market research and competitive analysis
@@ -106,18 +110,18 @@ npm run lint
 
 ### MCP Endpoint
 
-**POST /mcp**
+#### POST /mcp
 
 - Establishes MCP connection using StreamableHTTP transport
 - Handles tool calls and resource requests
 - Returns JSON responses with MCP protocol format
 
-**GET /mcp**
+#### GET /mcp
 
 - Returns server information and available tools
 - Used for capability discovery
 
-**DELETE /mcp**
+#### DELETE /mcp
 
 - Closes MCP session
 - Cleans up resources

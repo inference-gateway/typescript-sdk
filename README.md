@@ -62,7 +62,8 @@ try {
 
 ### Listing MCP Tools
 
-To list available Model Context Protocol (MCP) tools (only available when EXPOSE_MCP is enabled):
+To list available Model Context Protocol (MCP) tools (only available when
+EXPOSE_MCP is enabled):
 
 ```typescript
 import { InferenceGatewayClient } from '@inference-gateway/sdk';
@@ -300,7 +301,8 @@ For more examples, check the [examples directory](./examples).
 
 ## Contributing
 
-Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file for information about how to get involved. We welcome issues, questions, and pull requests.
+Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file for information
+about how to get involved. We welcome issues, questions, and pull requests.
 
 ## License
 

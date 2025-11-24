@@ -1,6 +1,9 @@
 # MCP Examples
 
-This directory contains comprehensive examples demonstrating how to use the Inference Gateway SDK with Model Context Protocol (MCP) tools in a multi-provider architecture. Each example showcases different aspects of MCP tool integration.
+This directory contains comprehensive examples demonstrating how to use the
+Inference Gateway SDK with Model Context Protocol (MCP) tools in a
+multi-provider architecture. Each example showcases different aspects of MCP
+tool integration.
 
 ## 🚀 Quick Start
 
@@ -16,15 +19,22 @@ On another terminal, you can run specific examples using the Inference Gateway:
 
 ```bash
 # Run interactive specialized agents
-docker compose -f docker-compose-agents.yml run --rm -it --build nextjs-agent      # 🤖 Next.js development agent
-docker compose -f docker-compose-agents.yml run --rm -it --build vite-agent        # ⚡ Vite application agent
-docker compose -f docker-compose-agents.yml run --rm -it --build kubernetes-agent  # ☸️ Kubernetes operations agent
-docker compose -f docker-compose-agents.yml run --rm -it --build marketing-agent   # 📈 Marketing research agent
+# Next.js development agent
+docker compose -f docker-compose-agents.yml run --rm -it --build nextjs-agent
+# Vite application agent
+docker compose -f docker-compose-agents.yml run --rm -it --build vite-agent
+# Kubernetes operations agent
+docker compose -f docker-compose-agents.yml run --rm -it --build kubernetes-agent
+# Marketing research agent
+docker compose -f docker-compose-agents.yml run --rm -it --build marketing-agent
 ```
 
 ## 🧠 Memory & Error Recovery
 
-The **Memory MCP Server** provides persistent state management for AI agents, enabling them to recover gracefully from HTTP errors and continue from where they left off. This is particularly useful for long-running tasks that may encounter temporary network issues or API failures.
+The **Memory MCP Server** provides persistent state management for AI agents,
+enabling them to recover gracefully from HTTP errors and continue from where
+they left off. This is particularly useful for long-running tasks that may
+encounter temporary network issues or API failures.
 
 ### Key Features
 
@@ -37,10 +47,13 @@ The **Memory MCP Server** provides persistent state management for AI agents, en
 
 All agents (Next.js, Vite, and Kubernetes) now include memory recovery capabilities:
 
-1. **Save State Before Risky Operations**: Before making HTTP requests, agents save their current progress
-2. **Handle Errors Gracefully**: When HTTP errors occur, agents save the error state with context
-3. **Resume from Last Checkpoint**: On restart, agents check for saved state and continue from the last successful step
-4. **Memory Management**: Agents can list, restore, and clear saved sessions
+1. **Save State Before Risky Operations**: Before making HTTP requests, agents
+   save their current progress
+1. **Handle Errors Gracefully**: When HTTP errors occur, agents save the error
+   state with context
+1. **Resume from Last Checkpoint**: On restart, agents check for saved state
+   and continue from the last successful step
+1. **Memory Management**: Agents can list, restore, and clear saved sessions
 
 ### Available Memory Tools
 
@@ -50,11 +63,13 @@ All agents (Next.js, Vite, and Kubernetes) now include memory recovery capabilit
 - `list-sessions`: List all saved sessions
 - `clear-session`: Remove a saved session
 
-All agents will automatically use these tools when encountering HTTP errors, ensuring robust error recovery and task continuation.
+All agents will automatically use these tools when encountering HTTP errors,
+ensuring robust error recovery and task continuation.
 
 ## 🔍 MCP Inspector
 
-The **MCP Inspector** is a visual debugging tool that allows you to inspect and test your MCP servers interactively. It provides a web-based interface to:
+The **MCP Inspector** is a visual debugging tool that allows you to inspect
+and test your MCP servers interactively. It provides a web-based interface to:
 
 - Connect to and inspect MCP servers
 - View available tools and their schemas
@@ -64,7 +79,7 @@ The **MCP Inspector** is a visual debugging tool that allows you to inspect and 
 
 ### Accessing the Inspector
 
-The MCP Inspector is available at: **http://localhost:6274**
+The MCP Inspector is available at: **<http://localhost:6274>**
 
 You can connect to any of the running MCP servers:
 
@@ -92,22 +107,26 @@ http://localhost:6274/?transport=streamable-http&serverUrl=http://mcp-npm:3003/m
 ### Using the Inspector
 
 1. **Start the services**: `docker compose up --build`
-2. **Open the inspector**: Navigate to http://localhost:6274
-3. **Connect to a server**: Enter an MCP server URL (e.g., `http://mcp-filesystem:3000/mcp`)
-4. **Explore tools**: Browse available tools and their parameters
-5. **Test execution**: Run tools with custom parameters and view results
+1. **Open the inspector**: Navigate to <http://localhost:6274>
+1. **Connect to a server**: Enter an MCP server URL
+   (e.g., `http://mcp-filesystem:3000/mcp`)
+1. **Explore tools**: Browse available tools and their parameters
+1. **Test execution**: Run tools with custom parameters and view results
 
 ### Troubleshooting
 
-If you have to debug an MCP server, you can either use the MCP Inspector or standard curl commands.
+If you have to debug an MCP server, you can either use the MCP Inspector or
+standard curl commands.
 
-1. First go inside the a container that is attached to the same inference gateway network:
+1. First go inside the a container that is attached to the same inference
+   gateway network:
 
 ```bash
 docker run -it --rm alpine:latest sh -c "apk add --no-cache curl && sh"
 ```
 
-2. For example let's check if mcp-web-search works as expected. We will get into the container:
+1. For example let's check if mcp-web-search works as expected. We will get
+   into the container:
 
 ```sh
 docker compose exec mcp-web-search sh
@@ -117,7 +136,7 @@ export SERVER_PORT=""
 export TOOL_NAME=""
 ```
 
-3. Fetch a session ID by initializing the MCP server:
+1. Fetch a session ID by initializing the MCP server:
 
 ```sh
 SESSION_ID=$(curl -v -X POST "${SERVER_URL}:${SERVER_PORT}/mcp" \
@@ -139,7 +158,7 @@ SESSION_ID=$(curl -v -X POST "${SERVER_URL}:${SERVER_PORT}/mcp" \
 echo "mcp-session-id: $SESSION_ID"
 ```
 
-4. List available tools to verify the server is running correctly:
+1. List available tools to verify the server is running correctly:
 
 ```sh
 curl -v -X POST "${SERVER_URL}:${SERVER_PORT}/mcp" \
@@ -154,7 +173,7 @@ curl -v -X POST "${SERVER_URL}:${SERVER_PORT}/mcp" \
   }'
 ```
 
-5. Call a specific tool, for example, `search_web` to search the web:
+1. Call a specific tool, for example, `search_web` to search the web:
 
 ```sh
 curl -X POST "${SERVER_URL}:${SERVER_PORT}/mcp" \

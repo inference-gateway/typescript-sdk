@@ -4,7 +4,8 @@ This directory contains examples that demonstrate how to use the Typescript SDK.
 
 ## Pre-requisites
 
-You should have docker installed or use the dev container in VS Code which has all the tools you might need.
+You should have docker installed or use the dev container in VS Code which has
+all the tools you might need.
 
 ## Quick Start
 
@@ -25,9 +26,13 @@ You should have docker installed or use the dev container in VS Code which has a
 
 4. Review the different examples in the specific directories:
 
-   - [List](./list): Demonstrates listing models, MCP tools, health checks, and provider proxy functionality.
-   - [Chat](./chat): Shows chat completions, streaming responses, multi-turn conversations, and function calling.
-   - [MCP](./mcp): Illustrates Model Context Protocol integration with file operations, web scraping, and multi-tool conversations using Docker Compose.
+   - [List](./list): Demonstrates listing models, MCP tools, health checks,
+     and provider proxy functionality.
+   - [Chat](./chat): Shows chat completions, streaming responses, multi-turn
+     conversations, and function calling.
+   - [MCP](./mcp): Illustrates Model Context Protocol integration with file
+     operations, web scraping, and multi-tool conversations using Docker
+     Compose.
 
 ## Examples Overview
 
@@ -57,7 +62,8 @@ You should have docker installed or use the dev container in VS Code which has a
 - Function/tool calling with AI models
 - Temperature comparison examples
 
-**Best for**: Building chat applications and understanding different interaction patterns
+**Best for**: Building chat applications and understanding different
+interaction patterns
 
 ### [MCP Example](./mcp)
 

@@ -1,10 +1,12 @@
 # MCP NPM Server
 
-A Model Context Protocol (MCP) server that provides safe npm command execution capabilities.
+A Model Context Protocol (MCP) server that provides safe npm command execution
+capabilities.
 
 ## Features
 
-- **Whitelisted Commands**: Only allows execution of pre-approved npm commands for security
+- **Whitelisted Commands**: Only allows execution of pre-approved npm commands
+  for security
 - **Directory Restrictions**: Commands can only be executed in allowed directories
 - **Timeout Protection**: Commands are automatically terminated after 5 minutes
 - **Process Isolation**: Each command runs in its own process with controlled environment

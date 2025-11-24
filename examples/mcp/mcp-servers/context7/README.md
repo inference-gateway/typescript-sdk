@@ -1,10 +1,11 @@
 # Context7 HTTP Bridge
 
-This service provides an HTTP interface for the stdio-based Context7 MCP server from Upstash, allowing it to work with the Inference Gateway.
+This service provides an HTTP interface for the stdio-based Context7 MCP server
+from Upstash, allowing it to work with the Inference Gateway.
 
 ## Architecture
 
-```
+```text
 Inference Gateway → HTTP Bridge → stdio → Real Context7 MCP Server
 ```
 
@@ -27,4 +28,5 @@ Inference Gateway → HTTP Bridge → stdio → Real Context7 MCP Server
 
 ## Usage
 
-The bridge automatically spawns the real Context7 MCP server for each tool call and handles the stdio communication protocol.
+The bridge automatically spawns the real Context7 MCP server for each tool call
+and handles the stdio communication protocol.

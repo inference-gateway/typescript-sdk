@@ -1,6 +1,9 @@
 # MCP Memory Server
 
-A Model Context Protocol (MCP) server that provides memory persistence capabilities for AI agents. This server helps agents save their state when HTTP errors occur, allowing them to continue from where they left off in subsequent iterations.
+A Model Context Protocol (MCP) server that provides memory persistence
+capabilities for AI agents. This server helps agents save their state when
+HTTP errors occur, allowing them to continue from where they left off in
+subsequent iterations.
 
 ## Features
 

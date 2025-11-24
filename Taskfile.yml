@@ -11,6 +11,7 @@ tasks:
     desc: Lint the SDK
     cmds:
       - npm run lint
+      - markdownlint . --ignore **/node_modules/** --ignore CHANGELOG.md
 
   build:
     desc: Build the SDK
