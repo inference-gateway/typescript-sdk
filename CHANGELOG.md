@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.7.3...v0.8.0) (2026-05-06)
+
+### ✨ Features
+
+* Adopt latest OpenAPI spec and preserve tool-call extra_content ([193184c](https://github.com/inference-gateway/typescript-sdk/commit/193184c5d9513fc8681606da860c409655f9453f))
+* **providers:** Add Google provider support ([#21](https://github.com/inference-gateway/typescript-sdk/issues/21)) ([a6381d7](https://github.com/inference-gateway/typescript-sdk/commit/a6381d7357d22f32434599e204955fff4db2e3e0)), closes [#19](https://github.com/inference-gateway/typescript-sdk/issues/19)
+
+### ♻️ Improvements
+
+* Rename all instances of deepseek-chat to deepseek-v4-flash ([465851e](https://github.com/inference-gateway/typescript-sdk/commit/465851e8f49fba153d1ded6add5d3511507ee50e))
+
+### 👷 CI
+
+* Add Claude Code GitHub Workflow ([#20](https://github.com/inference-gateway/typescript-sdk/issues/20)) ([83e61a0](https://github.com/inference-gateway/typescript-sdk/commit/83e61a01fb2fcfc63f06ea2fc1cebb6076285b17))
+* Bump all actions to latest ([d23eef1](https://github.com/inference-gateway/typescript-sdk/commit/d23eef13fa6f4d015059b98bd90a75c4b8f3ddf7))
+
+### 📚 Documentation
+
+*  Add more examples how to use this sdk ([#16](https://github.com/inference-gateway/typescript-sdk/issues/16)) ([5bddd0b](https://github.com/inference-gateway/typescript-sdk/commit/5bddd0beb693e1ed3341f8c48511dd5e9045729d))
+* Add CLAUDE.md for project guidance and development instructions ([47645bf](https://github.com/inference-gateway/typescript-sdk/commit/47645bfd0f9e0f5c0c83051acbdd52253318522d))
+
+### 🔧 Miscellaneous
+
+* Add .vscode to gitignore ([6e3117e](https://github.com/inference-gateway/typescript-sdk/commit/6e3117e0b6344747acc36ba21f747d10118560a2))
+* Add issue templates ([769f017](https://github.com/inference-gateway/typescript-sdk/commit/769f017bf6810c687bc11795fbcb545ffaaaa446))
+* Add project configuration and documentation ([f4bde02](https://github.com/inference-gateway/typescript-sdk/commit/f4bde02757e2d32512ec535e254217d3d81d76a0))
+* Delete CLAUDE.md ([56bc06c](https://github.com/inference-gateway/typescript-sdk/commit/56bc06c85b061d6c7674173b60ab3dde6e0f9b69))
+* **deps:** Bump all version to latest ([0d02bc5](https://github.com/inference-gateway/typescript-sdk/commit/0d02bc5045696a3046cb5460eeb1601b039accdb))
+* **deps:** Install task runner for local env ([be7a77f](https://github.com/inference-gateway/typescript-sdk/commit/be7a77ffe5bcb05980a73604190661b2a079cb2e))
+* **deps:** Update to their latest ([741971b](https://github.com/inference-gateway/typescript-sdk/commit/741971bd3d9f8a4ab80590b5c3b6a374dc292940))
+* Download the latest oas ([9fcf5da](https://github.com/inference-gateway/typescript-sdk/commit/9fcf5da1b7cc12661e3222155c885fae77cb1931))
+* Lock the versions of npm and node in package.json ([9690d75](https://github.com/inference-gateway/typescript-sdk/commit/9690d7501b8edd49bb30c9d0274247802c9bfde4))
+* Remove deprecated lines from husky ([177d464](https://github.com/inference-gateway/typescript-sdk/commit/177d46459c9ffb190dbad41808e7f9ed207ed1e7))
+* Replace devcontainer with Flox environment and streamline CI ([08c1eaf](https://github.com/inference-gateway/typescript-sdk/commit/08c1eaf3ac525153445ab2e1db5fc7b0c79c9457))
+* Run task generate-types ([e01feff](https://github.com/inference-gateway/typescript-sdk/commit/e01feffba970085449bae28fcc49132f84e27ae8))
+* Update GitHub Actions dependencies ([31006d8](https://github.com/inference-gateway/typescript-sdk/commit/31006d898f64d996d225818f3b93f38df644ae3f))
+
+### 🎨 Miscellaneous
+
+* Fix markdown lint errors across all documentation ([419062d](https://github.com/inference-gateway/typescript-sdk/commit/419062d726106aa84b88f805a75f3acb48582ca7))
+
 ## [0.7.3](https://github.com/inference-gateway/typescript-sdk/compare/v0.7.2...v0.7.3) (2025-06-01)
 
 ### ♻️ Improvements
