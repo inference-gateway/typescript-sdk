@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.3](https://github.com/inference-gateway/typescript-sdk/compare/v0.8.2...v0.8.3) (2026-05-06)
+
+### 👷 CI
+
+* Drop NPM_TOKEN fallback now that Trusted Publishing is live ([005af68](https://github.com/inference-gateway/typescript-sdk/commit/005af68af7eedadefcf28b8dfd305ff7d5f751ac))
+
 ## [0.8.2](https://github.com/inference-gateway/typescript-sdk/compare/v0.8.1...v0.8.2) (2026-05-06)
 
 ### 👷 CI
