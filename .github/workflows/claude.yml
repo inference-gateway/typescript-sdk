@@ -19,9 +19,9 @@ on:
 jobs:
   claude:
     if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') && !contains(github.event.comment.body, '@claude /review')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude') && !contains(github.event.comment.body, '@claude /review')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude') && !contains(github.event.review.body, '@claude /review')) ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
       (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
     runs-on: ubuntu-24.04
     permissions:
@@ -51,7 +51,7 @@ jobs:
 
       - name: Run Claude Code
         id: claude
-        uses: anthropics/claude-code-action@main
+        uses: anthropics/claude-code-action@v1.0.114
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |
@@ -60,6 +60,7 @@ jobs:
           base_branch: main
           branch_prefix: "claude/"
           claude_args: |
-            --system-prompt "IMPORTANT: You must NEVER push directly to the main branch. Always: 1. Create a new feature branch (claude/feature-name), 2. Make your changes on the feature branch, 3. Open a pull request to main. COMMIT MESSAGE FORMAT: Always use conventional commits with capital letters. Follow the format: 'type(scope): Description' where the description starts with a capital letter. Examples: 'feat(grafana): Add retry mechanism for agent connections', 'fix(auth): Resolve token validation issue'. Follow the development workflow specified in the coding instructions."
+            --model claude-opus-4-7
+            --system-prompt "You must NEVER push directly to the main branch. Always create a new feature branch (claude/feature-name), make changes there, and open a pull request to main. Use conventional commits with a capital description, e.g. 'feat(client): Add retry mechanism for streaming requests' or 'fix(auth): Resolve token validation issue'. Follow the development workflow specified in the coding instructions."
             --allowedTools "Bash(task:*),Bash(gh:*),Bash(git:*),Bash(node:*),Bash(npm:*),Bash(npx)"
             --mcp-config '{"mcpServers":{"context7":{"command":"npx","args":["-y","@upstash/context7-mcp@latest"]}}}'
