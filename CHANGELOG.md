@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.8.0...v0.8.1) (2026-05-06)
+
+### 🐛 Bug Fixes
+
+* Exclude test files from published npm tarball ([56a3f5e](https://github.com/inference-gateway/typescript-sdk/commit/56a3f5e2caeb15baa034e1b35d04f92a56ca96f2)), closes [package.json#files](https://github.com/inference-gateway/package.json/issues/files)
+
 ## [0.8.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.7.3...v0.8.0) (2026-05-06)
 
 ### ✨ Features
