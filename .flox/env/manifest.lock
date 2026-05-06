@@ -1,7 +1,7 @@
 {
   "lockfile-version": 1,
   "manifest": {
-    "version": 1,
+    "schema-version": "1.11.0",
     "install": {
       "claude-code": {
         "pkg-path": "claude-code",
@@ -13,7 +13,8 @@
       },
       "nodejs_24": {
         "pkg-path": "nodejs_24",
-        "version": "^24.11.0"
+        "version": "^24.11.0",
+        "outputs": "all"
       },
       "prettier": {
         "pkg-path": "prettier",
