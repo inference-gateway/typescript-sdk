@@ -6,10 +6,10 @@ nodejs_24.version = "^24.11.0"
 nodejs_24.outputs = "all"
 
 claude-code.pkg-path = "claude-code"
-claude-code.version = "^2.0.30"
+claude-code.version = "^2.1.121"
 
 prettier.pkg-path = "prettier"
 prettier.version = "^3.6.2"
 
 markdownlint-cli.pkg-path = "markdownlint-cli"
-markdownlint-cli.version = "^0.45.0"
+markdownlint-cli.version = "^0.48.0"
