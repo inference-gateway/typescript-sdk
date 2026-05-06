@@ -682,7 +682,7 @@ describe('InferenceGatewayClient', () => {
 
     it('should handle streaming chat completions with reasoning_content (DeepSeek)', async () => {
       const mockRequest = {
-        model: 'deepseek/deepseek-reasoner',
+        model: 'deepseek/deepseek-v4-pro',
         messages: [{ role: MessageRole.user, content: 'Hello' }],
       };
       const mockStream = new TransformStream();
@@ -702,14 +702,14 @@ describe('InferenceGatewayClient', () => {
       const streamPromise = client.streamChatCompletion(mockRequest, callbacks);
       await writer.write(
         encoder.encode(
-          'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}\n\n' +
-            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"content":"","reasoning_content":"This"},"finish_reason":null}]}\n\n' +
-            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"content":"","reasoning_content":" is"},"finish_reason":null}]}\n\n' +
-            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"content":"","reasoning_content":" a"},"finish_reason":"stop"}]}\n\n' +
-            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"content":"","reasoning_content":" reasoning"},"finish_reason":"stop"}]}\n\n' +
-            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"content":"","reasoning_content":" content"},"finish_reason":"stop"}]}\n\n' +
-            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n' +
-            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-reasoner","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":null}]}\n\n' +
+          'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-v4-pro","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-v4-pro","choices":[{"index":0,"delta":{"content":"","reasoning_content":"This"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-v4-pro","choices":[{"index":0,"delta":{"content":"","reasoning_content":" is"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-v4-pro","choices":[{"index":0,"delta":{"content":"","reasoning_content":" a"},"finish_reason":"stop"}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-v4-pro","choices":[{"index":0,"delta":{"content":"","reasoning_content":" reasoning"},"finish_reason":"stop"}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-v4-pro","choices":[{"index":0,"delta":{"content":"","reasoning_content":" content"},"finish_reason":"stop"}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-v4-pro","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"deepseek/deepseek-v4-pro","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":null}]}\n\n' +
             'data: [DONE]\n\n'
         )
       );
