@@ -5,7 +5,7 @@ import type {
   SchemaListToolsResponse,
 } from '@/types/generated';
 import {
-  ChatCompletionChoiceFinish_reason,
+  FinishReason,
   ChatCompletionToolType,
   MessageRole,
   Provider,
@@ -189,7 +189,7 @@ describe('InferenceGatewayClient', () => {
               role: MessageRole.assistant,
               content: 'Hello! How can I help you today?',
             },
-            finish_reason: ChatCompletionChoiceFinish_reason.stop,
+            finish_reason: FinishReason.stop,
           },
         ],
         usage: {
@@ -233,7 +233,7 @@ describe('InferenceGatewayClient', () => {
               role: MessageRole.assistant,
               content: 'Hello! How can I assist you today?',
             },
-            finish_reason: ChatCompletionChoiceFinish_reason.stop,
+            finish_reason: FinishReason.stop,
           },
         ],
         usage: {
@@ -463,6 +463,72 @@ describe('InferenceGatewayClient', () => {
           }),
         })
       );
+    });
+
+    it('should preserve extra_content on streamed tool calls', async () => {
+      const mockRequest = {
+        model: 'gemini-2.5-pro',
+        messages: [
+          {
+            role: MessageRole.user,
+            content: 'What is the weather in San Francisco?',
+          },
+        ],
+        tools: [
+          {
+            type: ChatCompletionToolType.function,
+            function: {
+              name: 'get_weather',
+              strict: true,
+            },
+          },
+        ],
+      };
+
+      const mockStream = new TransformStream();
+      const writer = mockStream.writable.getWriter();
+      const encoder = new TextEncoder();
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: mockStream.readable,
+      });
+
+      const callbacks = {
+        onTool: jest.fn(),
+        onFinish: jest.fn(),
+      };
+
+      const streamPromise = client.streamChatCompletion(
+        mockRequest,
+        callbacks,
+        Provider.google
+      );
+
+      await writer.write(
+        encoder.encode(
+          'data: {"id":"chatcmpl-1","object":"chat.completion.chunk","created":1,"model":"gemini-2.5-pro","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-1","object":"chat.completion.chunk","created":1,"model":"gemini-2.5-pro","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"get_weather","arguments":"{\\"location\\":\\"SF\\"}"},"extra_content":{"google":{"thought_signature":"sig-abc-123"}}}]},"finish_reason":null}]}\n\n' +
+            'data: {"id":"chatcmpl-1","object":"chat.completion.chunk","created":1,"model":"gemini-2.5-pro","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n' +
+            'data: [DONE]\n\n'
+        )
+      );
+
+      await writer.close();
+      await streamPromise;
+
+      expect(callbacks.onTool).toHaveBeenCalledTimes(1);
+      expect(callbacks.onTool).toHaveBeenCalledWith({
+        id: 'call_1',
+        type: 'function',
+        function: {
+          name: 'get_weather',
+          arguments: '{"location":"SF"}',
+        },
+        extra_content: {
+          google: { thought_signature: 'sig-abc-123' },
+        },
+      });
     });
 
     it('should handle errors in streaming chat completions', async () => {

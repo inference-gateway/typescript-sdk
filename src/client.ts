@@ -8,6 +8,7 @@ import type {
   SchemaError,
   SchemaListModelsResponse,
   SchemaListToolsResponse,
+  SchemaToolCallExtraContent,
 } from './types/generated';
 import { ChatCompletionToolType } from './types/generated';
 
@@ -40,6 +41,7 @@ class StreamProcessor {
         name: string;
         arguments: string;
       };
+      extra_content?: SchemaToolCallExtraContent;
     }
   >();
 
@@ -182,6 +184,7 @@ class StreamProcessor {
         index: number;
         id?: string;
         function?: { name?: string; arguments?: string };
+        extra_content?: SchemaToolCallExtraContent;
       }>;
     };
   }): void {
@@ -199,6 +202,7 @@ class StreamProcessor {
             name: toolCallChunk.function?.name || '',
             arguments: toolCallChunk.function?.arguments || '',
           },
+          extra_content: toolCallChunk.extra_content,
         });
       } else {
         const existingToolCall = this.incompleteToolCalls.get(index)!;
@@ -214,6 +218,10 @@ class StreamProcessor {
         if (toolCallChunk.function?.arguments) {
           existingToolCall.function.arguments +=
             toolCallChunk.function.arguments;
+        }
+
+        if (toolCallChunk.extra_content) {
+          existingToolCall.extra_content = toolCallChunk.extra_content;
         }
       }
     }
@@ -233,13 +241,16 @@ class StreamProcessor {
         return;
       }
 
-      const completedToolCall = {
+      const completedToolCall: SchemaChatCompletionMessageToolCall = {
         id: toolCall.id,
         type: toolCall.type,
         function: {
           name: toolCall.function.name,
           arguments: toolCall.function.arguments,
         },
+        ...(toolCall.extra_content && {
+          extra_content: toolCall.extra_content,
+        }),
       };
 
       if (this.isMCPTool(toolCall.function.name)) {

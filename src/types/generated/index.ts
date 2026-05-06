@@ -208,7 +208,7 @@ export interface components {
     /** @description Message structure for provider requests */
     Message: {
       role: components['schemas']['MessageRole'];
-      content: string | components['schemas']['ContentPart'][];
+      content: components['schemas']['MessageContent'];
       tool_calls?: components['schemas']['ChatCompletionMessageToolCall'][];
       tool_call_id?: string;
       /** @description The reasoning content of the chunk message. */
@@ -216,6 +216,8 @@ export interface components {
       /** @description The reasoning of the chunk message. Same as reasoning_content. */
       reasoning?: string;
     };
+    /** @description Message content - either text or multimodal content parts */
+    MessageContent: string | components['schemas']['ContentPart'][];
     /** @description A content part within a multimodal message */
     ContentPart:
       | components['schemas']['TextContentPart']
@@ -402,16 +404,10 @@ export interface components {
       id: string;
       type: components['schemas']['ChatCompletionToolType'];
       function: components['schemas']['ChatCompletionMessageToolCallFunction'];
+      extra_content?: components['schemas']['ToolCallExtraContent'];
     };
     ChatCompletionChoice: {
-      /**
-       * @description The reason the model stopped generating tokens. This will be `stop` if the model hit a natural stop point or a provided stop sequence,
-       *     `length` if the maximum number of tokens specified in the request was reached,
-       *     `content_filter` if content was omitted due to a flag from our content filters,
-       *     `tool_calls` if the model called a tool.
-       * @enum {string}
-       */
-      finish_reason: ChatCompletionChoiceFinish_reason;
+      finish_reason: components['schemas']['FinishReason'];
       /** @description The index of the choice in the list of choices. */
       index: number;
       message: components['schemas']['Message'];
@@ -463,6 +459,27 @@ export interface components {
       /** @description The type of the tool. Currently, only `function` is supported. */
       type?: string;
       function?: components['schemas']['ChatCompletionMessageToolCallFunction'];
+      extra_content?: components['schemas']['ToolCallExtraContent'];
+    };
+    /**
+     * @description Provider-specific opaque data attached to a tool call. The contents are
+     *     not interpreted by the gateway, but must be echoed back verbatim on the
+     *     next request that references this tool call. Currently used by Google
+     *     Gemini extended-thinking models to carry the per-call `thought_signature`.
+     *     Other providers may ignore the field.
+     */
+    ToolCallExtraContent: {
+      /** @description Google Gemini-specific extra content. */
+      google?: {
+        /**
+         * @description Opaque signature returned with reasoning-enabled tool calls.
+         *     Must be echoed back verbatim in the next request that includes
+         *     this tool call, or Google will reject the request.
+         */
+        thought_signature?: string;
+      } & {
+        [key: string]: unknown;
+      };
     };
     ChatCompletionTokenLogprob: {
       /** @description The token. */
@@ -488,7 +505,7 @@ export interface components {
      *     `tool_calls` if the model called a tool.
      * @enum {string}
      */
-    FinishReason: ChatCompletionChoiceFinish_reason;
+    FinishReason: FinishReason;
     /**
      * @description Represents a streamed chunk of a chat completion response returned
      *     by the model, based on the provided input.
@@ -617,6 +634,7 @@ export type SchemaSsEvent = components['schemas']['SSEvent'];
 export type SchemaEndpoints = components['schemas']['Endpoints'];
 export type SchemaError = components['schemas']['Error'];
 export type SchemaMessage = components['schemas']['Message'];
+export type SchemaMessageContent = components['schemas']['MessageContent'];
 export type SchemaContentPart = components['schemas']['ContentPart'];
 export type SchemaTextContentPart = components['schemas']['TextContentPart'];
 export type SchemaImageContentPart = components['schemas']['ImageContentPart'];
@@ -651,6 +669,8 @@ export type SchemaChatCompletionStreamResponseDelta =
   components['schemas']['ChatCompletionStreamResponseDelta'];
 export type SchemaChatCompletionMessageToolCallChunk =
   components['schemas']['ChatCompletionMessageToolCallChunk'];
+export type SchemaToolCallExtraContent =
+  components['schemas']['ToolCallExtraContent'];
 export type SchemaChatCompletionTokenLogprob =
   components['schemas']['ChatCompletionTokenLogprob'];
 export type SchemaCreateChatCompletionStreamResponse =
@@ -868,6 +888,7 @@ export enum Provider {
   deepseek = 'deepseek',
   google = 'google',
   mistral = 'mistral',
+  moonshot = 'moonshot',
 }
 export enum ProviderAuthType {
   bearer = 'bearer',
@@ -904,7 +925,7 @@ export enum ImageURLDetail {
 export enum ChatCompletionToolType {
   function = 'function',
 }
-export enum ChatCompletionChoiceFinish_reason {
+export enum FinishReason {
   stop = 'stop',
   length = 'length',
   tool_calls = 'tool_calls',
