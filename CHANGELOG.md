@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.2](https://github.com/inference-gateway/typescript-sdk/compare/v0.8.1...v0.8.2) (2026-05-06)
+
+### 👷 CI
+
+* Grant id-token write permission for npm Trusted Publishing ([36b2e88](https://github.com/inference-gateway/typescript-sdk/commit/36b2e881313b4b5d73ba6479eb5c7e664d4dd291))
+
 ## [0.8.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.8.0...v0.8.1) (2026-05-06)
 
 ### 🐛 Bug Fixes
