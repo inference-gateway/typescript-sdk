@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.5](https://github.com/inference-gateway/typescript-sdk/compare/v0.8.4...v0.8.5) (2026-05-07)
+
+### 🔧 Miscellaneous
+
+* **openapi:** Sync vendored openapi.yaml with schemas@97599d4 ([#25](https://github.com/inference-gateway/typescript-sdk/issues/25)) ([0975a85](https://github.com/inference-gateway/typescript-sdk/commit/0975a85f33a612f5c5a3d57c769a12e199690a31)), closes [#24](https://github.com/inference-gateway/typescript-sdk/issues/24)
+
 ## [0.8.4](https://github.com/inference-gateway/typescript-sdk/compare/v0.8.3...v0.8.4) (2026-05-07)
 
 ### ♻️ Improvements
