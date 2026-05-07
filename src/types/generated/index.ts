@@ -411,6 +411,13 @@ export interface components {
       /** @description The index of the choice in the list of choices. */
       index: number;
       message: components['schemas']['Message'];
+      /** @description Log probability information for the choice. */
+      logprobs?: {
+        /** @description A list of message content tokens with log probability information. */
+        content: components['schemas']['ChatCompletionTokenLogprob'][];
+        /** @description A list of message refusal tokens with log probability information. */
+        refusal: components['schemas']['ChatCompletionTokenLogprob'][];
+      } | null;
     };
     ChatCompletionStreamChoice: {
       delta: components['schemas']['ChatCompletionStreamResponseDelta'];
