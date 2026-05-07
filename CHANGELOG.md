@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.4](https://github.com/inference-gateway/typescript-sdk/compare/v0.8.3...v0.8.4) (2026-05-07)
+
+### ♻️ Improvements
+
+* Rename all instances of deepseek-reasoner to deepseek-v4-pro ([cab55cc](https://github.com/inference-gateway/typescript-sdk/commit/cab55cc743d3a421efa1779ff576cbf4b6e70ca4))
+* Simplify conditions for triggering Claude Code and update system prompt instructions ([a20d49d](https://github.com/inference-gateway/typescript-sdk/commit/a20d49d008966f2e1c979cbf9e7bb2684b8fd4e4))
+* Update branch prefix quotes and enhance system prompt instructions in Claude Code workflow ([0c9b393](https://github.com/inference-gateway/typescript-sdk/commit/0c9b3939ef6a6f223d7f646bbf6780ebbe980aab))
+
 ## [0.8.3](https://github.com/inference-gateway/typescript-sdk/compare/v0.8.2...v0.8.3) (2026-05-06)
 
 ### 👷 CI
