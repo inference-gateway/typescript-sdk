@@ -16,7 +16,7 @@
     "intelligence"
   ],
   "author": "Inference Gateway Team",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "@inference-gateway/sdk": "^0.7.3",
     "axios": "^1.9.0",

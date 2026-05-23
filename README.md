@@ -306,4 +306,4 @@ about how to get involved. We welcome issues, questions, and pull requests.
 
 ## License
 
-This SDK is distributed under the MIT License, see [LICENSE](LICENSE) for more information.
+This SDK is distributed under the Apache 2.0 License, see [LICENSE](LICENSE) for more information.

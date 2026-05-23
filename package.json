@@ -22,7 +22,7 @@
     "deepseek"
   ],
   "author": "Eden Reich <eden.reich@gmail.com>",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "files": [
     "dist/src",
     "README.md",
