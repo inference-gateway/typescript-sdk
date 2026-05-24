@@ -216,7 +216,7 @@ If a Vite project exists:
 ### ✅ SUMMARY
 
 * Always work in /tmp
-* If a Vite project exists, enhance it — don't recreate
+* If a Vite project exists, enhance it - don't recreate
 * Use Context7 tools for everything: Vite decisions, patterns, and examples
 * Leverage Vite's speed and modern tooling advantages
 * Adhere to modern best practices in project setup, UI/UX, and code quality
