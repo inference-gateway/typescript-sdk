@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.6](https://github.com/inference-gateway/typescript-sdk/compare/v0.8.5...v0.8.6) (2026-05-26)
+
+### ♻️ Improvements
+
+* Remove outdated issue templates for bug reports, feature requests, and refactor requests ([8934605](https://github.com/inference-gateway/typescript-sdk/commit/89346056578177492d65b0db138266b2d3d16e63))
+
+### 👷 CI
+
+* **claude:** Add maintainer skill ([1deee78](https://github.com/inference-gateway/typescript-sdk/commit/1deee789df1136f81861ed80b76f261a14f7e6b9))
+* **dependabot:** Add dependabot to help with dependecies upgrades ([800d358](https://github.com/inference-gateway/typescript-sdk/commit/800d3580d06e72835f1168bdb1ed868dfe224508))
+* **deps-dev:** Bump the npm group with 5 updates ([#29](https://github.com/inference-gateway/typescript-sdk/issues/29)) ([9d639f0](https://github.com/inference-gateway/typescript-sdk/commit/9d639f094140c062928bd896eefd60d115c7ab8d))
+* **deps:** Bump anthropics/claude-code-action  v1.0.131 -> v1.0.133 ([d8069f9](https://github.com/inference-gateway/typescript-sdk/commit/d8069f97030409fc55f728a4565ee1647bd9f02f))
+* **deps:** Bump anthropics/claude-code-action ([#26](https://github.com/inference-gateway/typescript-sdk/issues/26)) ([6161706](https://github.com/inference-gateway/typescript-sdk/commit/6161706bda6c851f7db3308ac801e61f61a1a2ed))
+* **deps:** Bump anthropics/claude-code-action in the github-actions group ([#28](https://github.com/inference-gateway/typescript-sdk/issues/28)) ([be1d398](https://github.com/inference-gateway/typescript-sdk/commit/be1d3980c28a92cd9d37e532c92da125d9825f92))
+* **deps:** Update Claude Code Action to version 1.0.131 ([fe97f4c](https://github.com/inference-gateway/typescript-sdk/commit/fe97f4ce6b43d26abddc87e33c641cfbd221a971))
+* **deps:** Update claude-code-action to version 1.0.130 ([fa966dc](https://github.com/inference-gateway/typescript-sdk/commit/fa966dc61e7648129b0b444f5613c1fe622535f8))
+* Enable display report for Claude Code action ([c16adf1](https://github.com/inference-gateway/typescript-sdk/commit/c16adf1a63181332758e1b644bae76767407bf35))
+* Remove conventional-changelog-cli from semantic release installation ([fa16a49](https://github.com/inference-gateway/typescript-sdk/commit/fa16a49c40635781ef94d8171793bd004d05a274))
+* Update task installation method to use arduino/setup-task action ([9a3ddc8](https://github.com/inference-gateway/typescript-sdk/commit/9a3ddc8b2f13704a3432afc08286e00982ab3dde))
+
+### 🔧 Miscellaneous
+
+* **deps:** Bump dev dependecies ([2f15643](https://github.com/inference-gateway/typescript-sdk/commit/2f156433b5ef35d6554e3c795a9a8dc93b6e496a))
+* **deps:** Bump dev dependecies ([c3f1722](https://github.com/inference-gateway/typescript-sdk/commit/c3f1722a70c6af4f46bc605250eb2c27af50ce35))
+* **deps:** Bump dev dependecies ([57e6727](https://github.com/inference-gateway/typescript-sdk/commit/57e672795d6daa581ebfd11b24774d288b077098))
+* **deps:** Bump dev dependencies ([b082dde](https://github.com/inference-gateway/typescript-sdk/commit/b082ddeca7556b7551a1955e85805d75ad6a7b74))
+* **deps:** Update claude-code version to ^2.1.141 and infer flake to v0.109.8 ([483ced8](https://github.com/inference-gateway/typescript-sdk/commit/483ced8f3c6e4bd88fb55777b2dee8112635c88a))
+* **deps:** Update claude-code version to 2.1.141 and infer.flake to v0.109.11 ([237c6f2](https://github.com/inference-gateway/typescript-sdk/commit/237c6f2f8117364eecd104550cd3ce804e3b2881))
+* **docs:** Generate AGENTS.md file ([023f3bf](https://github.com/inference-gateway/typescript-sdk/commit/023f3bf5046a38244073fa6da8811c38b75d6e2c))
+* **docs:** Generate CLAUDE.md file ([2ce5947](https://github.com/inference-gateway/typescript-sdk/commit/2ce594796516206606fa5ff62fd438ed89c03806))
+* **docs:** Remove AGENTS.md and CLAUDE.md ([0b317ce](https://github.com/inference-gateway/typescript-sdk/commit/0b317ce6b40fd71a2663bee6b46a0165a47f7b29))
+* **flox:** Bump schema version ([e83fb95](https://github.com/inference-gateway/typescript-sdk/commit/e83fb957cea41b13fbde60edefdfa550370026f9))
+* **license:** Update license to Apache 2.0 ([e5b1a43](https://github.com/inference-gateway/typescript-sdk/commit/e5b1a43925a03a6272bec3da6dbfe36a25e4bde4))
+* Remove redundant comments ([4b967b9](https://github.com/inference-gateway/typescript-sdk/commit/4b967b9ebabc113f59f9262881c4488384b22ad2))
+* Replace em dashes with normal dashes ([c03cc17](https://github.com/inference-gateway/typescript-sdk/commit/c03cc176cd85a9ad8c53e94cc2d338ba788e1778))
+* Update create-github-app-token action to v3.2.0 ([4a34c40](https://github.com/inference-gateway/typescript-sdk/commit/4a34c406fd5a57bfd5db14d0572b82a9d8158645))
+
+### 📦 Miscellaneous
+
+* **deps-dev:** Bump the npm group with 5 updates ([#27](https://github.com/inference-gateway/typescript-sdk/issues/27)) ([39603e9](https://github.com/inference-gateway/typescript-sdk/commit/39603e934008713d763ff52a131ec455af10e6ae))
+
 ## [0.8.5](https://github.com/inference-gateway/typescript-sdk/compare/v0.8.4...v0.8.5) (2026-05-07)
 
 ### 🔧 Miscellaneous
