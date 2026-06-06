@@ -854,7 +854,7 @@ describe('InferenceGatewayClient', () => {
   });
 
   describe('withOptions', () => {
-    it('should create a new client with merged options', () => {
+    it('should create a new client with merged options', async () => {
       const originalClient = new InferenceGatewayClient({
         baseURL: 'http://localhost:8080/v1',
         apiKey: 'test-key',
@@ -873,7 +873,7 @@ describe('InferenceGatewayClient', () => {
         json: () => Promise.resolve({}),
       });
 
-      newClient.listModels();
+      await newClient.listModels();
 
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:8080/v1/models',
