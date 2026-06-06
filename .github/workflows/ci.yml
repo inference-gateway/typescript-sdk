@@ -33,3 +33,28 @@ jobs:
 
       - name: Test
         run: npm run test
+
+  test-coverage:
+    runs-on: ubuntu-24.04
+    name: Test (coverage)
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - uses: actions/setup-node@v6.4.0
+        with:
+          node-version-file: 'package.json'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run test:coverage
+      - if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: coverage-report
+          path: |
+            coverage/lcov.info
+            coverage/coverage-summary.json
+            coverage/lcov-report
+            coverage/*.html
+          retention-days: 14
+          if-no-files-found: warn
