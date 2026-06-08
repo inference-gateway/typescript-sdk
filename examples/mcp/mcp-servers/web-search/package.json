@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "axios": "^1.6.0",
+    "axios": "^1.16.0",
     "cheerio": "^1.0.0-rc.12",
     "cors": "^2.8.5",
     "duck-duck-scrape": "^2.2.7",
