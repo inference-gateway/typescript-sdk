@@ -739,7 +739,9 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['CreateChatCompletionResponse'];
-          'text/event-stream': components['schemas']['SSEvent'];
+          'text/event-stream':
+            | components['schemas']['SSEvent']
+            | components['schemas']['CreateChatCompletionStreamResponse'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -895,6 +897,7 @@ export enum Provider {
   deepseek = 'deepseek',
   google = 'google',
   mistral = 'mistral',
+  minimax = 'minimax',
   moonshot = 'moonshot',
 }
 export enum ProviderAuthType {
