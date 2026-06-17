@@ -1049,7 +1049,6 @@ Call the save-state tool now.`,
     try {
       console.log('📥 Attempting to restore state');
 
-      // Single LLM call to check both state and errors
       let restoredData: any = null;
       let errorData: any = null;
 
