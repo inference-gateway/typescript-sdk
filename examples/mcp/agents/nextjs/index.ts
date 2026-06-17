@@ -517,9 +517,7 @@ WORKFLOW: 1) Clarify requirements 2) Use Context7 for docs 3) Build in /tmp 4) F
         timestamp: new Date().toISOString(),
       };
 
-      console.log(
-        `💾 Saving state to memory for session: ${this.config.sessionId}`
-      );
+      console.log('💾 Saving state to memory');
 
       let toolCallDetected = false;
       let saveSuccessful = false;
@@ -604,9 +602,7 @@ Call save-state tool immediately with sessionId="${this.config.sessionId}" and t
         timestamp: new Date().toISOString(),
       };
 
-      console.log(
-        `💾 Forcing memory save for session: ${this.config.sessionId}`
-      );
+      console.log('💾 Forcing memory save');
 
       let toolCallDetected = false;
       let saveSuccessful = false;
@@ -739,9 +735,7 @@ Call the save-state tool now.`,
     if (!this.config.memoryEnabled) return false;
 
     try {
-      console.log(
-        `📥 Attempting to restore state for session: ${this.config.sessionId}`
-      );
+      console.log('📥 Attempting to restore state');
 
       let restoredData: any = null;
 

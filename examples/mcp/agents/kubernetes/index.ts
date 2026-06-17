@@ -184,9 +184,7 @@ class KubernetesAgent {
         lastError: errorRecord,
       };
 
-      console.log(
-        `🚨 Saving error state to memory for session: ${this.config.sessionId}`
-      );
+      console.log('🚨 Saving error state to memory');
 
       let toolCallDetected = false;
       let saveSuccessful = false;
@@ -270,9 +268,7 @@ Call save-error-state tool immediately with sessionId="${this.config.sessionId}"
     if (!this.config.memoryEnabled) return;
 
     try {
-      console.log(
-        `📥 Loading error history for session: ${this.config.sessionId}`
-      );
+      console.log('📥 Loading error history');
 
       let errorData: any = null;
 
@@ -833,9 +829,7 @@ WORKFLOW: 1) Clarify requirements 2) Use Context7 for K8s docs 3) Create manifes
         timestamp: new Date().toISOString(),
       };
 
-      console.log(
-        `💾 Saving state to memory for session: ${this.config.sessionId}`
-      );
+      console.log('💾 Saving state to memory');
 
       let toolCallDetected = false;
       let saveSuccessful = false;
@@ -920,9 +914,7 @@ Call save-state tool immediately with sessionId="${this.config.sessionId}" and t
         timestamp: new Date().toISOString(),
       };
 
-      console.log(
-        `💾 Forcing memory save for session: ${this.config.sessionId}`
-      );
+      console.log('💾 Forcing memory save');
 
       let toolCallDetected = false;
       let saveSuccessful = false;
@@ -1055,9 +1047,7 @@ Call the save-state tool now.`,
     if (!this.config.memoryEnabled) return;
 
     try {
-      console.log(
-        `📥 Attempting to restore state for session: ${this.config.sessionId}`
-      );
+      console.log('📥 Attempting to restore state');
 
       // Single LLM call to check both state and errors
       let restoredData: any = null;
