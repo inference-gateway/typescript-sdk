@@ -203,9 +203,7 @@ class MarketingAgent {
         lastError: errorRecord,
       };
 
-      console.log(
-        `🚨 Saving error state to memory for session: ${this.config.sessionId}`
-      );
+      console.log('🚨 Saving error state to memory');
 
       await this.config.client.streamChatCompletion(
         {
