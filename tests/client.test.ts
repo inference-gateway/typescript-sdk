@@ -1,14 +1,18 @@
 import { InferenceGatewayClient } from '@/client';
 import type {
+  SchemaCreateChatCompletionRequest,
   SchemaCreateChatCompletionResponse,
   SchemaListModelsResponse,
   SchemaListToolsResponse,
 } from '@/types/generated';
 import {
-  FinishReason,
+  ChatCompletionToolChoiceOptionOneOf0,
   ChatCompletionToolType,
+  CreateChatCompletionRequestReasoning_effort,
+  FinishReason,
   MessageRole,
   Provider,
+  ResponseFormatJsonSchemaType,
 } from '@/types/generated';
 import { TransformStream } from 'node:stream/web';
 import { TextEncoder } from 'node:util';
@@ -206,6 +210,110 @@ describe('InferenceGatewayClient', () => {
 
       const result = await client.createChatCompletion(mockRequest);
       expect(result).toEqual(mockResponse);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/chat/completions',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ ...mockRequest, stream: false }),
+        })
+      );
+    });
+
+    it('should forward the new optional request parameters', async () => {
+      const mockRequest: Omit<SchemaCreateChatCompletionRequest, 'stream'> = {
+        model: 'gpt-4o',
+        messages: [{ role: MessageRole.user, content: 'Hello' }],
+        max_completion_tokens: 256,
+        temperature: 0.7,
+        top_p: 0.9,
+        n: 1,
+        stop: ['\n\n', 'END'],
+        frequency_penalty: 0.5,
+        presence_penalty: -0.5,
+        seed: 42,
+        logprobs: true,
+        top_logprobs: 5,
+        logit_bias: { '50256': -100 },
+        user: 'end-user-123',
+        parallel_tool_calls: false,
+        reasoning_effort: CreateChatCompletionRequestReasoning_effort.medium,
+        tool_choice: ChatCompletionToolChoiceOptionOneOf0.required,
+      };
+
+      const mockResponse: SchemaCreateChatCompletionResponse = {
+        id: 'chatcmpl-789',
+        object: 'chat.completion',
+        created: 1677652288,
+        model: 'gpt-4o',
+        choices: [
+          {
+            index: 0,
+            message: { role: MessageRole.assistant, content: 'Hi!' },
+            finish_reason: FinishReason.stop,
+          },
+        ],
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      await client.createChatCompletion(mockRequest);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/chat/completions',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ ...mockRequest, stream: false }),
+        })
+      );
+    });
+
+    it('should support the oneOf unions: response_format, tool_choice, and stop', async () => {
+      const mockRequest: Omit<SchemaCreateChatCompletionRequest, 'stream'> = {
+        model: 'gpt-4o',
+        messages: [{ role: MessageRole.user, content: 'Weather?' }],
+        stop: 'STOP',
+        response_format: {
+          type: ResponseFormatJsonSchemaType.json_schema,
+          json_schema: {
+            name: 'weather',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+            },
+          },
+        },
+        tool_choice: {
+          type: ChatCompletionToolType.function,
+          function: { name: 'get_weather' },
+        },
+      };
+
+      const mockResponse: SchemaCreateChatCompletionResponse = {
+        id: 'chatcmpl-321',
+        object: 'chat.completion',
+        created: 1677652288,
+        model: 'gpt-4o',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: MessageRole.assistant,
+              content: '{"city":"NYC"}',
+            },
+            finish_reason: FinishReason.stop,
+          },
+        ],
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      await client.createChatCompletion(mockRequest);
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:8080/v1/chat/completions',
         expect.objectContaining({
