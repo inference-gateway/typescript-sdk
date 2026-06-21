@@ -2,6 +2,50 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.9.0...v0.10.0) (2026-06-21)
+
+### ✨ Features
+
+* regenerate SDK types for new chat completion params ([#120](https://github.com/inference-gateway/typescript-sdk/issues/120)) ([c58046c](https://github.com/inference-gateway/typescript-sdk/commit/c58046c4571b62712962b517fe8b140d021d0ec6)), closes [inference-gateway/schemas#71](https://github.com/inference-gateway/schemas/issues/71)
+
+### 🐛 Bug Fixes
+
+* **deps:** bump @babel/core to 7.29.7 for CVE-2026-49356 ([#116](https://github.com/inference-gateway/typescript-sdk/issues/116)) ([e18d472](https://github.com/inference-gateway/typescript-sdk/commit/e18d4725f7da37660c8640b205b42228adba2438))
+* **examples:** remove clear-text logging of session id ([#115](https://github.com/inference-gateway/typescript-sdk/issues/115)) ([7a71b6f](https://github.com/inference-gateway/typescript-sdk/commit/7a71b6fa77a53d166cdc31e9e315331c013c9fe1))
+
+### 👷 CI
+
+* **deps-dev:** bump the npm group with 3 updates ([#119](https://github.com/inference-gateway/typescript-sdk/issues/119)) ([9b5c51a](https://github.com/inference-gateway/typescript-sdk/commit/9b5c51ae67be93d46a711a0b3bbea5df6b64c14a))
+* **deps:** bump esbuild and tsx in /examples/chat ([#97](https://github.com/inference-gateway/typescript-sdk/issues/97)) ([e5d7c9b](https://github.com/inference-gateway/typescript-sdk/commit/e5d7c9b37ff0d70b58ddc5de57955beebc023bd5))
+* **deps:** bump form-data in /examples/mcp/agents/kubernetes ([#112](https://github.com/inference-gateway/typescript-sdk/issues/112)) ([7d38cf6](https://github.com/inference-gateway/typescript-sdk/commit/7d38cf60d52350cf3e6e20f444cd3058af52d9bd))
+* **deps:** bump form-data in /examples/mcp/agents/marketing ([#108](https://github.com/inference-gateway/typescript-sdk/issues/108)) ([b2f3774](https://github.com/inference-gateway/typescript-sdk/commit/b2f377429fc11a9b764a47378a2d3e6b02b62dd7))
+* **deps:** bump form-data in /examples/mcp/agents/nextjs ([#111](https://github.com/inference-gateway/typescript-sdk/issues/111)) ([dcbe1fe](https://github.com/inference-gateway/typescript-sdk/commit/dcbe1feaa241447c261516860e00a78876341386))
+* **deps:** bump form-data in /examples/mcp/agents/vite ([#110](https://github.com/inference-gateway/typescript-sdk/issues/110)) ([9a319bb](https://github.com/inference-gateway/typescript-sdk/commit/9a319bb6719cceacae8c5d844193a85b93aa071f))
+* **deps:** bump form-data in /examples/mcp/mcp-servers/brave-search ([#107](https://github.com/inference-gateway/typescript-sdk/issues/107)) ([365aec4](https://github.com/inference-gateway/typescript-sdk/commit/365aec450406e61d050fc719a8d867e2ff16e279))
+* **deps:** bump form-data in /examples/mcp/mcp-servers/web-search ([#103](https://github.com/inference-gateway/typescript-sdk/issues/103)) ([8235222](https://github.com/inference-gateway/typescript-sdk/commit/82352225a46d0fb4c3c890a1b1385ab1e5375606))
+* **deps:** bump hono in /examples/mcp/mcp-servers/brave-search ([#109](https://github.com/inference-gateway/typescript-sdk/issues/109)) ([2f7a95f](https://github.com/inference-gateway/typescript-sdk/commit/2f7a95f3a9fd9d6407a6f199ef17cf8a796be422))
+* **deps:** bump hono in /examples/mcp/mcp-servers/context7 ([#105](https://github.com/inference-gateway/typescript-sdk/issues/105)) ([5e43d6b](https://github.com/inference-gateway/typescript-sdk/commit/5e43d6b049798364b35278e945a3cbdf9f64c4d6))
+* **deps:** bump hono in /examples/mcp/mcp-servers/filesystem ([#106](https://github.com/inference-gateway/typescript-sdk/issues/106)) ([0712cb5](https://github.com/inference-gateway/typescript-sdk/commit/0712cb5782105043943afa723ff7ad7821ffcc14))
+* **deps:** bump hono in /examples/mcp/mcp-servers/memory ([#104](https://github.com/inference-gateway/typescript-sdk/issues/104)) ([295bf65](https://github.com/inference-gateway/typescript-sdk/commit/295bf65ceecf9c1c01511ef909c99ffbf108e88b))
+* **deps:** bump hono in /examples/mcp/mcp-servers/npm ([#101](https://github.com/inference-gateway/typescript-sdk/issues/101)) ([a993ed7](https://github.com/inference-gateway/typescript-sdk/commit/a993ed76c10f4259c850ea820f92f08f6698b6f6))
+* **deps:** bump hono in /examples/mcp/mcp-servers/web-search ([#102](https://github.com/inference-gateway/typescript-sdk/issues/102)) ([ed09d9b](https://github.com/inference-gateway/typescript-sdk/commit/ed09d9ba0146e57073e88f37851d6aeb28c2a38d))
+* **deps:** bump the github-actions group with 2 updates ([#118](https://github.com/inference-gateway/typescript-sdk/issues/118)) ([b979433](https://github.com/inference-gateway/typescript-sdk/commit/b9794333edec1e3fddf370ca31fe8bb11ae1bde4))
+* **deps:** bump undici in /examples/mcp/mcp-servers/web-search ([#123](https://github.com/inference-gateway/typescript-sdk/issues/123)) ([4227d26](https://github.com/inference-gateway/typescript-sdk/commit/4227d268f3681034cc0e5a7533a10d601d75caa6))
+* **deps:** upgrade actions/checkout from v6.0.3 to v7.0.0 across workflows ([97c353d](https://github.com/inference-gateway/typescript-sdk/commit/97c353d4d252557c12d29a3828dbe418b514b5fb))
+* **infer:** centralize infer.yml + sync .infer config ([#122](https://github.com/inference-gateway/typescript-sdk/issues/122)) ([2adfe4e](https://github.com/inference-gateway/typescript-sdk/commit/2adfe4e11da58e5f698189c5b777d0f97e3e0ba3))
+* update CI workflow to include permissions ([b248777](https://github.com/inference-gateway/typescript-sdk/commit/b248777aeb73a6f6cabe4322116aea564b30415d))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump claude-code 2.1.161 -> 2.1.170, claude-code-action v1.0.135 -> v1.0.142 ([#98](https://github.com/inference-gateway/typescript-sdk/issues/98)) ([1e4d837](https://github.com/inference-gateway/typescript-sdk/commit/1e4d837895dc2ff8cee2700bf758bbb2081529de))
+* **deps:** bump claude-code 2.1.170 -> 2.1.177, claude-code-action v1.0.142 -> v1.0.150 ([#100](https://github.com/inference-gateway/typescript-sdk/issues/100)) ([0e5b40b](https://github.com/inference-gateway/typescript-sdk/commit/0e5b40b7f683dcaae676dc84a1d2a2ff555cd11c))
+* **deps:** bump claude-code-action v1.0.150 -> v1.0.152 ([#121](https://github.com/inference-gateway/typescript-sdk/issues/121)) ([a2382e7](https://github.com/inference-gateway/typescript-sdk/commit/a2382e7d2b352c6314cff835dc3fdf4c8530e5be))
+* **deps:** bump infer CLI v0.121.0 -> v0.121.1, infer-action v0.12.1 -> v0.13.1 ([#99](https://github.com/inference-gateway/typescript-sdk/issues/99)) ([ded81af](https://github.com/inference-gateway/typescript-sdk/commit/ded81afaae1b18b97ccf500f30dc641c661627ac))
+* **deps:** bump infer CLI v0.121.1 -> v0.122.2, infer-action v0.15.1 -> v0.15.4 ([#124](https://github.com/inference-gateway/typescript-sdk/issues/124)) ([55d6243](https://github.com/inference-gateway/typescript-sdk/commit/55d62436aff7b9dcc3a57bf2fa9508435017f245))
+* **deps:** bump infer-action v0.13.1 -> v0.15.1 ([#113](https://github.com/inference-gateway/typescript-sdk/issues/113)) ([fefdf1e](https://github.com/inference-gateway/typescript-sdk/commit/fefdf1e8e76dcd412c662641f137c5ce97c41f34))
+* **deps:** override js-yaml to ^4.2.0 (CVE-2026-53550) ([#114](https://github.com/inference-gateway/typescript-sdk/issues/114)) ([d18bd27](https://github.com/inference-gateway/typescript-sdk/commit/d18bd276ecefa32772f06093b643f16dcaf630f6))
+* **deps:** update schema version and codex version in manifest files ([697be50](https://github.com/inference-gateway/typescript-sdk/commit/697be50cdf54791aa4e516587802286e4b6aa854))
+
 ## [0.9.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.8.6...v0.9.0) (2026-06-11)
 
 ### ✨ Features
