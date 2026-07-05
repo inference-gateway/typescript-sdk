@@ -66,6 +66,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/metrics': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Push metrics to the gateway (OTLP/HTTP)
+     * @description OTLP/HTTP metrics push endpoint. Accepts an OTLP ExportMetricsServiceRequest
+     *     encoded as protobuf or JSON. Only accessible when TELEMETRY_ENABLE and
+     *     TELEMETRY_METRICS_PUSH_ENABLE are enabled.
+     */
+    post: operations['pushMetrics'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/proxy/{provider}/{path}': {
     parameters: {
       query?: never;
@@ -903,6 +925,56 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  pushMetrics: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description OTLP ExportMetricsServiceRequest payload */
+    requestBody: {
+      content: {
+        'application/x-protobuf': string;
+        'application/json': Record<string, never>;
+      };
+    };
+    responses: {
+      /** @description OTLP ExportMetricsServiceResponse, possibly with partial success details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/x-protobuf': string;
+          'application/json': Record<string, never>;
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      /** @description Metrics push is not enabled */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Payload too large */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Unsupported content type */
+      415: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   proxyGet: {
     parameters: {
       query?: never;
@@ -1030,6 +1102,7 @@ export enum Provider {
   mistral = 'mistral',
   minimax = 'minimax',
   moonshot = 'moonshot',
+  nvidia = 'nvidia',
 }
 export enum ProviderAuthType {
   bearer = 'bearer',
