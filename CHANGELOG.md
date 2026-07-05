@@ -2,12 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.11.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.10.0...v0.11.0) (2026-07-05)
-
-### ✨ Features
-
-* add nvidia provider to generated Provider enum ([#131](https://github.com/inference-gateway/typescript-sdk/issues/131)) ([10774ea](https://github.com/inference-gateway/typescript-sdk/commit/10774ea2824c1c2f7e38f48e3a688044e67b2116))
-
 ## [0.10.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.9.0...v0.10.0) (2026-06-21)
 
 ### ✨ Features
