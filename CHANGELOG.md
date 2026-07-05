@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.11.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.10.0...v0.11.0) (2026-07-05)
+
 ## [0.10.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.9.0...v0.10.0) (2026-06-21)
 
 ### ✨ Features
