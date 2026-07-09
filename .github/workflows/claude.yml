@@ -52,6 +52,8 @@ jobs:
     with:
       language: "typescript"
       markdownlint: true
+      plugins: |
+        DietrichGebert/ponytail
       browser: ${{ inputs.browser || false }}
       prompt: ${{ inputs.prompt }}
     secrets: inherit
