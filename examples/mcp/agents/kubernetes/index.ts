@@ -93,7 +93,7 @@ class KubernetesAgent {
     });
 
     this.config.conversationHistory.push({
-      role: MessageRole.system,
+      role: MessageRole.System,
       content: this.getSystemPrompt(),
     });
   }
@@ -194,7 +194,7 @@ class KubernetesAgent {
           model: this.config.model,
           messages: [
             {
-              role: MessageRole.system,
+              role: MessageRole.System,
               content: `You are a memory manager handling error recovery. You MUST call the save-error-state tool immediately with the error details below.
 
 CRITICAL ERROR OCCURRED:
@@ -212,7 +212,7 @@ Error State: ${JSON.stringify(errorState)}
 Call save-error-state tool immediately with sessionId="${this.config.sessionId}" and the error state above.`,
             },
             {
-              role: MessageRole.user,
+              role: MessageRole.User,
               content: `URGENT: Save error state now using save-error-state tool for session "${this.config.sessionId}". Include full error context.`,
             },
           ],
@@ -277,11 +277,11 @@ Call save-error-state tool immediately with sessionId="${this.config.sessionId}"
           model: this.config.model,
           messages: [
             {
-              role: MessageRole.system,
+              role: MessageRole.System,
               content: `You have access to memory management tools. Check for and restore any saved error states for session "${this.config.sessionId}". If errors were previously recorded, provide details about what went wrong.`,
             },
             {
-              role: MessageRole.user,
+              role: MessageRole.User,
               content: `Check memory for previous errors in session "${this.config.sessionId}" and restore any error states found.`,
             },
           ],
@@ -562,7 +562,7 @@ WORKFLOW: 1) Clarify requirements 2) Use Context7 for K8s docs 3) Create manifes
       case 'clear':
         this.config.conversationHistory = [
           {
-            role: MessageRole.system,
+            role: MessageRole.System,
             content: this.getSystemPrompt(),
           },
         ];
@@ -623,7 +623,7 @@ WORKFLOW: 1) Clarify requirements 2) Use Context7 for K8s docs 3) Create manifes
     console.log('─'.repeat(60));
 
     this.config.conversationHistory.push({
-      role: MessageRole.user,
+      role: MessageRole.User,
       content: userInput,
     });
 
@@ -772,7 +772,7 @@ WORKFLOW: 1) Clarify requirements 2) Use Context7 for K8s docs 3) Create manifes
           // Add assistant response to conversation history
           if (assistantResponse.trim()) {
             this.config.conversationHistory.push({
-              role: MessageRole.assistant,
+              role: MessageRole.Assistant,
               content: assistantResponse,
             });
           }
@@ -839,7 +839,7 @@ WORKFLOW: 1) Clarify requirements 2) Use Context7 for K8s docs 3) Create manifes
           model: this.config.model,
           messages: [
             {
-              role: MessageRole.system,
+              role: MessageRole.System,
               content: `You are a memory manager. You MUST call the save-state tool now with the provided data. Don't explain - just call the tool immediately.
 
 SessionID: ${this.config.sessionId}
@@ -849,7 +849,7 @@ Context: ${context}
 Call save-state tool immediately with sessionId="${this.config.sessionId}" and the state object above.`,
             },
             {
-              role: MessageRole.user,
+              role: MessageRole.User,
               content: `Call save-state tool now with sessionId="${this.config.sessionId}"`,
             },
           ],
@@ -934,7 +934,7 @@ Call save-state tool immediately with sessionId="${this.config.sessionId}" and t
               model: this.config.model,
               messages: [
                 {
-                  role: MessageRole.system,
+                  role: MessageRole.System,
                   content: `You are a memory manager. You MUST call the save-state tool immediately. No explanations, no acknowledgments - just call the tool.
 
 CRITICAL: You MUST call save-state tool with these exact parameters:
@@ -945,7 +945,7 @@ CRITICAL: You MUST call save-state tool with these exact parameters:
 Call the save-state tool now.`,
                 },
                 {
-                  role: MessageRole.user,
+                  role: MessageRole.User,
                   content: `Call save-state tool immediately with sessionId="${this.config.sessionId}". Do not respond with text - only call the tool.`,
                 },
               ],
@@ -1057,11 +1057,11 @@ Call the save-state tool now.`,
           model: this.config.model,
           messages: [
             {
-              role: MessageRole.system,
+              role: MessageRole.System,
               content: `You have access to memory management tools. Quickly restore the saved state for session "${this.config.sessionId}" and check for any previous errors. Use the restore-state tool once.`,
             },
             {
-              role: MessageRole.user,
+              role: MessageRole.User,
               content: `Restore session state and error history for "${this.config.sessionId}" using restore-state tool.`,
             },
           ],

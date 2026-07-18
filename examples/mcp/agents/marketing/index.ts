@@ -90,7 +90,7 @@ class MarketingAgent {
     });
 
     this.config.conversationHistory.push({
-      role: MessageRole.system,
+      role: MessageRole.System,
       content: this.getSystemPrompt(),
     });
   }
@@ -210,7 +210,7 @@ class MarketingAgent {
           model: this.config.model,
           messages: [
             {
-              role: MessageRole.system,
+              role: MessageRole.System,
               content: `You are a memory manager handling error recovery. You MUST call the save-error-state tool immediately with the error details below.
 
 ERROR DETAILS:
@@ -223,7 +223,7 @@ ERROR DETAILS:
 CRITICAL: Call save-error-state tool NOW with this data.`,
             },
             {
-              role: MessageRole.user,
+              role: MessageRole.User,
               content: `Save error state for session ${this.config.sessionId}: ${JSON.stringify(errorState)}`,
             },
           ],
@@ -471,7 +471,7 @@ Ready for your marketing research request! 🚀
     }
 
     this.config.conversationHistory.push({
-      role: MessageRole.user,
+      role: MessageRole.User,
       content: userInput,
     });
 
@@ -518,7 +518,7 @@ Ready for your marketing research request! 🚀
 
               if (assistantResponse.trim()) {
                 this.config.conversationHistory.push({
-                  role: MessageRole.assistant,
+                  role: MessageRole.Assistant,
                   content: assistantResponse,
                 });
               }
@@ -543,7 +543,7 @@ Ready for your marketing research request! 🚀
         // Add assistant response to history
         if (response.trim()) {
           this.config.conversationHistory.push({
-            role: MessageRole.assistant,
+            role: MessageRole.Assistant,
             content: response,
           });
         }
