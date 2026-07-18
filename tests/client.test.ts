@@ -176,8 +176,8 @@ describe('InferenceGatewayClient', () => {
       const mockRequest = {
         model: 'gpt-4o',
         messages: [
-          { role: MessageRole.system, content: 'You are a helpful assistant' },
-          { role: MessageRole.user, content: 'Hello' },
+          { role: MessageRole.System, content: 'You are a helpful assistant' },
+          { role: MessageRole.User, content: 'Hello' },
         ],
       };
 
@@ -190,10 +190,10 @@ describe('InferenceGatewayClient', () => {
           {
             index: 0,
             message: {
-              role: MessageRole.assistant,
+              role: MessageRole.Assistant,
               content: 'Hello! How can I help you today?',
             },
-            finish_reason: FinishReason.stop,
+            finish_reason: FinishReason.Stop,
           },
         ],
         usage: {
@@ -222,7 +222,7 @@ describe('InferenceGatewayClient', () => {
     it('should forward the new optional request parameters', async () => {
       const mockRequest: Omit<SchemaCreateChatCompletionRequest, 'stream'> = {
         model: 'gpt-4o',
-        messages: [{ role: MessageRole.user, content: 'Hello' }],
+        messages: [{ role: MessageRole.User, content: 'Hello' }],
         max_completion_tokens: 256,
         temperature: 0.7,
         top_p: 0.9,
@@ -236,7 +236,7 @@ describe('InferenceGatewayClient', () => {
         logit_bias: { '50256': -100 },
         user: 'end-user-123',
         parallel_tool_calls: false,
-        reasoning_effort: CreateChatCompletionRequestReasoning_effort.medium,
+        reasoning_effort: CreateChatCompletionRequestReasoning_effort.Medium,
         tool_choice: ChatCompletionToolChoiceOptionOneOf0.required,
       };
 
@@ -248,8 +248,8 @@ describe('InferenceGatewayClient', () => {
         choices: [
           {
             index: 0,
-            message: { role: MessageRole.assistant, content: 'Hi!' },
-            finish_reason: FinishReason.stop,
+            message: { role: MessageRole.Assistant, content: 'Hi!' },
+            finish_reason: FinishReason.Stop,
           },
         ],
       };
@@ -272,7 +272,7 @@ describe('InferenceGatewayClient', () => {
     it('should support the oneOf unions: response_format, tool_choice, and stop', async () => {
       const mockRequest: Omit<SchemaCreateChatCompletionRequest, 'stream'> = {
         model: 'gpt-4o',
-        messages: [{ role: MessageRole.user, content: 'Weather?' }],
+        messages: [{ role: MessageRole.User, content: 'Weather?' }],
         stop: 'STOP',
         response_format: {
           type: ResponseFormatJsonSchemaType.json_schema,
@@ -300,10 +300,10 @@ describe('InferenceGatewayClient', () => {
           {
             index: 0,
             message: {
-              role: MessageRole.assistant,
+              role: MessageRole.Assistant,
               content: '{"city":"NYC"}',
             },
-            finish_reason: FinishReason.stop,
+            finish_reason: FinishReason.Stop,
           },
         ],
       };
@@ -326,7 +326,7 @@ describe('InferenceGatewayClient', () => {
     it('should create a chat completion with a specific provider', async () => {
       const mockRequest = {
         model: 'claude-3-opus-20240229',
-        messages: [{ role: MessageRole.user, content: 'Hello' }],
+        messages: [{ role: MessageRole.User, content: 'Hello' }],
       };
 
       const mockResponse: SchemaCreateChatCompletionResponse = {
@@ -338,10 +338,10 @@ describe('InferenceGatewayClient', () => {
           {
             index: 0,
             message: {
-              role: MessageRole.assistant,
+              role: MessageRole.Assistant,
               content: 'Hello! How can I assist you today?',
             },
-            finish_reason: FinishReason.stop,
+            finish_reason: FinishReason.Stop,
           },
         ],
         usage: {
@@ -375,7 +375,7 @@ describe('InferenceGatewayClient', () => {
     it('should handle streaming chat completions', async () => {
       const mockRequest = {
         model: 'gpt-4o',
-        messages: [{ role: MessageRole.user, content: 'Hello' }],
+        messages: [{ role: MessageRole.User, content: 'Hello' }],
       };
 
       const mockStream = new TransformStream();
@@ -433,7 +433,7 @@ describe('InferenceGatewayClient', () => {
     it('should handle streaming chat completions reasoning and content', async () => {
       const mockRequest = {
         model: 'gpt-4o',
-        messages: [{ role: MessageRole.user, content: 'Hello' }],
+        messages: [{ role: MessageRole.User, content: 'Hello' }],
       };
       const mockStream = new TransformStream();
       const writer = mockStream.writable.getWriter();
@@ -497,7 +497,7 @@ describe('InferenceGatewayClient', () => {
         model: 'gpt-4o',
         messages: [
           {
-            role: MessageRole.user,
+            role: MessageRole.User,
             content: 'What is the weather in San Francisco?',
           },
         ],
@@ -578,7 +578,7 @@ describe('InferenceGatewayClient', () => {
         model: 'gemini-2.5-pro',
         messages: [
           {
-            role: MessageRole.user,
+            role: MessageRole.User,
             content: 'What is the weather in San Francisco?',
           },
         ],
@@ -642,7 +642,7 @@ describe('InferenceGatewayClient', () => {
     it('should handle errors in streaming chat completions', async () => {
       const mockRequest = {
         model: 'gpt-4o',
-        messages: [{ role: MessageRole.user, content: 'Hello' }],
+        messages: [{ role: MessageRole.User, content: 'Hello' }],
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -665,7 +665,7 @@ describe('InferenceGatewayClient', () => {
     it('should handle streaming chat completions with usage metrics', async () => {
       const mockRequest = {
         model: 'gpt-4o',
-        messages: [{ role: MessageRole.user, content: 'Hello' }],
+        messages: [{ role: MessageRole.User, content: 'Hello' }],
       };
 
       const mockStream = new TransformStream();
@@ -731,7 +731,7 @@ describe('InferenceGatewayClient', () => {
     it('should handle streaming chat completions with reasoning field', async () => {
       const mockRequest = {
         model: 'groq/deepseek-distilled-llama-3.1-70b',
-        messages: [{ role: MessageRole.user, content: 'Hello' }],
+        messages: [{ role: MessageRole.User, content: 'Hello' }],
       };
       const mockStream = new TransformStream();
       const writer = mockStream.writable.getWriter();
@@ -791,7 +791,7 @@ describe('InferenceGatewayClient', () => {
     it('should handle streaming chat completions with reasoning_content (DeepSeek)', async () => {
       const mockRequest = {
         model: 'deepseek/deepseek-v4-pro',
-        messages: [{ role: MessageRole.user, content: 'Hello' }],
+        messages: [{ role: MessageRole.User, content: 'Hello' }],
       };
       const mockStream = new TransformStream();
       const writer = mockStream.writable.getWriter();
@@ -853,7 +853,7 @@ describe('InferenceGatewayClient', () => {
     it('should handle streaming chat completions with reasoning field (Groq)', async () => {
       const mockRequest = {
         model: 'llama-3.1-70b-versatile',
-        messages: [{ role: MessageRole.user, content: 'Hello' }],
+        messages: [{ role: MessageRole.User, content: 'Hello' }],
       };
       const mockStream = new TransformStream();
       const writer = mockStream.writable.getWriter();
