@@ -46,6 +46,33 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/responses': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create a model response
+     * @description Creates a model response using the OpenAI-compatible Responses API.
+     *     The request accepts either a single text input or a list of input
+     *     items (allowing batched, multi-turn input in one request), and the
+     *     result can be streamed to the client as it is generated.
+     *
+     *     Not every provider implements the Responses API. Requests routed to a
+     *     provider that does not support it return `400 Bad Request` with an
+     *     explanatory error message; use `/chat/completions` for those providers.
+     */
+    post: operations['createResponse'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/mcp/tools': {
     parameters: {
       query?: never;
@@ -218,6 +245,7 @@ export interface components {
     Endpoints: {
       models: string;
       chat: string;
+      responses?: string;
     };
     Error: {
       error?: string;
@@ -684,6 +712,379 @@ export interface components {
        */
       reasoning_format?: string;
     };
+    /** @description Request body for creating a model response via the Responses API. */
+    CreateResponseRequest: {
+      /** @description Model ID used to generate the response. */
+      model: string;
+      input: components['schemas']['ResponseInput'];
+      /** @description A system (or developer) message inserted into the model's context. When used with `previous_response_id`, instructions from previous responses are not carried over. */
+      instructions?: string | null;
+      /** @description An upper bound for the number of tokens that can be generated for a response, including visible output tokens and reasoning tokens. */
+      max_output_tokens?: number | null;
+      /**
+       * @description If set to true, the model response data is streamed to the client as it is generated using [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).
+       * @default false
+       */
+      stream?: boolean;
+      /**
+       * Format: float
+       * @description What sampling temperature to use, between 0 and 2. Higher values make the output more random; lower values make it more focused.
+       * @default 1
+       */
+      temperature?: number | null;
+      /**
+       * Format: float
+       * @description An alternative to sampling with temperature, called nucleus sampling, where the model considers the tokens with `top_p` probability mass.
+       * @default 1
+       */
+      top_p?: number | null;
+      /** @description An array of tools the model may call while generating a response. */
+      tools?: components['schemas']['ResponseTool'][];
+      tool_choice?: components['schemas']['ResponseToolChoice'];
+      reasoning?: components['schemas']['ResponseReasoning'];
+      text?: components['schemas']['ResponseTextConfig'];
+      /** @description The unique ID of the previous response to the model. Use this to create multi-turn conversations. */
+      previous_response_id?: string | null;
+      /**
+       * @description Whether to store the generated model response for later retrieval.
+       * @default true
+       */
+      store?: boolean;
+      /**
+       * @description Whether to run the model response in the background. Useful for long-running or batched requests.
+       * @default false
+       */
+      background?: boolean;
+      /**
+       * @description Whether to allow the model to run tool calls in parallel.
+       * @default true
+       */
+      parallel_tool_calls?: boolean;
+      /** @description Set of up to 16 key-value pairs that can be attached to the object and returned when retrieving the response. */
+      metadata?: {
+        [key: string]: string;
+      };
+      /** @description A stable identifier for your end-users, used to help detect and prevent abuse. */
+      user?: string;
+    };
+    /** @description Text, image, or file inputs to the model. Either a single text prompt or a list of input items representing a (possibly batched) conversation. */
+    ResponseInput: string | components['schemas']['ResponseInputItem'][];
+    /** @description A single input item. Most commonly an input message with a role and content. */
+    ResponseInputItem: {
+      /**
+       * @description The type of the input item. Defaults to `message`.
+       * @default message
+       */
+      type?: string;
+      role: components['schemas']['ResponseRole'];
+      content: components['schemas']['ResponseInputMessageContent'];
+    };
+    /**
+     * @description The role of the message input.
+     * @enum {string}
+     */
+    ResponseRole: ResponseRole;
+    /** @description Text or multimodal content for an input message. Either a string or a list of content parts. */
+    ResponseInputMessageContent:
+      string | components['schemas']['ResponseInputContentPart'][];
+    /** @description A content part within an input message. */
+    ResponseInputContentPart:
+      | components['schemas']['ResponseInputText']
+      | components['schemas']['ResponseInputImage'];
+    /** @description A text input to the model. */
+    ResponseInputText: {
+      /**
+       * @description The type of the input item. Always `input_text`.
+       * @enum {string}
+       */
+      type: ResponseInputTextType;
+      /** @description The text input to the model. */
+      text: string;
+    };
+    /** @description An image input to the model. */
+    ResponseInputImage: {
+      /**
+       * @description The type of the input item. Always `input_image`.
+       * @enum {string}
+       */
+      type: ResponseInputImageType;
+      /** @description The URL of the image (data URLs supported). */
+      image_url?: string;
+      /**
+       * @description The detail level of the image to send to the model.
+       * @default auto
+       * @enum {string}
+       */
+      detail?: ResponseInputImageDetail;
+    };
+    /** @description A tool the model may call. Only function tools are modeled here. Note the Responses API uses a flattened function tool shape (`name`, `description`, and `parameters` at the top level) rather than nesting them under a `function` object as `/chat/completions` does. */
+    ResponseTool: {
+      /**
+       * @description The type of the tool. Currently only `function`.
+       * @enum {string}
+       */
+      type: ResponseToolType;
+      /** @description The name of the function to call. */
+      name: string;
+      /** @description A description of the function, used by the model to decide when and how to call it. */
+      description?: string;
+      parameters?: components['schemas']['FunctionParameters'];
+      /**
+       * @description Whether to enforce strict parameter validation.
+       * @default false
+       */
+      strict?: boolean;
+    };
+    /** @description How the model should select which tool (or tools) to use. Either a mode string (`none`, `auto`, `required`) or an object forcing a specific tool. */
+    ResponseToolChoice:
+      | ChatCompletionToolChoiceOptionOneOf0
+      | {
+          /** @enum {string} */
+          type: ResponseToolChoiceOneOf1Type;
+          name: string;
+        };
+    /** @description Configuration options for reasoning models. */
+    ResponseReasoning: {
+      /**
+       * @description Constrains the effort on reasoning for reasoning models. Reducing effort can result in faster responses and fewer reasoning tokens.
+       * @default medium
+       * @enum {string|null}
+       */
+      effort?: ResponseReasoningEffort;
+      /**
+       * @description A summary of the reasoning performed by the model, useful for debugging and understanding the model's reasoning process.
+       * @enum {string|null}
+       */
+      summary?: ResponseReasoningSummary;
+    };
+    /** @description Configuration options for a text response from the model. Can be plain text or structured JSON data. */
+    ResponseTextConfig: {
+      /** @description An object specifying the format that the model must output. */
+      format?: {
+        /**
+         * @description The type of response format being defined.
+         * @enum {string}
+         */
+        type: ResponseTextConfigFormatType;
+        /** @description The name of the response format (used with `json_schema`). */
+        name?: string;
+        schema?: components['schemas']['FunctionParameters'];
+        /**
+         * @description Whether to enable strict schema adherence.
+         * @default false
+         */
+        strict?: boolean;
+      };
+    };
+    /** @description Represents a model response returned by the Responses API. */
+    Response: {
+      /** @description Unique identifier for this response. */
+      id: string;
+      /** @description The object type, which is always `response`. */
+      object: string;
+      /**
+       * Format: int64
+       * @description Unix timestamp (in seconds) of when the response was created.
+       */
+      created_at: number;
+      status: components['schemas']['ResponseStatus'];
+      /** @description The model used to generate the response. */
+      model: string;
+      /** @description An array of content items generated by the model. */
+      output: components['schemas']['ResponseOutputItem'][];
+      error?: components['schemas']['ResponseError'];
+      incomplete_details?: components['schemas']['ResponseIncompleteDetails'];
+      /** @description The system/developer message used to generate the response. */
+      instructions?: string | null;
+      /** @description An upper bound for the number of generated tokens. */
+      max_output_tokens?: number | null;
+      /** @description The unique ID of the previous response, if any. */
+      previous_response_id?: string | null;
+      reasoning?: components['schemas']['ResponseReasoning'];
+      /** Format: float */
+      temperature?: number | null;
+      /** Format: float */
+      top_p?: number | null;
+      tool_choice?: components['schemas']['ResponseToolChoice'];
+      tools?: components['schemas']['ResponseTool'][];
+      text?: components['schemas']['ResponseTextConfig'];
+      metadata?: {
+        [key: string]: string;
+      };
+      usage?: components['schemas']['ResponseUsage'];
+    };
+    /**
+     * @description The status of the response generation.
+     * @enum {string}
+     */
+    ResponseStatus: ResponseStatus;
+    /** @description An error object returned when the model fails to generate a response. */
+    ResponseError: {
+      /** @description The error code for the response. */
+      code: string;
+      /** @description A human-readable description of the error. */
+      message: string;
+    } | null;
+    /** @description Details about why the response is incomplete. */
+    ResponseIncompleteDetails: {
+      /** @description The reason why the response is incomplete. */
+      reason?: string;
+    } | null;
+    /** @description An output item generated by the model: an output message, a function tool call, or a reasoning item. */
+    ResponseOutputItem:
+      | components['schemas']['ResponseOutputMessage']
+      | components['schemas']['ResponseFunctionToolCall']
+      | components['schemas']['ResponseReasoningItem'];
+    /** @description An output message from the model. */
+    ResponseOutputMessage: {
+      /**
+       * @description The type of the output item. Always `message`.
+       * @enum {string}
+       */
+      type: ResponseOutputMessageType;
+      /** @description The unique ID of the output message. */
+      id: string;
+      /**
+       * @description The role of the output message. Always `assistant`.
+       * @enum {string}
+       */
+      role: ResponseOutputMessageRole;
+      /**
+       * @description The status of the message.
+       * @enum {string}
+       */
+      status?: ResponseOutputMessageStatus;
+      content: components['schemas']['ResponseOutputContent'][];
+    };
+    /** @description A content part of an output message. */
+    ResponseOutputContent:
+      | components['schemas']['ResponseOutputText']
+      | components['schemas']['ResponseOutputRefusal'];
+    /** @description A text output from the model. */
+    ResponseOutputText: {
+      /**
+       * @description The type of the output text. Always `output_text`.
+       * @enum {string}
+       */
+      type: ResponseOutputTextType;
+      /** @description The text output from the model. */
+      text: string;
+    };
+    /** @description A refusal generated by the model. */
+    ResponseOutputRefusal: {
+      /**
+       * @description The type of the refusal. Always `refusal`.
+       * @enum {string}
+       */
+      type: ResponseOutputRefusalType;
+      /** @description The refusal explanation from the model. */
+      refusal: string;
+    };
+    /** @description A tool call to a function generated by the model. */
+    ResponseFunctionToolCall: {
+      /**
+       * @description The type of the output item. Always `function_call`.
+       * @enum {string}
+       */
+      type: ResponseFunctionToolCallType;
+      /** @description The unique ID of the function tool call. */
+      id?: string;
+      /** @description The unique ID of the function tool call generated by the model, used to associate the call with its output. */
+      call_id: string;
+      /** @description The name of the function to run. */
+      name: string;
+      /** @description A JSON string of the arguments to pass to the function. */
+      arguments: string;
+      /**
+       * @description The status of the function tool call.
+       * @enum {string}
+       */
+      status?: ResponseOutputMessageStatus;
+    };
+    /** @description A reasoning item describing the model's chain of thought. */
+    ResponseReasoningItem: {
+      /**
+       * @description The type of the output item. Always `reasoning`.
+       * @enum {string}
+       */
+      type: ResponseReasoningItemType;
+      /** @description The unique ID of the reasoning item. */
+      id: string;
+      /** @description Reasoning summary content. */
+      summary: components['schemas']['ResponseReasoningSummaryPart'][];
+      /**
+       * @description The status of the reasoning item.
+       * @enum {string}
+       */
+      status?: ResponseOutputMessageStatus;
+    };
+    /** @description A summary part of a reasoning item. */
+    ResponseReasoningSummaryPart: {
+      /**
+       * @description The type of the summary. Always `summary_text`.
+       * @enum {string}
+       */
+      type: ResponseReasoningSummaryPartType;
+      /** @description A summary of the reasoning output from the model. */
+      text: string;
+    };
+    /** @description Token usage details for the response. */
+    ResponseUsage: {
+      /**
+       * Format: int64
+       * @description The number of input tokens.
+       * @default 0
+       */
+      input_tokens: number;
+      /** @description A detailed breakdown of the input tokens. */
+      input_tokens_details?: {
+        /**
+         * Format: int64
+         * @description The number of tokens retrieved from the cache.
+         * @default 0
+         */
+        cached_tokens?: number;
+      };
+      /**
+       * Format: int64
+       * @description The number of output tokens.
+       * @default 0
+       */
+      output_tokens: number;
+      /** @description A detailed breakdown of the output tokens. */
+      output_tokens_details?: {
+        /**
+         * Format: int64
+         * @description The number of reasoning tokens.
+         * @default 0
+         */
+        reasoning_tokens?: number;
+      };
+      /**
+       * Format: int64
+       * @description The total number of tokens used (input + output).
+       * @default 0
+       */
+      total_tokens: number;
+    };
+    /** @description A server-sent event emitted while streaming a response. The Responses API emits a sequence of typed events (for example `response.created`, `response.output_text.delta`, and `response.completed`). This schema models the common event envelope; which fields are populated depends on the event `type`. */
+    ResponseStreamEvent: {
+      /** @description The type of the streamed event, for example `response.output_text.delta` or `response.completed`. */
+      type: string;
+      /** @description The sequence number of this event. */
+      sequence_number?: number;
+      response?: components['schemas']['Response'];
+      /** @description The ID of the output item this event relates to. */
+      item_id?: string;
+      /** @description The index of the output item in the response's output array. */
+      output_index?: number;
+      /** @description The index of the content part within the output item. */
+      content_index?: number;
+      /** @description The incremental text delta for `*.delta` events. */
+      delta?: string;
+      /** @description The finalized text for `*.done` events. */
+      text?: string;
+    };
     Config: unknown;
   };
   responses: {
@@ -723,6 +1124,24 @@ export interface components {
         /**
          * @example {
          *       "error": "MCP tools endpoint is not exposed. Set EXPOSE_MCP=true to enable."
+         *     }
+         */
+        'application/json': components['schemas']['Error'];
+      };
+    };
+    /**
+     * @description The selected provider does not implement the Responses API. The
+     *     gateway returns this when a request is routed to a provider without
+     *     Responses support.
+     */
+    ResponsesNotSupported: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": "The Responses API is not supported by this provider yet."
          *     }
          */
         'application/json': components['schemas']['Error'];
@@ -770,6 +1189,15 @@ export interface components {
     CreateChatCompletionRequest: {
       content: {
         'application/json': components['schemas']['CreateChatCompletionRequest'];
+      };
+    };
+    /**
+     * @description Request payload for the Responses API. Mirrors the OpenAI
+     *     `POST /v1/responses` request body.
+     */
+    CreateResponseRequest: {
+      content: {
+        'application/json': components['schemas']['CreateResponseRequest'];
       };
     };
   };
@@ -835,17 +1263,64 @@ export type SchemaChatCompletionTokenLogprob =
   components['schemas']['ChatCompletionTokenLogprob'];
 export type SchemaCreateChatCompletionStreamResponse =
   components['schemas']['CreateChatCompletionStreamResponse'];
+export type SchemaCreateResponseRequest =
+  components['schemas']['CreateResponseRequest'];
+export type SchemaResponseInput = components['schemas']['ResponseInput'];
+export type SchemaResponseInputItem =
+  components['schemas']['ResponseInputItem'];
+export type SchemaResponseInputMessageContent =
+  components['schemas']['ResponseInputMessageContent'];
+export type SchemaResponseInputContentPart =
+  components['schemas']['ResponseInputContentPart'];
+export type SchemaResponseInputText =
+  components['schemas']['ResponseInputText'];
+export type SchemaResponseInputImage =
+  components['schemas']['ResponseInputImage'];
+export type SchemaResponseTool = components['schemas']['ResponseTool'];
+export type SchemaResponseToolChoice =
+  components['schemas']['ResponseToolChoice'];
+export type SchemaResponseReasoning =
+  components['schemas']['ResponseReasoning'];
+export type SchemaResponseTextConfig =
+  components['schemas']['ResponseTextConfig'];
+export type SchemaResponse = components['schemas']['Response'];
+export type SchemaResponseError = components['schemas']['ResponseError'];
+export type SchemaResponseIncompleteDetails =
+  components['schemas']['ResponseIncompleteDetails'];
+export type SchemaResponseOutputItem =
+  components['schemas']['ResponseOutputItem'];
+export type SchemaResponseOutputMessage =
+  components['schemas']['ResponseOutputMessage'];
+export type SchemaResponseOutputContent =
+  components['schemas']['ResponseOutputContent'];
+export type SchemaResponseOutputText =
+  components['schemas']['ResponseOutputText'];
+export type SchemaResponseOutputRefusal =
+  components['schemas']['ResponseOutputRefusal'];
+export type SchemaResponseFunctionToolCall =
+  components['schemas']['ResponseFunctionToolCall'];
+export type SchemaResponseReasoningItem =
+  components['schemas']['ResponseReasoningItem'];
+export type SchemaResponseReasoningSummaryPart =
+  components['schemas']['ResponseReasoningSummaryPart'];
+export type SchemaResponseUsage = components['schemas']['ResponseUsage'];
+export type SchemaResponseStreamEvent =
+  components['schemas']['ResponseStreamEvent'];
 export type SchemaConfig = components['schemas']['Config'];
 export type ResponseBadRequest = components['responses']['BadRequest'];
 export type ResponseUnauthorized = components['responses']['Unauthorized'];
 export type ResponseInternalError = components['responses']['InternalError'];
 export type ResponseMcpNotExposed = components['responses']['MCPNotExposed'];
+export type ResponseResponsesNotSupported =
+  components['responses']['ResponsesNotSupported'];
 export type ResponseProviderResponse =
   components['responses']['ProviderResponse'];
 export type RequestBodyProviderRequest =
   components['requestBodies']['ProviderRequest'];
 export type RequestBodyCreateChatCompletionRequest =
   components['requestBodies']['CreateChatCompletionRequest'];
+export type RequestBodyCreateResponseRequest =
+  components['requestBodies']['CreateResponseRequest'];
 export type $defs = Record<string, never>;
 export interface operations {
   listModels: {
@@ -898,6 +1373,35 @@ export interface operations {
         };
       };
       400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createResponse: {
+    parameters: {
+      query?: {
+        /** @description Specific provider to use (default determined by model) */
+        provider?: components['schemas']['Provider'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: components['requestBodies']['CreateResponseRequest'];
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Response'];
+          'text/event-stream':
+            | components['schemas']['SSEvent']
+            | components['schemas']['ResponseStreamEvent'];
+        };
+      };
+      400: components['responses']['ResponsesNotSupported'];
       401: components['responses']['Unauthorized'];
       500: components['responses']['InternalError'];
     };
@@ -1093,6 +1597,7 @@ export enum Provider {
   ollama = 'ollama',
   ollama_cloud = 'ollama_cloud',
   groq = 'groq',
+  llamacpp = 'llamacpp',
   openai = 'openai',
   cloudflare = 'cloudflare',
   cohere = 'cohere',
@@ -1103,6 +1608,7 @@ export enum Provider {
   minimax = 'minimax',
   moonshot = 'moonshot',
   nvidia = 'nvidia',
+  zai = 'zai',
 }
 export enum ProviderAuthType {
   bearer = 'bearer',
@@ -1120,10 +1626,10 @@ export enum SSEventEvent {
   stream_end = 'stream-end',
 }
 export enum MessageRole {
-  system = 'system',
-  user = 'user',
-  assistant = 'assistant',
-  tool = 'tool',
+  System = 'system',
+  User = 'user',
+  Assistant = 'assistant',
+  Tool = 'tool',
 }
 export enum TextContentPartType {
   text = 'text',
@@ -1132,18 +1638,18 @@ export enum ImageContentPartType {
   image_url = 'image_url',
 }
 export enum ImageURLDetail {
-  auto = 'auto',
-  low = 'low',
-  high = 'high',
+  ImageURLDetailAuto = 'auto',
+  ImageURLDetailLow = 'low',
+  ImageURLDetailHigh = 'high',
 }
 export enum ChatCompletionToolType {
   function = 'function',
 }
 export enum CreateChatCompletionRequestReasoning_effort {
-  minimal = 'minimal',
-  low = 'low',
-  medium = 'medium',
-  high = 'high',
+  Minimal = 'minimal',
+  Low = 'low',
+  Medium = 'medium',
+  High = 'high',
 }
 export enum ResponseFormatJsonObjectType {
   json_object = 'json_object',
@@ -1157,9 +1663,82 @@ export enum ChatCompletionToolChoiceOptionOneOf0 {
   required = 'required',
 }
 export enum FinishReason {
-  stop = 'stop',
-  length = 'length',
-  tool_calls = 'tool_calls',
-  content_filter = 'content_filter',
-  function_call = 'function_call',
+  Stop = 'stop',
+  Length = 'length',
+  ToolCalls = 'tool_calls',
+  ContentFilter = 'content_filter',
+  FunctionCall = 'function_call',
+}
+export enum ResponseRole {
+  ResponseRoleUser = 'user',
+  ResponseRoleAssistant = 'assistant',
+  ResponseRoleSystem = 'system',
+  ResponseRoleDeveloper = 'developer',
+}
+export enum ResponseInputTextType {
+  input_text = 'input_text',
+}
+export enum ResponseInputImageType {
+  input_image = 'input_image',
+}
+export enum ResponseInputImageDetail {
+  ResponseInputImageDetailAuto = 'auto',
+  ResponseInputImageDetailLow = 'low',
+  ResponseInputImageDetailHigh = 'high',
+}
+export enum ResponseToolType {
+  ResponseToolTypeFunction = 'function',
+}
+export enum ResponseToolChoiceOneOf1Type {
+  ResponseToolChoiceTypeFunction = 'function',
+}
+export enum ResponseReasoningEffort {
+  ResponseReasoningEffortMinimal = 'minimal',
+  ResponseReasoningEffortLow = 'low',
+  ResponseReasoningEffortMedium = 'medium',
+  ResponseReasoningEffortHigh = 'high',
+}
+export enum ResponseReasoningSummary {
+  auto = 'auto',
+  concise = 'concise',
+  detailed = 'detailed',
+}
+export enum ResponseTextConfigFormatType {
+  ResponseTextConfigFormatTypeText = 'text',
+  ResponseTextConfigFormatTypeJSONSchema = 'json_schema',
+  ResponseTextConfigFormatTypeJSONObject = 'json_object',
+}
+export enum ResponseStatus {
+  completed = 'completed',
+  failed = 'failed',
+  in_progress = 'in_progress',
+  cancelled = 'cancelled',
+  queued = 'queued',
+  incomplete = 'incomplete',
+}
+export enum ResponseOutputMessageType {
+  message = 'message',
+}
+export enum ResponseOutputMessageRole {
+  ResponseOutputMessageRoleAssistant = 'assistant',
+}
+export enum ResponseOutputMessageStatus {
+  in_progress = 'in_progress',
+  completed = 'completed',
+  incomplete = 'incomplete',
+}
+export enum ResponseOutputTextType {
+  output_text = 'output_text',
+}
+export enum ResponseOutputRefusalType {
+  refusal = 'refusal',
+}
+export enum ResponseFunctionToolCallType {
+  ResponseFunctionToolCallTypeFunctionCall = 'function_call',
+}
+export enum ResponseReasoningItemType {
+  reasoning = 'reasoning',
+}
+export enum ResponseReasoningSummaryPartType {
+  summary_text = 'summary_text',
 }
