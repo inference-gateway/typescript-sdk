@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.12.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.12.0...v0.12.1) (2026-07-18)
+
+### ♻️ Improvements
+
+* **examples:** adopt PascalCase enums and bump sdk to 0.12.0 ([#153](https://github.com/inference-gateway/typescript-sdk/issues/153)) ([46bfacd](https://github.com/inference-gateway/typescript-sdk/commit/46bfacdf46255e9459f35b512847808a3d4bb84f))
+
 ## [0.12.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.11.0...v0.12.0) (2026-07-18)
 
 ### ✨ Features
