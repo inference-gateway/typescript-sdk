@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.12.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.11.0...v0.12.0) (2026-07-18)
+
+### ✨ Features
+
+* add llamacpp provider support ([#151](https://github.com/inference-gateway/typescript-sdk/issues/151)) ([480a5df](https://github.com/inference-gateway/typescript-sdk/commit/480a5dfac652e29974653dde194c1a11d256c2bd))
+
+### 👷 CI
+
+* **claude:** centralize claude.yml via reusable workflow ([#145](https://github.com/inference-gateway/typescript-sdk/issues/145)) ([8c5b5db](https://github.com/inference-gateway/typescript-sdk/commit/8c5b5db164c482042ed2d48090bf7ed850093d6c))
+* **deps-dev:** bump the npm group with 4 updates ([#143](https://github.com/inference-gateway/typescript-sdk/issues/143)) ([193f693](https://github.com/inference-gateway/typescript-sdk/commit/193f693f2691bdd995f93fa27117a4936b18f492))
+* **deps-dev:** bump the npm group with 4 updates (revert typescript to ^6.0.3) ([#148](https://github.com/inference-gateway/typescript-sdk/issues/148)) ([7eb3cc1](https://github.com/inference-gateway/typescript-sdk/commit/7eb3cc15c9b1b312939e7cfdd0f5059f9925c550))
+* **deps:** bump actions/setup-node in the github-actions group ([#147](https://github.com/inference-gateway/typescript-sdk/issues/147)) ([e8e63cb](https://github.com/inference-gateway/typescript-sdk/commit/e8e63cbe7f1b33caec1895d8ac85a8340a16f343))
+* **deps:** bump inference-gateway/.github/.github/workflows/claude.yml ([#142](https://github.com/inference-gateway/typescript-sdk/issues/142)) ([e26de89](https://github.com/inference-gateway/typescript-sdk/commit/e26de89eb0c0c48b102966ef46863d10125dfce9))
+* **infer:** centralize infer.yml via reusable workflow ([#140](https://github.com/inference-gateway/typescript-sdk/issues/140)) ([a611a54](https://github.com/inference-gateway/typescript-sdk/commit/a611a5463ec13a4ba37d3c22f4e53277af3b95ea))
+* **infer:** centralize infer.yml via reusable workflow ([#141](https://github.com/inference-gateway/typescript-sdk/issues/141)) ([f308645](https://github.com/inference-gateway/typescript-sdk/commit/f3086457648dc587601168d86beb3f4a9facf756))
+* **release:** update semantic release and plugins to latest versions with local installation ([1a70b70](https://github.com/inference-gateway/typescript-sdk/commit/1a70b70435e27763f657dd3d3389a25ffeeaf9c6))
+* restrict default workflow token permissions to contents: read ([#139](https://github.com/inference-gateway/typescript-sdk/issues/139)) ([2285723](https://github.com/inference-gateway/typescript-sdk/commit/2285723cc1d952480dc5ee7e5f738e8603e70dc7))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump claude-code 2.1.177 -> 2.1.197, claude-code-action v1.0.161 -> v1.0.165 ([#133](https://github.com/inference-gateway/typescript-sdk/issues/133)) ([c217b4f](https://github.com/inference-gateway/typescript-sdk/commit/c217b4f08a2b790ad7a07c00f5a7d538625a6124))
+* **deps:** bump claude-code 2.1.197 -> 2.1.201 ([#134](https://github.com/inference-gateway/typescript-sdk/issues/134)) ([212450d](https://github.com/inference-gateway/typescript-sdk/commit/212450ddc748a4e48e14c6aec0006cafe4f4dd13))
+* **deps:** bump claude-code-action v1.0.168 -> v1.0.169 ([#144](https://github.com/inference-gateway/typescript-sdk/issues/144)) ([78500f4](https://github.com/inference-gateway/typescript-sdk/commit/78500f480e01db830f7e120d01fe16c39fa1ebfc))
+* **deps:** bump infer CLI v0.130.1 -> v0.133.0, infer-action v0.24.0 -> v0.26.0 ([#135](https://github.com/inference-gateway/typescript-sdk/issues/135)) ([a1b5f3e](https://github.com/inference-gateway/typescript-sdk/commit/a1b5f3ea27de9181d076ffd31512f908ca3297b2))
+* **deps:** bump infer CLI v0.133.0 -> v0.133.1, infer-action v0.26.0 -> v0.27.1 ([#136](https://github.com/inference-gateway/typescript-sdk/issues/136)) ([6d09b1d](https://github.com/inference-gateway/typescript-sdk/commit/6d09b1d5ee522b1d2560c0ea00df5f41f7b169c3))
+* **deps:** bump infer CLI v0.133.1 -> v0.137.0, infer-action v0.27.1 -> v0.29.0 ([#137](https://github.com/inference-gateway/typescript-sdk/issues/137)) ([3fedb5a](https://github.com/inference-gateway/typescript-sdk/commit/3fedb5ad09eb99edbb041e2cea60a31b4a9dc3e0))
+* **deps:** bump infer CLI v0.137.0 -> v0.138.0, infer-action v0.29.0 -> v0.30.1 ([#138](https://github.com/inference-gateway/typescript-sdk/issues/138)) ([5ab09cb](https://github.com/inference-gateway/typescript-sdk/commit/5ab09cbc7472b7ec2018336ef73c7ffd3a723684))
+* **deps:** bump infer CLI v0.138.0 -> v0.141.0 ([#146](https://github.com/inference-gateway/typescript-sdk/issues/146)) ([87703a0](https://github.com/inference-gateway/typescript-sdk/commit/87703a051899636cb53ddd443791fbd3894e087b))
+* **deps:** bump infer CLI v0.141.0 -> v0.147.1 ([#149](https://github.com/inference-gateway/typescript-sdk/issues/149)) ([96f6705](https://github.com/inference-gateway/typescript-sdk/commit/96f6705866de9c8a7b9d33c9ba4ba5ce949f8cd3))
+* **release:** update GitHub App credentials to use RELEASER_APP_ID and RELEASER_APP_PRIVATE_KEY ([c0b5235](https://github.com/inference-gateway/typescript-sdk/commit/c0b52352ecb10e51ac9473621e1bcb40a6f471d0))
+* remove deprecated configuration and shortcut files ([b44f38a](https://github.com/inference-gateway/typescript-sdk/commit/b44f38a1f7d55507f58e94951e11f419e5776ba5))
+
 ## [0.11.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.10.0...v0.11.0) (2026-07-05)
 
 ## [0.10.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.9.0...v0.10.0) (2026-06-21)
