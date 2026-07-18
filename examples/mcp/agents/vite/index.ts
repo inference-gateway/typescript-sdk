@@ -54,7 +54,7 @@ class ViteAgent {
     });
 
     this.config.conversationHistory.push({
-      role: MessageRole.system,
+      role: MessageRole.System,
       content: this.getSystemPrompt(),
     });
   }
@@ -382,7 +382,7 @@ If a Vite project exists:
       case 'clear':
         this.config.conversationHistory = [
           {
-            role: MessageRole.system,
+            role: MessageRole.System,
             content: this.getSystemPrompt(),
           },
         ];
@@ -444,7 +444,7 @@ If a Vite project exists:
     console.log('─'.repeat(60));
 
     this.config.conversationHistory.push({
-      role: MessageRole.user,
+      role: MessageRole.User,
       content: userInput,
     });
 
@@ -544,7 +544,7 @@ If a Vite project exists:
           // Add assistant response to conversation history
           if (assistantResponse.trim()) {
             this.config.conversationHistory.push({
-              role: MessageRole.assistant,
+              role: MessageRole.Assistant,
               content: assistantResponse,
             });
           }

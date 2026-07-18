@@ -11,7 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@inference-gateway/sdk": "^0.7.1"
+    "@inference-gateway/sdk": "^0.12.0"
   },
   "devDependencies": {
     "tsx": "^4.22.4"

@@ -69,7 +69,7 @@ class NextJSAgent {
     });
 
     this.config.conversationHistory.push({
-      role: MessageRole.system,
+      role: MessageRole.System,
       content: this.getSystemPrompt(),
     });
   }
@@ -314,7 +314,7 @@ WORKFLOW: 1) Clarify requirements 2) Use Context7 for docs 3) Build in /tmp 4) F
       case 'clear':
         this.config.conversationHistory = [
           {
-            role: MessageRole.system,
+            role: MessageRole.System,
             content: this.getSystemPrompt(),
           },
         ];
@@ -375,7 +375,7 @@ WORKFLOW: 1) Clarify requirements 2) Use Context7 for docs 3) Build in /tmp 4) F
     console.log('─'.repeat(60));
 
     this.config.conversationHistory.push({
-      role: MessageRole.user,
+      role: MessageRole.User,
       content: userInput,
     });
 
@@ -492,7 +492,7 @@ WORKFLOW: 1) Clarify requirements 2) Use Context7 for docs 3) Build in /tmp 4) F
 
           if (assistantResponse.trim()) {
             this.config.conversationHistory.push({
-              role: MessageRole.assistant,
+              role: MessageRole.Assistant,
               content: assistantResponse,
             });
           }
@@ -527,7 +527,7 @@ WORKFLOW: 1) Clarify requirements 2) Use Context7 for docs 3) Build in /tmp 4) F
           model: this.config.model,
           messages: [
             {
-              role: MessageRole.system,
+              role: MessageRole.System,
               content: `You are a memory manager. You MUST call the save-state tool now with the provided data. Don't explain - just call the tool immediately.
 
 SessionID: ${this.config.sessionId}
@@ -537,7 +537,7 @@ Context: ${context}
 Call save-state tool immediately with sessionId="${this.config.sessionId}" and the state object above.`,
             },
             {
-              role: MessageRole.user,
+              role: MessageRole.User,
               content: `Call save-state tool now with sessionId="${this.config.sessionId}"`,
             },
           ],
@@ -622,7 +622,7 @@ Call save-state tool immediately with sessionId="${this.config.sessionId}" and t
               model: this.config.model,
               messages: [
                 {
-                  role: MessageRole.system,
+                  role: MessageRole.System,
                   content: `You are a memory manager. You MUST call the save-state tool immediately. No explanations, no acknowledgments - just call the tool.
 
 CRITICAL: You MUST call save-state tool with these exact parameters:
@@ -633,7 +633,7 @@ CRITICAL: You MUST call save-state tool with these exact parameters:
 Call the save-state tool now.`,
                 },
                 {
-                  role: MessageRole.user,
+                  role: MessageRole.User,
                   content: `Call save-state tool immediately with sessionId="${this.config.sessionId}". Do not respond with text - only call the tool.`,
                 },
               ],
@@ -744,11 +744,11 @@ Call the save-state tool now.`,
           model: this.config.model,
           messages: [
             {
-              role: MessageRole.system,
+              role: MessageRole.System,
               content: `You have access to memory management tools. Restore the saved state for session "${this.config.sessionId}".`,
             },
             {
-              role: MessageRole.user,
+              role: MessageRole.User,
               content: `Please restore the session state using the restore-state tool and provide the restored data.`,
             },
           ],

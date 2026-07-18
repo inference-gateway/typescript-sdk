@@ -35,12 +35,12 @@ const main = async () => {
         model,
         messages: [
           {
-            role: MessageRole.system,
+            role: MessageRole.System,
             content:
               'You are a helpful assistant that provides concise answers.',
           },
           {
-            role: MessageRole.user,
+            role: MessageRole.User,
             content: 'Tell me a fun fact about TypeScript.',
           },
         ],
@@ -62,12 +62,12 @@ const main = async () => {
         model,
         messages: [
           {
-            role: MessageRole.system,
+            role: MessageRole.System,
             content:
               'You are a creative storyteller. Tell engaging short stories.',
           },
           {
-            role: MessageRole.user,
+            role: MessageRole.User,
             content: 'Tell me a short story about a robot learning to paint.',
           },
         ],
@@ -98,11 +98,11 @@ const main = async () => {
 
     const conversation = [
       {
-        role: MessageRole.system,
+        role: MessageRole.System,
         content: 'You are a helpful programming tutor.',
       },
       {
-        role: MessageRole.user,
+        role: MessageRole.User,
         content: 'What is the difference between let and const in JavaScript?',
       },
     ];
@@ -121,13 +121,13 @@ const main = async () => {
 
     // Add assistant response to conversation
     conversation.push({
-      role: MessageRole.assistant,
+      role: MessageRole.Assistant,
       content: firstResponse.choices[0].message.content || '',
     });
 
     // Add follow-up question
     conversation.push({
-      role: MessageRole.user,
+      role: MessageRole.User,
       content: 'Can you give me a simple code example showing the difference?',
     });
 
@@ -155,7 +155,7 @@ const main = async () => {
         model,
         messages: [
           {
-            role: MessageRole.user,
+            role: MessageRole.User,
             content: "What's the weather like in San Francisco and New York?",
           },
         ],
