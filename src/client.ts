@@ -1,4 +1,5 @@
 import type {
+  PathsModelsGetParametersQueryInclude,
   Provider,
   SchemaChatCompletionMessageToolCall,
   SchemaCompletionUsage,
@@ -388,10 +389,16 @@ export class InferenceGatewayClient {
   /**
    * Lists the currently available models.
    */
-  async listModels(provider?: Provider): Promise<SchemaListModelsResponse> {
+  async listModels(
+    provider?: Provider,
+    include?: PathsModelsGetParametersQueryInclude[]
+  ): Promise<SchemaListModelsResponse> {
     const query: Record<string, string> = {};
     if (provider) {
       query.provider = provider;
+    }
+    if (include?.length) {
+      query.include = include.join(',');
     }
     return this.request<SchemaListModelsResponse>(
       '/models',

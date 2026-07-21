@@ -8,9 +8,12 @@ import type {
 import {
   ChatCompletionToolChoiceOptionOneOf0,
   ChatCompletionToolType,
+  ContextWindowSource,
   CreateChatCompletionRequestReasoning_effort,
   FinishReason,
   MessageRole,
+  PathsModelsGetParametersQueryInclude,
+  PricingSource,
   Provider,
   ResponseFormatJsonSchemaType,
 } from '@/types/generated';
@@ -93,6 +96,50 @@ describe('InferenceGatewayClient', () => {
       expect(result).toEqual(mockResponse);
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:8080/v1/models?provider=openai',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.any(Headers),
+        })
+      );
+    });
+
+    it('should fetch models with include metadata', async () => {
+      const mockResponse: SchemaListModelsResponse = {
+        object: 'list',
+        data: [
+          {
+            id: 'gpt-4o',
+            object: 'model',
+            created: 1686935002,
+            owned_by: 'openai',
+            served_by: Provider.openai,
+            context_window: {
+              tokens: 128000,
+              source: ContextWindowSource.ContextWindowSourceProvider,
+            },
+            pricing: {
+              currency: 'USD',
+              input_per_token: '0.0000025',
+              output_per_token: '0.00001',
+              source: PricingSource.PricingSourceProvider,
+              updated_at: '2025-01-01T00:00:00Z',
+            },
+          },
+        ],
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await client.listModels(Provider.openai, [
+        PathsModelsGetParametersQueryInclude.context_window,
+        PathsModelsGetParametersQueryInclude.pricing,
+      ]);
+      expect(result).toEqual(mockResponse);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/models?provider=openai&include=context_window%2Cpricing',
         expect.objectContaining({
           method: 'GET',
           headers: expect.any(Headers),
