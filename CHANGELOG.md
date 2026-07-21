@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.13.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.12.1...v0.13.0) (2026-07-21)
+
+### ✨ Features
+
+* sync Model types with /v1/models include parameter ([#165](https://github.com/inference-gateway/typescript-sdk/issues/165)) ([7732586](https://github.com/inference-gateway/typescript-sdk/commit/7732586d3476add965ed524fdb224657c4b439b8))
+
+### 🐛 Bug Fixes
+
+* **deps:** bump vulnerable transitive deps in lockfiles ([#164](https://github.com/inference-gateway/typescript-sdk/issues/164)) ([657d440](https://github.com/inference-gateway/typescript-sdk/commit/657d4406f5d72eba61ba6055e6cc82062968ae18))
+
+### 👷 CI
+
+* **deps:** bump axios from 1.16.0 to 1.18.0 in /examples/mcp/agents/vite ([#156](https://github.com/inference-gateway/typescript-sdk/issues/156)) ([b802fba](https://github.com/inference-gateway/typescript-sdk/commit/b802fba3301c7e75eae510b41acb60699698b7fa))
+* **deps:** bump axios in /examples/mcp/agents/kubernetes ([#160](https://github.com/inference-gateway/typescript-sdk/issues/160)) ([e09c08a](https://github.com/inference-gateway/typescript-sdk/commit/e09c08a6f61813c779611ed032df138d266d03fc))
+* **deps:** bump axios in /examples/mcp/agents/marketing ([#161](https://github.com/inference-gateway/typescript-sdk/issues/161)) ([0413b6d](https://github.com/inference-gateway/typescript-sdk/commit/0413b6d5a60ee80a808a3d98032b096a911ebfd4))
+* **deps:** bump axios in /examples/mcp/agents/nextjs ([#159](https://github.com/inference-gateway/typescript-sdk/issues/159)) ([61c8ff6](https://github.com/inference-gateway/typescript-sdk/commit/61c8ff6ed270f32fdb51ef5feed725c3dcf493e3))
+* **deps:** bump axios in /examples/mcp/mcp-servers/brave-search ([#154](https://github.com/inference-gateway/typescript-sdk/issues/154)) ([1101c93](https://github.com/inference-gateway/typescript-sdk/commit/1101c93e752419af5117ef43f5f5b425661088a9))
+* **deps:** bump axios in /examples/mcp/mcp-servers/web-search ([#155](https://github.com/inference-gateway/typescript-sdk/issues/155)) ([bf9eebf](https://github.com/inference-gateway/typescript-sdk/commit/bf9eebf14e29e1af08b3d7510a8aedf702c974a6))
+* **deps:** bump body-parser in /examples/mcp/mcp-servers/context7 ([#163](https://github.com/inference-gateway/typescript-sdk/issues/163)) ([fed36a8](https://github.com/inference-gateway/typescript-sdk/commit/fed36a8af3fb4cf01f468b0d95bd00040b144e55))
+* **deps:** bump body-parser in /examples/mcp/mcp-servers/web-search ([#162](https://github.com/inference-gateway/typescript-sdk/issues/162)) ([ad3f85f](https://github.com/inference-gateway/typescript-sdk/commit/ad3f85f950501c9860112cbfd5ef3d935ffcbb02))
+
 ## [0.12.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.12.0...v0.12.1) (2026-07-18)
 
 ### ♻️ Improvements
