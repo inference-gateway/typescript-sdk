@@ -6,7 +6,12 @@ import type {
   SchemaCreateChatCompletionRequest,
   SchemaCreateChatCompletionResponse,
   SchemaCreateChatCompletionStreamResponse,
+  SchemaCreateMessagesRequest,
   SchemaError,
+  SchemaMessagesResponse,
+  SchemaMessagesStreamEvent,
+  SchemaMessagesToolUseBlock,
+  SchemaMessagesUsage,
   SchemaListModelsResponse,
   SchemaListToolsResponse,
   SchemaToolCallExtraContent,
@@ -25,6 +30,57 @@ export interface ChatCompletionStreamCallbacks {
   ) => void;
   onError?: (error: SchemaError) => void;
   onMCPTool?: (toolCall: SchemaChatCompletionMessageToolCall) => void;
+}
+
+export interface MessagesStreamCallbacks {
+  onOpen?: () => void;
+  onEvent?: (event: SchemaMessagesStreamEvent) => void;
+  onContent?: (text: string) => void;
+  onThinking?: (thinking: string) => void;
+  onTool?: (toolUse: SchemaMessagesToolUseBlock) => void;
+  onUsageMetrics?: (usage: SchemaMessagesUsage) => void;
+  onFinish?: (message: SchemaMessagesResponse | null) => void;
+  onError?: (error: SchemaError) => void;
+}
+
+/**
+ * Reads an SSE stream line by line and invokes onData for each `data:` payload.
+ */
+async function readSSEStream(
+  body: ReadableStream<Uint8Array>,
+  onData: (data: string) => void | Promise<void>,
+  abortSignal?: AbortSignal
+): Promise<void> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      if (abortSignal?.aborted) {
+        throw new Error('Stream processing was aborted');
+      }
+
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          await onData(line.slice(5).trim());
+        }
+      }
+    }
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {
+      // Reader might already be closed, ignore
+    }
+  }
 }
 
 /**
@@ -58,30 +114,12 @@ class StreamProcessor {
     body: ReadableStream<Uint8Array>,
     abortSignal?: AbortSignal
   ): Promise<void> {
-    const reader = body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
     try {
-      while (true) {
-        if (abortSignal?.aborted) {
-          throw new Error('Stream processing was aborted');
-        }
-
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(5).trim();
-            await this.processSSEData(data);
-          }
-        }
-      }
+      await readSSEStream(
+        body,
+        (data) => this.processSSEData(data),
+        abortSignal
+      );
     } catch (error) {
       if (abortSignal?.aborted || (error as Error).name === 'AbortError') {
         console.log('Stream processing was cancelled');
@@ -93,12 +131,6 @@ class StreamProcessor {
       };
       this.callbacks.onError?.(apiError);
       throw error;
-    } finally {
-      try {
-        reader.releaseLock();
-      } catch {
-        // Reader might already be closed, ignore
-      }
     }
   }
 
@@ -293,6 +325,121 @@ class StreamProcessor {
   }
 }
 
+/**
+ * Handles streaming for the Anthropic-compatible Messages API.
+ * Reassembles streamed tool inputs from `input_json_delta` events.
+ */
+class MessagesStreamProcessor {
+  private callbacks: MessagesStreamCallbacks;
+  private message: SchemaMessagesResponse | null = null;
+  private pendingToolUse: {
+    block: SchemaMessagesToolUseBlock;
+    json: string;
+  } | null = null;
+
+  constructor(callbacks: MessagesStreamCallbacks) {
+    this.callbacks = callbacks;
+  }
+
+  async processStream(
+    body: ReadableStream<Uint8Array>,
+    abortSignal?: AbortSignal
+  ): Promise<void> {
+    try {
+      await readSSEStream(
+        body,
+        (data) => this.processSSEData(data),
+        abortSignal
+      );
+    } catch (error) {
+      if (abortSignal?.aborted || (error as Error).name === 'AbortError') {
+        console.log('Stream processing was cancelled');
+        return;
+      }
+
+      const apiError: SchemaError = {
+        error: (error as Error).message || 'Unknown error',
+      };
+      this.callbacks.onError?.(apiError);
+      throw error;
+    }
+  }
+
+  private processSSEData(data: string): void {
+    if (data === '[DONE]') {
+      this.callbacks.onFinish?.(this.message);
+      return;
+    }
+
+    let event: SchemaMessagesStreamEvent;
+    try {
+      event = JSON.parse(data);
+    } catch (parseError) {
+      this.callbacks.onError?.({
+        error: `Failed to parse SSE data: ${(parseError as Error).message}`,
+      });
+      return;
+    }
+
+    this.callbacks.onEvent?.(event);
+
+    switch (event.type) {
+      case 'message_start':
+        this.message = event.message ?? null;
+        break;
+      case 'content_block_start':
+        if (event.content_block?.type === 'tool_use') {
+          this.pendingToolUse = { block: event.content_block, json: '' };
+        }
+        break;
+      case 'content_block_delta':
+        if (event.delta?.text) {
+          this.callbacks.onContent?.(event.delta.text);
+        }
+        if (event.delta?.thinking) {
+          this.callbacks.onThinking?.(event.delta.thinking);
+        }
+        if (event.delta?.partial_json && this.pendingToolUse) {
+          this.pendingToolUse.json += event.delta.partial_json;
+        }
+        break;
+      case 'content_block_stop':
+        this.finalizePendingToolUse();
+        break;
+      case 'message_delta':
+        if (event.usage) {
+          this.callbacks.onUsageMetrics?.(event.usage);
+        }
+        break;
+      case 'message_stop':
+        this.callbacks.onFinish?.(this.message);
+        break;
+      case 'error':
+        this.callbacks.onError?.({
+          error: event.error?.error?.message || 'Unknown stream error',
+        });
+        break;
+    }
+  }
+
+  private finalizePendingToolUse(): void {
+    if (!this.pendingToolUse) return;
+
+    const { block, json } = this.pendingToolUse;
+    this.pendingToolUse = null;
+
+    try {
+      const input = json ? JSON.parse(json) : block.input;
+      this.callbacks.onTool?.({ ...block, input });
+    } catch {
+      globalThis.console.warn(
+        `Invalid tool input JSON for ${block.name} (stream was likely interrupted):`,
+        json
+      );
+    }
+  }
+}
+
 export interface ClientOptions {
   baseURL?: string;
   apiKey?: string;
@@ -374,10 +521,11 @@ export class InferenceGatewayClient {
       });
 
       if (!response.ok) {
-        const error: SchemaError = await response.json();
-        throw new Error(
-          error.error || `HTTP error! status: ${response.status}`
-        );
+        const error: { error?: string | { message?: string } } =
+          await response.json();
+        const message =
+          typeof error.error === 'string' ? error.error : error.error?.message;
+        throw new Error(message || `HTTP error! status: ${response.status}`);
       }
 
       return response.json();
@@ -458,7 +606,14 @@ export class InferenceGatewayClient {
   ): Promise<void> {
     try {
       const response = await this.initiateStreamingRequest(
-        request,
+        '/chat/completions',
+        {
+          ...request,
+          stream: true,
+          stream_options: {
+            include_usage: true,
+          },
+        },
         provider,
         abortSignal
       );
@@ -498,13 +653,79 @@ export class InferenceGatewayClient {
   }
 
   /**
-   * Initiates a streaming request to the chat completions endpoint
+   * Creates a message via the Anthropic-compatible Messages API.
+   * Not every provider implements the Messages API; unsupported providers
+   * return an error suggesting `/chat/completions` instead.
+   */
+  async createMessage(
+    request: Omit<SchemaCreateMessagesRequest, 'stream'>,
+    provider?: Provider
+  ): Promise<SchemaMessagesResponse> {
+    const query: Record<string, string> = {};
+    if (provider) {
+      query.provider = provider;
+    }
+    return this.request<SchemaMessagesResponse>(
+      '/messages',
+      {
+        method: 'POST',
+        body: JSON.stringify({ ...request, stream: false }),
+      },
+      query
+    );
+  }
+
+  /**
+   * Creates a streaming message via the Anthropic-compatible Messages API.
+   * This method always sets stream=true internally, so there's no need to
+   * specify it in the request.
+   *
+   * @param request - Messages request (must include model, max_tokens and messages)
+   * @param callbacks - Callbacks for handling streaming events
+   * @param provider - Optional provider to use for this request
+   * @param abortSignal - Optional AbortSignal to cancel the request
+   */
+  async streamMessage(
+    request: Omit<SchemaCreateMessagesRequest, 'stream'>,
+    callbacks: MessagesStreamCallbacks,
+    provider?: Provider,
+    abortSignal?: AbortSignal
+  ): Promise<void> {
+    try {
+      const response = await this.initiateStreamingRequest(
+        '/messages',
+        { ...request, stream: true },
+        provider,
+        abortSignal
+      );
+
+      if (!response.body) {
+        const error: SchemaError = {
+          error: 'Response body is not readable',
+        };
+        callbacks.onError?.(error);
+        throw new Error('Response body is not readable');
+      }
+
+      callbacks.onOpen?.();
+
+      const streamProcessor = new MessagesStreamProcessor(callbacks);
+      await streamProcessor.processStream(response.body, abortSignal);
+    } catch (error) {
+      const apiError: SchemaError = {
+        error: (error as Error).message || 'Unknown error occurred',
+      };
+      callbacks.onError?.(apiError);
+      throw error;
+    }
+  }
+
+  /**
+   * Initiates a streaming request to an SSE endpoint
    */
   private async initiateStreamingRequest(
-    request: Omit<
-      SchemaCreateChatCompletionRequest,
-      'stream' | 'stream_options'
-    >,
+    path: string,
+    body: Record<string, unknown>,
     provider?: Provider,
     abortSignal?: AbortSignal
   ): Promise<Response> {
@@ -519,9 +740,7 @@ export class InferenceGatewayClient {
     });
 
     const queryString = queryParams.toString();
-    const url = `${this.baseURL}/chat/completions${
-      queryString ? `?${queryString}` : ''
-    }`;
+    const url = `${this.baseURL}${path}${queryString ? `?${queryString}` : ''}`;
 
     const headers = new Headers({
       'Content-Type': 'application/json',
@@ -547,21 +766,20 @@ export class InferenceGatewayClient {
       const response = await this.fetchFn(url, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          ...request,
-          stream: true,
-          stream_options: {
-            include_usage: true,
-          },
-        }),
+        body: JSON.stringify(body),
         signal: combinedSignal,
       });
 
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`;
         try {
-          const error: SchemaError = await response.json();
-          errorMessage = error.error || errorMessage;
+          const error: { error?: string | { message?: string } } =
+            await response.json();
+          const message =
+            typeof error.error === 'string'
+              ? error.error
+              : error.error?.message;
+          errorMessage = message || errorMessage;
         } catch {
           // Failed to parse error response as JSON, use status message
         }
