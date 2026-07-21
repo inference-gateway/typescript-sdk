@@ -230,6 +230,91 @@ try {
 }
 ```
 
+### Creating Messages
+
+To use the Anthropic-compatible Messages API (not every provider implements
+it; unsupported providers return an error suggesting `/chat/completions`
+instead):
+
+```typescript
+import {
+  InferenceGatewayClient,
+  MessagesMessageRole,
+  Provider,
+} from '@inference-gateway/sdk';
+
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
+
+try {
+  const response = await client.createMessage(
+    {
+      model: 'claude-sonnet-5',
+      max_tokens: 150,
+      system: 'You are a helpful assistant',
+      messages: [
+        {
+          role: MessagesMessageRole.MessagesMessageRoleUser,
+          content: 'Tell me a joke',
+        },
+      ],
+    },
+    Provider.anthropic // Provider is optional
+  );
+
+  console.log('Response:', response.content);
+  console.log('Usage:', response.usage);
+} catch (error) {
+  console.error('Error:', error);
+}
+```
+
+### Streaming Messages
+
+To stream a message from the Messages API:
+
+```typescript
+import {
+  InferenceGatewayClient,
+  MessagesMessageRole,
+  Provider,
+} from '@inference-gateway/sdk';
+
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
+
+try {
+  await client.streamMessage(
+    {
+      model: 'claude-sonnet-5',
+      max_tokens: 200,
+      messages: [
+        {
+          role: MessagesMessageRole.MessagesMessageRoleUser,
+          content: 'Tell me a story',
+        },
+      ],
+    },
+    {
+      onOpen: () => console.log('Stream opened'),
+      onContent: (text) => process.stdout.write(text),
+      onThinking: (thinking) => process.stdout.write(thinking),
+      onTool: (toolUse) => {
+        console.log('Tool use:', toolUse.name, toolUse.input);
+      },
+      onUsageMetrics: (usage) => console.log('Usage:', usage),
+      onFinish: () => console.log('\nStream completed'),
+      onError: (error) => console.error('Stream error:', error),
+    },
+    Provider.anthropic // Provider is optional
+  );
+} catch (error) {
+  console.error('Error:', error);
+}
+```
+
 ### Proxying Requests
 
 To proxy requests directly to a provider:
