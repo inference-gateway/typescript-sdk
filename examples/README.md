@@ -30,6 +30,8 @@ all the tools you might need.
      and provider proxy functionality.
    - [Chat](./chat): Shows chat completions, streaming responses, multi-turn
      conversations, and function calling.
+   - [Messages](./messages): Shows the Anthropic-compatible Messages API with
+     streaming events and tool use.
    - [MCP](./mcp): Illustrates Model Context Protocol integration with file
      operations, web scraping, and multi-tool conversations using Docker
      Compose.
@@ -64,6 +66,18 @@ all the tools you might need.
 
 **Best for**: Building chat applications and understanding different
 interaction patterns
+
+### [Messages Example](./messages)
+
+**Purpose**: Use the Anthropic-compatible Messages API
+
+**Features**:
+
+- Simple request/response messages with a system prompt
+- Real-time streaming with typed stream events
+- Tool use with `tool_use` content blocks
+
+**Best for**: Applications built around the Anthropic Messages format
 
 ### [MCP Example](./mcp)
 

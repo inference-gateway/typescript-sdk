@@ -1,0 +1,19 @@
+{
+  "name": "messages",
+  "version": "1.0.0",
+  "description": "This example demonstrates how to use the Anthropic-compatible Messages API of the Inference Gateway SDK, including non-streaming messages, streaming events, and tool use.",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "start": "tsx index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@inference-gateway/sdk": "^0.15.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.22.4"
+  }
+}

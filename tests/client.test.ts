@@ -12,6 +12,7 @@ import {
   CreateChatCompletionRequestReasoning_effort,
   FinishReason,
   MessageRole,
+  MessagesMessageRole,
   PathsModelsGetParametersQueryInclude,
   PricingSource,
   Provider,
@@ -1005,6 +1006,201 @@ describe('InferenceGatewayClient', () => {
 
       const result = await client.healthCheck();
       expect(result).toBe(false);
+    });
+  });
+
+  describe('createMessage', () => {
+    it('should create a message', async () => {
+      const mockRequest = {
+        model: 'claude-sonnet-5',
+        max_tokens: 1024,
+        messages: [
+          {
+            role: MessagesMessageRole.MessagesMessageRoleUser,
+            content: 'Hello',
+          },
+        ],
+      };
+      const mockResponse = {
+        id: 'msg_123',
+        type: 'message',
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hello!' }],
+        model: 'claude-sonnet-5',
+        stop_reason: 'end_turn',
+        usage: { input_tokens: 5, output_tokens: 3 },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await client.createMessage(
+        mockRequest,
+        Provider.anthropic
+      );
+      expect(result).toEqual(mockResponse);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/messages?provider=anthropic',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ ...mockRequest, stream: false }),
+        })
+      );
+    });
+
+    it('should surface Anthropic-format errors', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: () =>
+          Promise.resolve({
+            type: 'error',
+            error: {
+              type: 'not_supported_error',
+              message:
+                'The Messages API is not supported by this provider yet.',
+            },
+          }),
+      });
+
+      await expect(
+        client.createMessage({
+          model: 'gpt-4o',
+          max_tokens: 100,
+          messages: [
+            {
+              role: MessagesMessageRole.MessagesMessageRoleUser,
+              content: 'Hi',
+            },
+          ],
+        })
+      ).rejects.toThrow(
+        'The Messages API is not supported by this provider yet.'
+      );
+    });
+  });
+
+  describe('streamMessage', () => {
+    it('should handle streaming messages with text, tool use and usage', async () => {
+      const mockRequest = {
+        model: 'claude-sonnet-5',
+        max_tokens: 1024,
+        messages: [
+          {
+            role: MessagesMessageRole.MessagesMessageRoleUser,
+            content: 'Hello',
+          },
+        ],
+      };
+
+      const mockStream = new TransformStream();
+      const writer = mockStream.writable.getWriter();
+      const encoder = new TextEncoder();
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: mockStream.readable,
+      });
+
+      const callbacks = {
+        onOpen: jest.fn(),
+        onEvent: jest.fn(),
+        onContent: jest.fn(),
+        onThinking: jest.fn(),
+        onTool: jest.fn(),
+        onUsageMetrics: jest.fn(),
+        onFinish: jest.fn(),
+        onError: jest.fn(),
+      };
+
+      const streamPromise = client.streamMessage(mockRequest, callbacks);
+
+      await writer.write(
+        encoder.encode(
+          'data: {"type":"message_start","message":{"id":"msg_123","type":"message","role":"assistant","content":[],"model":"claude-sonnet-5","stop_reason":null,"usage":{"input_tokens":5,"output_tokens":0}}}\n\n' +
+            'data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n' +
+            'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n' +
+            'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"!"}}\n\n' +
+            'data: {"type":"content_block_stop","index":0}\n\n' +
+            'data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_1","name":"get_weather","input":{}}}\n\n' +
+            'data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"location\\":"}}\n\n' +
+            'data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\"Paris\\"}"}}\n\n' +
+            'data: {"type":"content_block_stop","index":1}\n\n' +
+            'data: {"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"input_tokens":5,"output_tokens":12}}\n\n' +
+            'data: {"type":"message_stop"}\n\n'
+        )
+      );
+
+      await writer.close();
+      await streamPromise;
+
+      expect(callbacks.onOpen).toHaveBeenCalledTimes(1);
+      expect(callbacks.onContent).toHaveBeenCalledWith('Hello');
+      expect(callbacks.onContent).toHaveBeenCalledWith('!');
+      expect(callbacks.onTool).toHaveBeenCalledWith({
+        type: 'tool_use',
+        id: 'toolu_1',
+        name: 'get_weather',
+        input: { location: 'Paris' },
+      });
+      expect(callbacks.onUsageMetrics).toHaveBeenCalledWith({
+        input_tokens: 5,
+        output_tokens: 12,
+      });
+      expect(callbacks.onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'msg_123' })
+      );
+      expect(callbacks.onError).not.toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/messages',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ ...mockRequest, stream: true }),
+        })
+      );
+    });
+
+    it('should route mid-stream error events to onError', async () => {
+      const mockStream = new TransformStream();
+      const writer = mockStream.writable.getWriter();
+      const encoder = new TextEncoder();
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: mockStream.readable,
+      });
+
+      const callbacks = {
+        onContent: jest.fn(),
+        onError: jest.fn(),
+      };
+
+      const streamPromise = client.streamMessage(
+        {
+          model: 'claude-sonnet-5',
+          max_tokens: 100,
+          messages: [
+            {
+              role: MessagesMessageRole.MessagesMessageRoleUser,
+              content: 'Hi',
+            },
+          ],
+        },
+        callbacks
+      );
+
+      await writer.write(
+        encoder.encode(
+          'data: {"type":"error","error":{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}}\n\n'
+        )
+      );
+
+      await writer.close();
+      await streamPromise;
+
+      expect(callbacks.onError).toHaveBeenCalledWith({ error: 'Overloaded' });
     });
   });
 
