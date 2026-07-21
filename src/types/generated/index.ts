@@ -73,6 +73,33 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/messages': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create a message
+     * @description Creates a message using the Anthropic-compatible Messages API.
+     *     The request follows the Anthropic Messages API format with `model`,
+     *     `max_tokens`, `messages`, optional `system`, `tools`, and streaming
+     *     support.
+     *
+     *     Not every provider implements the Messages API. Requests routed to a
+     *     provider that does not support it return `400 Bad Request` with an
+     *     explanatory error message; use `/chat/completions` for those providers.
+     */
+    post: operations['createMessage'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/mcp/tools': {
     parameters: {
       query?: never;
@@ -1169,6 +1196,407 @@ export interface components {
       /** @description The finalized text for `*.done` events. */
       text?: string;
     };
+    /** @description An error response in the Anthropic error format. */
+    MessagesError: {
+      /**
+       * @description Always `error`.
+       * @enum {string}
+       */
+      type: MessagesErrorType;
+      /** @description The error details. */
+      error: {
+        /** @description The error type (e.g. `invalid_request_error`, `api_error`). */
+        type: string;
+        /** @description A human-readable error message. */
+        message: string;
+      };
+    };
+    /**
+     * @description Cache control settings for prompt caching. Currently only
+     *     `ephemeral` caching is supported.
+     */
+    CacheControl: {
+      /**
+       * @description The cache control type. Currently only `ephemeral`.
+       * @enum {string}
+       */
+      type: CacheControlType;
+    };
+    /** @description A text content block in a Messages API request or response. */
+    MessagesTextBlock: {
+      /**
+       * @description Content type identifier. Always `text`.
+       * @enum {string}
+       */
+      type: TextContentPartType;
+      /** @description The text content. */
+      text: string;
+      cache_control?: components['schemas']['CacheControl'];
+    };
+    /**
+     * @description The source of an image content block. Can be a base64-encoded
+     *     image or a URL.
+     */
+    MessagesImageSource: {
+      /**
+       * @description The source type.
+       * @enum {string}
+       */
+      type: MessagesImageSourceType;
+      /**
+       * @description The media type of the image (e.g. `image/jpeg`, `image/png`,
+       *     `image/gif`, `image/webp`). Required when `type` is `base64`.
+       */
+      media_type?: string;
+      /** @description Base64-encoded image data. Required when `type` is `base64`. */
+      data?: string;
+      /** @description URL of the image. Required when `type` is `url`. */
+      url?: string;
+    };
+    /** @description An image content block in a Messages API request. */
+    MessagesImageBlock: {
+      /**
+       * @description Content type identifier. Always `image`.
+       * @enum {string}
+       */
+      type: MessagesImageBlockType;
+      source: components['schemas']['MessagesImageSource'];
+      cache_control?: components['schemas']['CacheControl'];
+    };
+    /**
+     * @description The source of a document content block. Can be a base64-encoded
+     *     document or a URL.
+     */
+    MessagesDocumentSource: {
+      /**
+       * @description The source type.
+       * @enum {string}
+       */
+      type: MessagesImageSourceType;
+      /**
+       * @description The media type of the document (e.g. `application/pdf`).
+       *     Required when `type` is `base64`.
+       */
+      media_type?: string;
+      /** @description Base64-encoded document data. Required when `type` is `base64`. */
+      data?: string;
+      /** @description URL of the document. Required when `type` is `url`. */
+      url?: string;
+    };
+    /** @description A document content block in a Messages API request. */
+    MessagesDocumentBlock: {
+      /**
+       * @description Content type identifier. Always `document`.
+       * @enum {string}
+       */
+      type: MessagesDocumentBlockType;
+      source: components['schemas']['MessagesDocumentSource'];
+      cache_control?: components['schemas']['CacheControl'];
+    };
+    /** @description A tool use content block in a Messages API request or response. */
+    MessagesToolUseBlock: {
+      /**
+       * @description Content type identifier. Always `tool_use`.
+       * @enum {string}
+       */
+      type: MessagesToolUseBlockType;
+      /** @description The unique identifier for this tool use block. */
+      id: string;
+      /** @description The name of the tool being called. */
+      name: string;
+      /** @description The input parameters for the tool. */
+      input: {
+        [key: string]: unknown;
+      };
+    };
+    /** @description A tool result content block in a Messages API request. */
+    MessagesToolResultBlock: {
+      /**
+       * @description Content type identifier. Always `tool_result`.
+       * @enum {string}
+       */
+      type: MessagesToolResultBlockType;
+      /** @description The ID of the tool use this result is for. */
+      tool_use_id: string;
+      /** @description The result content. Can be a string or an array of content blocks. */
+      content?: string | components['schemas']['MessagesTextBlock'][];
+      /** @description Whether the tool execution resulted in an error. */
+      is_error?: boolean;
+      cache_control?: components['schemas']['CacheControl'];
+    };
+    /** @description A thinking content block in a Messages API request or response. */
+    MessagesThinkingBlock: {
+      /**
+       * @description Content type identifier. Always `thinking`.
+       * @enum {string}
+       */
+      type: MessagesThinkingBlockType;
+      /** @description The thinking content. */
+      thinking: string;
+      /**
+       * @description The signature for verifying the thinking content. Must be
+       *     passed back when continuing a conversation with extended thinking.
+       */
+      signature: string;
+    };
+    /**
+     * @description A redacted thinking content block in a Messages API request or
+     *     response. Emitted when thinking content is encrypted for safety
+     *     reasons; must be passed back unchanged in multi-turn conversations.
+     */
+    MessagesRedactedThinkingBlock: {
+      /**
+       * @description Content type identifier. Always `redacted_thinking`.
+       * @enum {string}
+       */
+      type: MessagesRedactedThinkingBlockType;
+      /** @description The encrypted thinking content. */
+      data: string;
+    };
+    /** @description A content block within a Messages API request message. */
+    MessagesRequestContentBlock:
+      | components['schemas']['MessagesTextBlock']
+      | components['schemas']['MessagesImageBlock']
+      | components['schemas']['MessagesToolUseBlock']
+      | components['schemas']['MessagesToolResultBlock']
+      | components['schemas']['MessagesDocumentBlock']
+      | components['schemas']['MessagesThinkingBlock']
+      | components['schemas']['MessagesRedactedThinkingBlock'];
+    /** @description A message in a Messages API request. */
+    MessagesMessage: {
+      /**
+       * @description The role of the message sender.
+       * @enum {string}
+       */
+      role: MessagesMessageRole;
+      /**
+       * @description The content of the message. Can be a string or an array of
+       *     content blocks.
+       */
+      content: string | components['schemas']['MessagesRequestContentBlock'][];
+    };
+    /**
+     * @description A tool definition in the Messages API format. Uses the same
+     *     function tool shape as the Responses API but with an optional
+     *     `cache_control` field for prompt caching.
+     */
+    MessagesTool: {
+      /** @description The name of the tool. */
+      name: string;
+      /** @description A description of what the tool does. */
+      description?: string;
+      input_schema: components['schemas']['FunctionParameters'];
+      cache_control?: components['schemas']['CacheControl'];
+    };
+    /**
+     * @description Controls which (if any) tool is called by the model. `auto` means
+     *     the model can decide, `any` means the model must use a tool, and
+     *     `tool` forces a specific tool.
+     */
+    MessagesToolChoice:
+      | MessagesToolChoiceOneOf0
+      | {
+          /**
+           * @description Always `tool`.
+           * @enum {string}
+           */
+          type: MessagesToolChoiceOneOf1Type;
+          /** @description The name of the tool to use. */
+          name: string;
+        };
+    /** @description Metadata for a Messages API request. */
+    MessagesMetadata: {
+      /** @description An external identifier for the user. */
+      user_id?: string;
+    };
+    /**
+     * @description Request body for creating a message via the Anthropic-compatible
+     *     Messages API.
+     */
+    CreateMessagesRequest: {
+      /** @description The model to use for generating the message. */
+      model: string;
+      /** @description The maximum number of tokens to generate before stopping. */
+      max_tokens: number;
+      /**
+       * @description The system prompt. Can be a string or an array of system content
+       *     blocks (for prompt caching).
+       */
+      system?: string | components['schemas']['MessagesTextBlock'][];
+      /**
+       * @description The messages to generate a response for. Each message has a
+       *     `role` (user or assistant) and `content`.
+       */
+      messages: components['schemas']['MessagesMessage'][];
+      /**
+       * @description Definitions of tools the model may call. Each tool can include
+       *     `cache_control` for prompt caching.
+       */
+      tools?: components['schemas']['MessagesTool'][];
+      tool_choice?: components['schemas']['MessagesToolChoice'];
+      /**
+       * @description Whether to stream the response using server-sent events.
+       * @default false
+       */
+      stream?: boolean;
+      /**
+       * Format: float
+       * @description Amount of randomness injected into the response. Ranges from
+       *     0.0 to 1.0. Use closer to 0 for analytical / multiple choice,
+       *     closer to 1 for creative and generative tasks.
+       */
+      temperature?: number;
+      /**
+       * Format: float
+       * @description Use nucleus sampling. Only consider the tokens with top_p
+       *     probability mass.
+       */
+      top_p?: number;
+      /** @description Only sample from the top K options for each subsequent token. */
+      top_k?: number;
+      /**
+       * @description Custom text sequences that will cause the model to stop
+       *     generating.
+       */
+      stop_sequences?: string[];
+      metadata?: components['schemas']['MessagesMetadata'];
+      /** @description Configuration for extended thinking. */
+      thinking?: {
+        /**
+         * @description Always `enabled`.
+         * @enum {string}
+         */
+        type: CreateMessagesRequestThinkingType;
+        /**
+         * @description The maximum number of tokens the model is allowed to use
+         *     for thinking.
+         */
+        budget_tokens: number;
+      };
+    };
+    /** @description A content block within a Messages API response. */
+    MessagesResponseContentBlock:
+      | components['schemas']['MessagesTextBlock']
+      | components['schemas']['MessagesToolUseBlock']
+      | components['schemas']['MessagesThinkingBlock']
+      | components['schemas']['MessagesRedactedThinkingBlock'];
+    /**
+     * @description Token usage statistics for a Messages API response, including
+     *     cache metrics.
+     */
+    MessagesUsage: {
+      /**
+       * Format: int64
+       * @description The number of input tokens.
+       * @default 0
+       */
+      input_tokens: number;
+      /**
+       * Format: int64
+       * @description The number of output tokens.
+       * @default 0
+       */
+      output_tokens: number;
+      /**
+       * Format: int64
+       * @description The number of tokens used for cache creation.
+       * @default 0
+       */
+      cache_creation_input_tokens?: number;
+      /**
+       * Format: int64
+       * @description The number of tokens read from the cache.
+       * @default 0
+       */
+      cache_read_input_tokens?: number;
+    };
+    /** @description A message response from the Anthropic-compatible Messages API. */
+    MessagesResponse: {
+      /** @description Unique identifier for this message. */
+      id: string;
+      /**
+       * @description Always `message`.
+       * @enum {string}
+       */
+      type: ResponseOutputMessageType;
+      /**
+       * @description Always `assistant`.
+       * @enum {string}
+       */
+      role: MessagesResponseRole;
+      /** @description The content blocks generated by the model. */
+      content: components['schemas']['MessagesResponseContentBlock'][];
+      /** @description The model used to generate the message. */
+      model: string;
+      /**
+       * @description The reason the model stopped generating.
+       * @enum {string}
+       */
+      stop_reason: MessagesResponseStop_reason;
+      /** @description The stop sequence that caused the model to stop, if any. */
+      stop_sequence?: string | null;
+      usage: components['schemas']['MessagesUsage'];
+    };
+    /**
+     * @description A server-sent event emitted while streaming a Messages API response.
+     *     The Anthropic Messages API emits a sequence of typed events
+     *     (`message_start`, `content_block_start`, `content_block_delta`,
+     *     `content_block_stop`, `message_delta`, `message_stop`, `ping`).
+     */
+    MessagesStreamEvent: {
+      /**
+       * @description The type of the streamed event.
+       * @enum {string}
+       */
+      type: MessagesStreamEventType;
+      /** @description Present in `message_start` events. Contains the initial message. */
+      message?: components['schemas']['MessagesResponse'];
+      /**
+       * @description Present in `content_block_*` events. The index of the content
+       *     block.
+       */
+      index?: number;
+      /**
+       * @description Present in `content_block_start` events. Contains the content
+       *     block.
+       */
+      content_block?: components['schemas']['MessagesResponseContentBlock'];
+      /**
+       * @description Present in `content_block_delta` and `message_delta` events.
+       *     Contains the incremental update.
+       */
+      delta?: {
+        /**
+         * @description The type of delta. For text deltas this is `text_delta`,
+         *     for streamed tool inputs this is `input_json_delta`, for
+         *     thinking deltas this is `thinking_delta`, for thinking
+         *     signatures this is `signature_delta`.
+         */
+        type?: string;
+        /** @description The incremental text (for `text_delta`). */
+        text?: string;
+        /**
+         * @description The incremental JSON string of the tool input
+         *     (for `input_json_delta`).
+         */
+        partial_json?: string;
+        /** @description The incremental thinking content (for `thinking_delta`). */
+        thinking?: string;
+        /** @description The thinking signature (for `signature_delta`). */
+        signature?: string;
+        /** @description The stop reason (for `message_delta`). */
+        stop_reason?: string;
+        /** @description The stop sequence (for `message_delta`). */
+        stop_sequence?: string | null;
+      };
+      /**
+       * @description Present in `message_delta` events as a sibling of `delta`.
+       *     Contains cumulative usage for the message.
+       */
+      usage?: components['schemas']['MessagesUsage'];
+      /** @description Present in `error` events. Contains the error details. */
+      error?: components['schemas']['MessagesError'];
+    };
     Config: unknown;
   };
   responses: {
@@ -1232,6 +1660,28 @@ export interface components {
       };
     };
     /**
+     * @description The selected provider does not implement the Messages API. The
+     *     gateway returns this when a request is routed to a provider without
+     *     Messages support.
+     */
+    MessagesNotSupported: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "type": "error",
+         *       "error": {
+         *         "type": "not_supported_error",
+         *         "message": "The Messages API is not supported by this provider yet."
+         *       }
+         *     }
+         */
+        'application/json': components['schemas']['MessagesError'];
+      };
+    };
+    /**
      * @description ProviderResponse depends on the specific provider and endpoint being called
      *     If you decide to use this approach, please follow the provider-specific documentations.
      */
@@ -1282,6 +1732,15 @@ export interface components {
     CreateResponseRequest: {
       content: {
         'application/json': components['schemas']['CreateResponseRequest'];
+      };
+    };
+    /**
+     * @description Request payload for the Messages API. Mirrors the Anthropic
+     *     `POST /v1/messages` request body.
+     */
+    CreateMessagesRequest: {
+      content: {
+        'application/json': components['schemas']['CreateMessagesRequest'];
       };
     };
   };
@@ -1392,6 +1851,41 @@ export type SchemaResponseReasoningSummaryPart =
 export type SchemaResponseUsage = components['schemas']['ResponseUsage'];
 export type SchemaResponseStreamEvent =
   components['schemas']['ResponseStreamEvent'];
+export type SchemaMessagesError = components['schemas']['MessagesError'];
+export type SchemaCacheControl = components['schemas']['CacheControl'];
+export type SchemaMessagesTextBlock =
+  components['schemas']['MessagesTextBlock'];
+export type SchemaMessagesImageSource =
+  components['schemas']['MessagesImageSource'];
+export type SchemaMessagesImageBlock =
+  components['schemas']['MessagesImageBlock'];
+export type SchemaMessagesDocumentSource =
+  components['schemas']['MessagesDocumentSource'];
+export type SchemaMessagesDocumentBlock =
+  components['schemas']['MessagesDocumentBlock'];
+export type SchemaMessagesToolUseBlock =
+  components['schemas']['MessagesToolUseBlock'];
+export type SchemaMessagesToolResultBlock =
+  components['schemas']['MessagesToolResultBlock'];
+export type SchemaMessagesThinkingBlock =
+  components['schemas']['MessagesThinkingBlock'];
+export type SchemaMessagesRedactedThinkingBlock =
+  components['schemas']['MessagesRedactedThinkingBlock'];
+export type SchemaMessagesRequestContentBlock =
+  components['schemas']['MessagesRequestContentBlock'];
+export type SchemaMessagesMessage = components['schemas']['MessagesMessage'];
+export type SchemaMessagesTool = components['schemas']['MessagesTool'];
+export type SchemaMessagesToolChoice =
+  components['schemas']['MessagesToolChoice'];
+export type SchemaMessagesMetadata = components['schemas']['MessagesMetadata'];
+export type SchemaCreateMessagesRequest =
+  components['schemas']['CreateMessagesRequest'];
+export type SchemaMessagesResponseContentBlock =
+  components['schemas']['MessagesResponseContentBlock'];
+export type SchemaMessagesUsage = components['schemas']['MessagesUsage'];
+export type SchemaMessagesResponse = components['schemas']['MessagesResponse'];
+export type SchemaMessagesStreamEvent =
+  components['schemas']['MessagesStreamEvent'];
 export type SchemaConfig = components['schemas']['Config'];
 export type ResponseBadRequest = components['responses']['BadRequest'];
 export type ResponseUnauthorized = components['responses']['Unauthorized'];
@@ -1399,6 +1893,8 @@ export type ResponseInternalError = components['responses']['InternalError'];
 export type ResponseMcpNotExposed = components['responses']['MCPNotExposed'];
 export type ResponseResponsesNotSupported =
   components['responses']['ResponsesNotSupported'];
+export type ResponseMessagesNotSupported =
+  components['responses']['MessagesNotSupported'];
 export type ResponseProviderResponse =
   components['responses']['ProviderResponse'];
 export type RequestBodyProviderRequest =
@@ -1407,6 +1903,8 @@ export type RequestBodyCreateChatCompletionRequest =
   components['requestBodies']['CreateChatCompletionRequest'];
 export type RequestBodyCreateResponseRequest =
   components['requestBodies']['CreateResponseRequest'];
+export type RequestBodyCreateMessagesRequest =
+  components['requestBodies']['CreateMessagesRequest'];
 export type $defs = Record<string, never>;
 export interface operations {
   listModels: {
@@ -1508,6 +2006,35 @@ export interface operations {
         };
       };
       400: components['responses']['ResponsesNotSupported'];
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createMessage: {
+    parameters: {
+      query?: {
+        /** @description Specific provider to use (default determined by model) */
+        provider?: components['schemas']['Provider'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: components['requestBodies']['CreateMessagesRequest'];
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MessagesResponse'];
+          'text/event-stream':
+            | components['schemas']['SSEvent']
+            | components['schemas']['MessagesStreamEvent'];
+        };
+      };
+      400: components['responses']['MessagesNotSupported'];
       401: components['responses']['Unauthorized'];
       500: components['responses']['InternalError'];
     };
@@ -1860,4 +2387,67 @@ export enum ResponseReasoningItemType {
 }
 export enum ResponseReasoningSummaryPartType {
   summary_text = 'summary_text',
+}
+export enum MessagesErrorType {
+  error = 'error',
+}
+export enum CacheControlType {
+  ephemeral = 'ephemeral',
+}
+export enum MessagesImageSourceType {
+  base64 = 'base64',
+  url = 'url',
+}
+export enum MessagesImageBlockType {
+  image = 'image',
+}
+export enum MessagesDocumentBlockType {
+  document = 'document',
+}
+export enum MessagesToolUseBlockType {
+  tool_use = 'tool_use',
+}
+export enum MessagesToolResultBlockType {
+  tool_result = 'tool_result',
+}
+export enum MessagesThinkingBlockType {
+  thinking = 'thinking',
+}
+export enum MessagesRedactedThinkingBlockType {
+  redacted_thinking = 'redacted_thinking',
+}
+export enum MessagesMessageRole {
+  MessagesMessageRoleUser = 'user',
+  MessagesMessageRoleAssistant = 'assistant',
+}
+export enum MessagesToolChoiceOneOf0 {
+  auto = 'auto',
+  any = 'any',
+}
+export enum MessagesToolChoiceOneOf1Type {
+  MessagesToolChoiceTypeTool = 'tool',
+}
+export enum CreateMessagesRequestThinkingType {
+  enabled = 'enabled',
+}
+export enum MessagesResponseRole {
+  MessagesResponseRoleAssistant = 'assistant',
+}
+export enum MessagesResponseStop_reason {
+  end_turn = 'end_turn',
+  max_tokens = 'max_tokens',
+  stop_sequence = 'stop_sequence',
+  tool_use = 'tool_use',
+  pause_turn = 'pause_turn',
+  refusal = 'refusal',
+}
+export enum MessagesStreamEventType {
+  message_start = 'message_start',
+  content_block_start = 'content_block_start',
+  content_block_delta = 'content_block_delta',
+  content_block_stop = 'content_block_stop',
+  message_delta = 'message_delta',
+  message_stop = 'message_stop',
+  ping = 'ping',
+  error = 'error',
 }
