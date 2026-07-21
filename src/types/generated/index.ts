@@ -334,6 +334,11 @@ export interface components {
        * @description Timestamp when the pricing was last updated
        */
       updated_at: string;
+      /**
+       * @description Model has no per-token price but is gated behind a paid subscription
+       * @default false
+       */
+      subscription?: boolean;
     };
     /** @description Common model information */
     Model: {
