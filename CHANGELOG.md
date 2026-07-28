@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.16.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.16.0...v0.16.1) (2026-07-28)
+
+### 👷 CI
+
+* **claude:** centralize claude.yml via reusable workflow ([#186](https://github.com/inference-gateway/typescript-sdk/issues/186)) ([277d949](https://github.com/inference-gateway/typescript-sdk/commit/277d949cc4867d3eacc3038cd4150c343939ef4a))
+
+### 🔧 Miscellaneous
+
+* sync generated types with schemas v0.15.3 ([#187](https://github.com/inference-gateway/typescript-sdk/issues/187)) ([0e0bf43](https://github.com/inference-gateway/typescript-sdk/commit/0e0bf43ce4ad959f31cafb1713263845a736edc2))
+
 ## [0.16.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.15.0...v0.16.0) (2026-07-27)
 
 ### ✨ Features
