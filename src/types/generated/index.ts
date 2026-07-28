@@ -1473,6 +1473,17 @@ export interface components {
          */
         budget_tokens: number;
       };
+      output_config?: components['schemas']['MessagesOutputConfig'];
+    };
+    /** @description Output configuration for a Messages API request. */
+    MessagesOutputConfig: {
+      /**
+       * @description Constrains how much effort the model spends on reasoning.
+       *     Lower effort yields faster responses and fewer reasoning
+       *     tokens.
+       * @enum {string}
+       */
+      effort?: MessagesOutputConfigEffort;
     };
     /** @description A content block within a Messages API response. */
     MessagesResponseContentBlock:
@@ -1880,6 +1891,8 @@ export type SchemaMessagesToolChoice =
 export type SchemaMessagesMetadata = components['schemas']['MessagesMetadata'];
 export type SchemaCreateMessagesRequest =
   components['schemas']['CreateMessagesRequest'];
+export type SchemaMessagesOutputConfig =
+  components['schemas']['MessagesOutputConfig'];
 export type SchemaMessagesResponseContentBlock =
   components['schemas']['MessagesResponseContentBlock'];
 export type SchemaMessagesUsage = components['schemas']['MessagesUsage'];
@@ -2429,6 +2442,13 @@ export enum MessagesToolChoiceOneOf1Type {
 }
 export enum CreateMessagesRequestThinkingType {
   enabled = 'enabled',
+}
+export enum MessagesOutputConfigEffort {
+  MessagesOutputConfigEffortLow = 'low',
+  MessagesOutputConfigEffortMedium = 'medium',
+  MessagesOutputConfigEffortHigh = 'high',
+  MessagesOutputConfigEffortXhigh = 'xhigh',
+  MessagesOutputConfigEffortMax = 'max',
 }
 export enum MessagesResponseRole {
   MessagesResponseRoleAssistant = 'assistant',
