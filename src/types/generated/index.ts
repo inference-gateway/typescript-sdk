@@ -132,8 +132,8 @@ export interface paths {
     /**
      * Push metrics to the gateway (OTLP/HTTP)
      * @description OTLP/HTTP metrics push endpoint. Accepts an OTLP ExportMetricsServiceRequest
-     *     encoded as protobuf or JSON. Only accessible when TELEMETRY_ENABLE and
-     *     TELEMETRY_METRICS_PUSH_ENABLE are enabled.
+     *     encoded as protobuf or JSON. Only accessible when TELEMETRY_ENABLED and
+     *     TELEMETRY_METRICS_PUSH_ENABLED are enabled.
      */
     post: operations['pushMetrics'];
     delete?: never;
