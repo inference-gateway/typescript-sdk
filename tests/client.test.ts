@@ -1086,7 +1086,7 @@ describe('InferenceGatewayClient', () => {
     it('should create an image', async () => {
       const mockRequest = {
         prompt: 'A painting of a cat',
-        model: 'dall-e-3',
+        model: 'gpt-image-2',
       };
       const mockResponse = {
         created: 1_700_000_000,
