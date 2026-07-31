@@ -1,0 +1,19 @@
+{
+  "name": "images",
+  "version": "1.0.0",
+  "description": "This example demonstrates how to generate images with the Inference Gateway SDK using the createImage method.",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "start": "tsx index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@inference-gateway/sdk": "^0.12.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.22.4"
+  }
+}
