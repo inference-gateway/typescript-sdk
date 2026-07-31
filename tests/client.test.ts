@@ -1082,6 +1082,49 @@ describe('InferenceGatewayClient', () => {
     });
   });
 
+  describe('createImage', () => {
+    it('should create an image', async () => {
+      const mockRequest = {
+        prompt: 'A painting of a cat',
+        model: 'dall-e-3',
+      };
+      const mockResponse = {
+        created: 1_700_000_000,
+        data: [{ url: 'https://example.com/cat.png' }],
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await client.createImage(mockRequest, Provider.openai);
+      expect(result).toEqual(mockResponse);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/images/generations?provider=openai',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify(mockRequest),
+        })
+      );
+    });
+
+    it('should surface not-supported errors', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: () =>
+          Promise.resolve({
+            error: 'Image generation is not supported by this provider.',
+          }),
+      });
+
+      await expect(client.createImage({ prompt: 'A cat' })).rejects.toThrow(
+        'Image generation is not supported by this provider.'
+      );
+    });
+  });
+
   describe('streamMessage', () => {
     it('should handle streaming messages with text, tool use and usage', async () => {
       const mockRequest = {

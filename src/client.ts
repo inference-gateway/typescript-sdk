@@ -6,8 +6,10 @@ import type {
   SchemaCreateChatCompletionRequest,
   SchemaCreateChatCompletionResponse,
   SchemaCreateChatCompletionStreamResponse,
+  SchemaCreateImageRequest,
   SchemaCreateMessagesRequest,
   SchemaError,
+  SchemaImagesResponse,
   SchemaMessagesResponse,
   SchemaMessagesStreamEvent,
   SchemaMessagesToolUseBlock,
@@ -718,6 +720,29 @@ export class InferenceGatewayClient {
       callbacks.onError?.(apiError);
       throw error;
     }
+  }
+
+  /**
+   * Creates an image via the OpenAI-compatible Images API.
+   * Not every provider supports image generation; unsupported providers
+   * return an error.
+   */
+  async createImage(
+    request: SchemaCreateImageRequest,
+    provider?: Provider
+  ): Promise<SchemaImagesResponse> {
+    const query: Record<string, string> = {};
+    if (provider) {
+      query.provider = provider;
+    }
+    return this.request<SchemaImagesResponse>(
+      '/images/generations',
+      {
+        method: 'POST',
+        body: JSON.stringify(request),
+      },
+      query
+    );
   }
 
   /**
