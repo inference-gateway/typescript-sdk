@@ -1,4 +1,5 @@
 import {
+  CreateImageRequestQuality,
   ImageSize,
   InferenceGatewayClient,
   Provider,
@@ -35,6 +36,7 @@ const main = async () => {
         prompt: 'A watercolor painting of a robot learning to paint',
         n: 1,
         size: ImageSize.ImageSize1024x1024,
+        quality: CreateImageRequestQuality.high,
       },
       provider
     );
