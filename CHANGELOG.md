@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.18.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.17.0...v0.18.0) (2026-07-31)
+
+### ✨ Features
+
+* sync generated types with schemas v0.18.0 ([#191](https://github.com/inference-gateway/typescript-sdk/issues/191)) ([f870ef5](https://github.com/inference-gateway/typescript-sdk/commit/f870ef583fa4528e7aae800588b860021b8d07bc))
+
+### 👷 CI
+
+* **claude:** centralize claude.yml via reusable workflow ([#189](https://github.com/inference-gateway/typescript-sdk/issues/189)) ([f4e558a](https://github.com/inference-gateway/typescript-sdk/commit/f4e558a5bfc0785c8978dd292bc0d508109b1b3d))
+* **claude:** centralize claude.yml via reusable workflow ([#193](https://github.com/inference-gateway/typescript-sdk/issues/193)) ([49f8054](https://github.com/inference-gateway/typescript-sdk/commit/49f8054785a627743bef00afb8a6e0079f80fe3f))
+* **deps-dev:** bump the npm group with 2 updates ([#190](https://github.com/inference-gateway/typescript-sdk/issues/190)) ([07f846e](https://github.com/inference-gateway/typescript-sdk/commit/07f846e914404017ffb0e35f38869ace0df40ff4))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump infer CLI v0.153.1 -> v0.155.0 ([#192](https://github.com/inference-gateway/typescript-sdk/issues/192)) ([18b7bf8](https://github.com/inference-gateway/typescript-sdk/commit/18b7bf85c452fa7d4eb34285069164270fe85ea7))
+
 ## [0.17.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.16.1...v0.17.0) (2026-07-28)
 
 ### ✨ Features
