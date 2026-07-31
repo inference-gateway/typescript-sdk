@@ -32,6 +32,8 @@ all the tools you might need.
      conversations, and function calling.
    - [Messages](./messages): Shows the Anthropic-compatible Messages API with
      streaming events and tool use.
+   - [Images](./images): Shows image generation via the OpenAI-compatible
+     Images API using `createImage`.
    - [MCP](./mcp): Illustrates Model Context Protocol integration with file
      operations, web scraping, and multi-tool conversations using Docker
      Compose.
@@ -78,6 +80,18 @@ interaction patterns
 - Tool use with `tool_use` content blocks
 
 **Best for**: Applications built around the Anthropic Messages format
+
+### [Images Example](./images)
+
+**Purpose**: Generate images via the OpenAI-compatible Images API
+
+**Features**:
+
+- Image generation with `createImage`
+- Selecting size and number of images
+- Handling `url` vs `b64_json` responses
+
+**Best for**: Applications that generate images through the gateway
 
 ### [MCP Example](./mcp)
 
