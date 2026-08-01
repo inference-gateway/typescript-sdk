@@ -511,7 +511,6 @@ export class InferenceGatewayClient {
     query: Record<string, string> = {}
   ): Promise<T> {
     const headers = new Headers({
-      // For FormData bodies, let fetch set the multipart boundary itself
       ...(options.body instanceof FormData
         ? {}
         : { 'Content-Type': 'application/json' }),
