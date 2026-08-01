@@ -218,6 +218,58 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/images/edits': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create an image edit or extension
+     * @description Creates an edited or extended image given an original image and a prompt
+     *     using the OpenAI-compatible Images API. The request is sent as
+     *     `multipart/form-data` with the image file as a binary upload.
+     *
+     *     Not every provider implements the Images API. Requests routed to a
+     *     provider that does not support it return `400 Bad Request` with an
+     *     explanatory error message; use `/chat/completions` for those providers.
+     */
+    post: operations['createImageEdit'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/images/variations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create an image variation
+     * @description Creates a variation of a given image using the OpenAI-compatible Images
+     *     API. The request is sent as `multipart/form-data` with the image file
+     *     as a binary upload.
+     *
+     *     Not every provider implements the Images API. Requests routed to a
+     *     provider that does not support it return `400 Bad Request` with an
+     *     explanatory error message; use `/chat/completions` for those providers.
+     */
+    post: operations['createImageVariation'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/health': {
     parameters: {
       query?: never;
@@ -300,6 +352,8 @@ export interface components {
       chat: string;
       responses?: string;
       images?: string;
+      images_edits?: string;
+      images_variations?: string;
     };
     Error: {
       error?: string;
@@ -1903,6 +1957,80 @@ export interface components {
         'application/json': components['schemas']['CreateImageRequest'];
       };
     };
+    /**
+     * @description Request payload for the Images Edits API. Mirrors the OpenAI
+     *     `POST /v1/images/edits` request body. Sent as `multipart/form-data`
+     *     with the image file as a binary upload.
+     */
+    CreateImageEditRequest: {
+      content: {
+        'multipart/form-data': {
+          /**
+           * Format: binary
+           * @description The image to edit. For the GPT image models, a `png`, `webp`, or `jpg` file up to 50MB; for `dall-e-2`, a square PNG under 4MB. If `mask` is not provided, the image must have transparency, which will be used as the mask.
+           */
+          image: string;
+          /** @description A text description of the desired image. */
+          prompt: string;
+          /**
+           * Format: binary
+           * @description An additional image whose fully transparent areas (alpha = 0) indicate where the image should be edited. Must be a valid PNG file with the same dimensions as the image (under 4MB for `dall-e-2`).
+           */
+          mask?: string;
+          /** @description Model ID to use for image editing. */
+          model?: string;
+          /**
+           * @description Number of images to generate.
+           * @default 1
+           */
+          n?: number;
+          size?: components['schemas']['ImageSize'];
+          /**
+           * @description The quality of the edited image. `auto` selects the best
+           *     quality for the model. The GPT image models support `low`,
+           *     `medium`, and `high`; `dall-e-2` supports only `standard`.
+           * @enum {string}
+           */
+          quality?: ComponentsRequestBodiesCreateImageEditRequestContentMultipartFormDataQuality;
+          /**
+           * @description The format in which the generated images are returned.
+           * @default url
+           * @enum {string}
+           */
+          response_format?: CreateImageRequestResponse_format;
+        };
+      };
+    };
+    /**
+     * @description Request payload for the Images Variations API. Mirrors the OpenAI
+     *     `POST /v1/images/variations` request body. Sent as `multipart/form-data`
+     *     with the image file as a binary upload.
+     */
+    CreateImageVariationRequest: {
+      content: {
+        'multipart/form-data': {
+          /**
+           * Format: binary
+           * @description The image to use as the basis for the variation. For the GPT image models, a `png`, `webp`, or `jpg` file up to 50MB; for `dall-e-2`, a square PNG under 4MB.
+           */
+          image: string;
+          /** @description Model ID to use for image variation. */
+          model?: string;
+          /**
+           * @description Number of images to generate.
+           * @default 1
+           */
+          n?: number;
+          size?: components['schemas']['ImageSize'];
+          /**
+           * @description The format in which the generated images are returned.
+           * @default url
+           * @enum {string}
+           */
+          response_format?: CreateImageRequestResponse_format;
+        };
+      };
+    };
   };
   headers: never;
   pathItems: never;
@@ -2075,6 +2203,10 @@ export type RequestBodyCreateMessagesRequest =
   components['requestBodies']['CreateMessagesRequest'];
 export type RequestBodyCreateImageRequest =
   components['requestBodies']['CreateImageRequest'];
+export type RequestBodyCreateImageEditRequest =
+  components['requestBodies']['CreateImageEditRequest'];
+export type RequestBodyCreateImageVariationRequest =
+  components['requestBodies']['CreateImageVariationRequest'];
 export type $defs = Record<string, never>;
 export interface operations {
   listModels: {
@@ -2403,6 +2535,58 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  createImageEdit: {
+    parameters: {
+      query?: {
+        /** @description Specific provider to use (default determined by model) */
+        provider?: components['schemas']['Provider'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: components['requestBodies']['CreateImageEditRequest'];
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ImagesResponse'];
+        };
+      };
+      400: components['responses']['ImagesNotSupported'];
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createImageVariation: {
+    parameters: {
+      query?: {
+        /** @description Specific provider to use (default determined by model) */
+        provider?: components['schemas']['Provider'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: components['requestBodies']['CreateImageVariationRequest'];
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ImagesResponse'];
+        };
+      };
+      400: components['responses']['ImagesNotSupported'];
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
+    };
+  };
   healthCheck: {
     parameters: {
       query?: never;
@@ -2675,4 +2859,11 @@ export enum MessagesStreamEventType {
   message_stop = 'message_stop',
   ping = 'ping',
   error = 'error',
+}
+export enum ComponentsRequestBodiesCreateImageEditRequestContentMultipartFormDataQuality {
+  auto = 'auto',
+  standard = 'standard',
+  low = 'low',
+  medium = 'medium',
+  high = 'high',
 }

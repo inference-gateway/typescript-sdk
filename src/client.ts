@@ -7,6 +7,8 @@ import type {
   SchemaCreateChatCompletionResponse,
   SchemaCreateChatCompletionStreamResponse,
   SchemaCreateImageRequest,
+  RequestBodyCreateImageEditRequest,
+  RequestBodyCreateImageVariationRequest,
   SchemaCreateMessagesRequest,
   SchemaError,
   SchemaImagesResponse,
@@ -442,6 +444,24 @@ class MessagesStreamProcessor {
   }
 }
 
+/**
+ * Request for `createImageEdit`. Matches the generated multipart schema,
+ * with binary fields typed as Blob for upload.
+ */
+export type CreateImageEditParams = Omit<
+  RequestBodyCreateImageEditRequest['content']['multipart/form-data'],
+  'image' | 'mask'
+> & { image: Blob; mask?: Blob };
+
+/**
+ * Request for `createImageVariation`. Matches the generated multipart schema,
+ * with the binary field typed as Blob for upload.
+ */
+export type CreateImageVariationParams = Omit<
+  RequestBodyCreateImageVariationRequest['content']['multipart/form-data'],
+  'image'
+> & { image: Blob };
+
 export interface ClientOptions {
   baseURL?: string;
   apiKey?: string;
@@ -491,7 +511,9 @@ export class InferenceGatewayClient {
     query: Record<string, string> = {}
   ): Promise<T> {
     const headers = new Headers({
-      'Content-Type': 'application/json',
+      ...(options.body instanceof FormData
+        ? {}
+        : { 'Content-Type': 'application/json' }),
       ...this.defaultHeaders,
       ...(options.headers as Record<string, string>),
     });
@@ -741,6 +763,53 @@ export class InferenceGatewayClient {
         method: 'POST',
         body: JSON.stringify(request),
       },
+      query
+    );
+  }
+
+  /**
+   * Creates an edited or extended image via the OpenAI-compatible Images API.
+   * Sent as `multipart/form-data`. Not every provider supports it.
+   */
+  async createImageEdit(
+    request: CreateImageEditParams,
+    provider?: Provider
+  ): Promise<SchemaImagesResponse> {
+    return this.requestImageForm('/images/edits', request, provider);
+  }
+
+  /**
+   * Creates a variation of a given image via the OpenAI-compatible Images API.
+   * Sent as `multipart/form-data`. Not every provider supports it.
+   */
+  async createImageVariation(
+    request: CreateImageVariationParams,
+    provider?: Provider
+  ): Promise<SchemaImagesResponse> {
+    return this.requestImageForm('/images/variations', request, provider);
+  }
+
+  private requestImageForm(
+    path: string,
+    request: Record<string, unknown>,
+    provider?: Provider
+  ): Promise<SchemaImagesResponse> {
+    const form = new FormData();
+    for (const [key, value] of Object.entries(request)) {
+      if (value === undefined) continue;
+      if (value instanceof Blob) {
+        form.append(key, value);
+      } else {
+        form.append(key, String(value));
+      }
+    }
+    const query: Record<string, string> = {};
+    if (provider) {
+      query.provider = provider;
+    }
+    return this.request<SchemaImagesResponse>(
+      path,
+      { method: 'POST', body: form },
       query
     );
   }
