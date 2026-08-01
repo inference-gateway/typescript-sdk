@@ -1125,6 +1125,82 @@ describe('InferenceGatewayClient', () => {
     });
   });
 
+  describe('createImageEdit', () => {
+    it('should create an image edit via multipart form data', async () => {
+      const mockResponse = {
+        created: 1_700_000_000,
+        data: [{ url: 'https://example.com/edited.png' }],
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await client.createImageEdit(
+        {
+          image: new Blob(['png-bytes'], { type: 'image/png' }),
+          prompt: 'Add a hat',
+          model: 'gpt-image-2',
+          n: 2,
+        },
+        Provider.openai
+      );
+
+      expect(result).toEqual(mockResponse);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('http://localhost:8080/v1/images/edits?provider=openai');
+      expect(options.method).toBe('POST');
+      const form = options.body as FormData;
+      expect(form).toBeInstanceOf(FormData);
+      expect(form.get('prompt')).toBe('Add a hat');
+      expect(form.get('model')).toBe('gpt-image-2');
+      expect(form.get('n')).toBe('2');
+      expect(form.get('image')).toBeInstanceOf(Blob);
+      expect(form.has('mask')).toBe(false);
+      expect((options.headers as Headers).has('Content-Type')).toBe(false);
+    });
+  });
+
+  describe('createImageVariation', () => {
+    it('should create an image variation via multipart form data', async () => {
+      const mockResponse = {
+        created: 1_700_000_000,
+        data: [{ url: 'https://example.com/variation.png' }],
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await client.createImageVariation({
+        image: new Blob(['png-bytes'], { type: 'image/png' }),
+      });
+
+      expect(result).toEqual(mockResponse);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('http://localhost:8080/v1/images/variations');
+      const form = options.body as FormData;
+      expect(form.get('image')).toBeInstanceOf(Blob);
+    });
+
+    it('should surface not-supported errors', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: () =>
+          Promise.resolve({
+            error: 'Image variations are not supported by this provider.',
+          }),
+      });
+
+      await expect(
+        client.createImageVariation({ image: new Blob(['x']) })
+      ).rejects.toThrow('Image variations are not supported by this provider.');
+    });
+  });
+
   describe('streamMessage', () => {
     it('should handle streaming messages with text, tool use and usage', async () => {
       const mockRequest = {
