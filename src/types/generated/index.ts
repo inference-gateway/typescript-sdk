@@ -523,6 +523,8 @@ export interface components {
       created: number;
       owned_by: string;
       served_by: components['schemas']['Provider'];
+      /** @description The modalities the model supports natively (included when `include=modalities`) */
+      modalities?: ModelModalitiesOneOf0[] | null;
       /** @description Context window information for the model (included when `include=context_window`) */
       context_window?: components['schemas']['ContextWindow'] | null;
       /** @description Pricing information for the model (included when `include=pricing`) */
@@ -2216,7 +2218,7 @@ export interface operations {
         provider?: components['schemas']['Provider'];
         /**
          * @description Comma-separated list of metadata keys to include in the response.
-         *     Supported values: `pricing`, `context_window`.
+         *     Supported values: `pricing`, `context_window`, `modalities`.
          *     When omitted, the response remains unchanged (backward compatible).
          */
         include?: PathsModelsGetParametersQueryInclude[];
@@ -2244,7 +2246,7 @@ export interface operations {
         content: {
           /**
            * @example {
-           *       "error": "Unsupported include value: 'unsupported'. Supported values: pricing, context_window"
+           *       "error": "Unsupported include value: 'unsupported'. Supported values: pricing, context_window, modalities"
            *     }
            */
           'application/json': components['schemas']['Error'];
@@ -2608,6 +2610,7 @@ export interface operations {
 }
 export enum PathsModelsGetParametersQueryInclude {
   context_window = 'context_window',
+  modalities = 'modalities',
   pricing = 'pricing',
 }
 export enum Provider {
@@ -2677,6 +2680,12 @@ export enum ContextWindowSource {
 export enum PricingSource {
   PricingSourceProvider = 'provider',
   PricingSourceCommunity = 'community',
+}
+export enum ModelModalitiesOneOf0 {
+  text = 'text',
+  image = 'image',
+  audio = 'audio',
+  video = 'video',
 }
 export enum ChatCompletionToolType {
   function = 'function',
