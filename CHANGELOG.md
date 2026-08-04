@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.20.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.19.0...v0.20.0) (2026-08-04)
+
+### ✨ Features
+
+* **examples:** add modalities example to list example - schema v0.21.1 ([#197](https://github.com/inference-gateway/typescript-sdk/issues/197)) ([fa6bea2](https://github.com/inference-gateway/typescript-sdk/commit/fa6bea2d78f9611ce2958a73935ac5c5cc117f49))
+
+### 👷 CI
+
+* **deps:** bump fast-uri in /examples/mcp/mcp-servers/brave-search ([#209](https://github.com/inference-gateway/typescript-sdk/issues/209)) ([caf3e1b](https://github.com/inference-gateway/typescript-sdk/commit/caf3e1b11113834300048f86c1f0fe2dc505610f))
+* **deps:** bump fast-uri in /examples/mcp/mcp-servers/context7 ([#206](https://github.com/inference-gateway/typescript-sdk/issues/206)) ([83828c2](https://github.com/inference-gateway/typescript-sdk/commit/83828c223da875182ee954758eafeb30791b5c0c))
+* **deps:** bump fast-uri in /examples/mcp/mcp-servers/memory ([#204](https://github.com/inference-gateway/typescript-sdk/issues/204)) ([89c977f](https://github.com/inference-gateway/typescript-sdk/commit/89c977f417421d957d30034ad111a8a3ced2f4f5))
+* **deps:** bump fast-uri in /examples/mcp/mcp-servers/web-search ([#202](https://github.com/inference-gateway/typescript-sdk/issues/202)) ([8bc7624](https://github.com/inference-gateway/typescript-sdk/commit/8bc7624da7cfa87c18142ee1414e2c8f98c64f88))
+* **deps:** bump hono in /examples/mcp/mcp-servers/brave-search ([#207](https://github.com/inference-gateway/typescript-sdk/issues/207)) ([2316764](https://github.com/inference-gateway/typescript-sdk/commit/23167644709ef99c74ee7cd2d015b07dc625de17))
+* **deps:** bump hono in /examples/mcp/mcp-servers/filesystem ([#205](https://github.com/inference-gateway/typescript-sdk/issues/205)) ([6a94633](https://github.com/inference-gateway/typescript-sdk/commit/6a94633fb9e798374c156de0c84d2ca25847f2b9))
+* **deps:** bump hono in /examples/mcp/mcp-servers/web-search ([#200](https://github.com/inference-gateway/typescript-sdk/issues/200)) ([04ee24e](https://github.com/inference-gateway/typescript-sdk/commit/04ee24ebbd2f73ce96c92cd974b6d5dab60c39d2))
+* **deps:** bump ip-address in /examples/mcp/mcp-servers/brave-search ([#208](https://github.com/inference-gateway/typescript-sdk/issues/208)) ([6113907](https://github.com/inference-gateway/typescript-sdk/commit/611390779b670f044fb6abe91fa89369edc45798))
+* **deps:** bump ip-address in /examples/mcp/mcp-servers/filesystem ([#203](https://github.com/inference-gateway/typescript-sdk/issues/203)) ([4c400d2](https://github.com/inference-gateway/typescript-sdk/commit/4c400d227d78efa1587a0eb4ea58f2daa6111a4e))
+* **deps:** bump ip-address in /examples/mcp/mcp-servers/memory ([#199](https://github.com/inference-gateway/typescript-sdk/issues/199)) ([15c343b](https://github.com/inference-gateway/typescript-sdk/commit/15c343b3a32a24753e6d3dc5540a75e2e62ff760))
+* **deps:** bump ip-address in /examples/mcp/mcp-servers/web-search ([#198](https://github.com/inference-gateway/typescript-sdk/issues/198)) ([b221ce5](https://github.com/inference-gateway/typescript-sdk/commit/b221ce5fd518b2f258229cd2e25109e7c9b94636))
+* **deps:** bump undici in /examples/mcp/mcp-servers/web-search ([#201](https://github.com/inference-gateway/typescript-sdk/issues/201)) ([c89edf0](https://github.com/inference-gateway/typescript-sdk/commit/c89edf0f40a9beaf8fedf70536cd16cb7de19f5f))
+
 ## [0.19.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.18.0...v0.19.0) (2026-08-01)
 
 ### ✨ Features
