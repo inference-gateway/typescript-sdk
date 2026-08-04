@@ -1,4 +1,8 @@
-import { InferenceGatewayClient, Provider } from '@inference-gateway/sdk';
+import {
+  InferenceGatewayClient,
+  PathsModelsGetParametersQueryInclude,
+  Provider,
+} from '@inference-gateway/sdk';
 
 const main = async () => {
   const client = new InferenceGatewayClient({
@@ -35,7 +39,7 @@ const main = async () => {
       console.log(`\n  ${providerName.toUpperCase()}: ${models.length} models`);
       models.slice(0, 3).forEach((model) => {
         console.log(
-          `    • ${model.id} (created: ${new Date(model.created * 1000).toLocaleDateString()})`
+          `    \u2022 ${model.id} (created: ${new Date(model.created * 1000).toLocaleDateString()})`
         );
       });
       if (models.length > 3) {
@@ -54,7 +58,7 @@ const main = async () => {
       );
 
       providerModels.data.forEach((model) => {
-        console.log(`  • ${model.id}`);
+        console.log(`  \u2022 ${model.id}`);
         console.log(`    Owner: ${model.owned_by}`);
         console.log(
           `    Created: ${new Date(model.created * 1000).toLocaleDateString()}`
@@ -110,6 +114,31 @@ const main = async () => {
     const isHealthy = await client.healthCheck();
     console.log(
       `Gateway health status: ${isHealthy ? '✅ Healthy' : '❌ Unhealthy'}`
+    );
+
+    console.log('\n---\n');
+
+    // Example 5: List models with modalities metadata
+    console.log('🎯 Example 5: List Models with Modalities');
+    const modelsWithModalities = await client.listModels(undefined, [
+      PathsModelsGetParametersQueryInclude.modalities,
+    ]);
+    console.log(
+      `Found ${modelsWithModalities.data.length} models with modalities info:`
+    );
+    modelsWithModalities.data
+      .filter((m) => m.modalities)
+      .slice(0, 5)
+      .forEach((model) => {
+        console.log(
+          `  \u2022 ${model.id} - modalities: ${model.modalities?.join(', ') ?? 'none'}`
+        );
+      });
+    const totalWithModalities = modelsWithModalities.data.filter(
+      (m) => m.modalities
+    ).length;
+    console.log(
+      `\n  ${totalWithModalities} of ${modelsWithModalities.data.length} models report modalities`
     );
 
     console.log('\n---\n');
