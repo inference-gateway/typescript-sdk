@@ -131,7 +131,7 @@ const main = async () => {
       .slice(0, 5)
       .forEach((model) => {
         console.log(
-          `  \u2022 ${model.id} - modalities: ${model.modalities?.join(', ') ?? 'none'}`
+          `  \u2022 ${model.id} - modalities: ${model.modalities ? `in: ${model.modalities.input.join()} out: ${model.modalities.output.join()}` : 'none'}`
         );
       });
     const totalWithModalities = modelsWithModalities.data.filter(

@@ -523,12 +523,22 @@ export interface components {
       created: number;
       owned_by: string;
       served_by: components['schemas']['Provider'];
-      /** @description The modalities the model supports natively (included when `include=modalities`) */
-      modalities?: ModelModalitiesOneOf0[] | null;
+      /** @description The input and output modalities of the model (included when `include=modalities`) */
+      modalities?: components['schemas']['ModelModalities'] | null;
       /** @description Context window information for the model (included when `include=context_window`) */
       context_window?: components['schemas']['ContextWindow'] | null;
       /** @description Pricing information for the model (included when `include=pricing`) */
       pricing?: components['schemas']['Pricing'] | null;
+    };
+    /**
+     * @description A single input or output modality
+     * @enum {string}
+     */
+    Modality: Modality;
+    /** @description The input and output modalities of a model, mirroring the models.dev dataset shape. Vision models accept `image` in `input`; image-generation models list `image` in `output` — when `output` carries `image` but not `text`, the model only generates images and cannot chat. */
+    ModelModalities: {
+      input: components['schemas']['Modality'][];
+      output: components['schemas']['Modality'][];
     };
     /** @description Response structure for listing models */
     ListModelsResponse: {
@@ -2053,6 +2063,7 @@ export type SchemaImagesResponse = components['schemas']['ImagesResponse'];
 export type SchemaContextWindow = components['schemas']['ContextWindow'];
 export type SchemaPricing = components['schemas']['Pricing'];
 export type SchemaModel = components['schemas']['Model'];
+export type SchemaModelModalities = components['schemas']['ModelModalities'];
 export type SchemaListModelsResponse =
   components['schemas']['ListModelsResponse'];
 export type SchemaListToolsResponse =
@@ -2681,7 +2692,7 @@ export enum PricingSource {
   PricingSourceProvider = 'provider',
   PricingSourceCommunity = 'community',
 }
-export enum ModelModalitiesOneOf0 {
+export enum Modality {
   text = 'text',
   image = 'image',
   audio = 'audio',
