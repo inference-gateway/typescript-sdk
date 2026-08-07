@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.21.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.21.0...v0.21.1) (2026-08-07)
+
+### 🐛 Bug Fixes
+
+* **deps:** bump transitive deps to fix npm audit vulnerabilities ([#212](https://github.com/inference-gateway/typescript-sdk/issues/212)) ([aef6e19](https://github.com/inference-gateway/typescript-sdk/commit/aef6e1922ba16160f2582d04cb5449b8cb21aded))
+* **deps:** resolve dependabot alerts in mcp-server locks ([#214](https://github.com/inference-gateway/typescript-sdk/issues/214)) ([0354c19](https://github.com/inference-gateway/typescript-sdk/commit/0354c198d17b36d8851cfb0974e0c263061ef7f6))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump infer CLI v0.155.0 -> v0.164.0 ([#211](https://github.com/inference-gateway/typescript-sdk/issues/211)) ([1183d78](https://github.com/inference-gateway/typescript-sdk/commit/1183d7860b1147cdd483517bd6d1efe8536b1d99))
+
 ## [0.21.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.20.0...v0.21.0) (2026-08-05)
 
 ### ✨ Features
