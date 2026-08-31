@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.22.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.21.1...v0.22.0) (2026-08-31)
+
+### ✨ Features
+
+* add text to speech capabilities ([#221](https://github.com/inference-gateway/typescript-sdk/issues/221)) ([51e8257](https://github.com/inference-gateway/typescript-sdk/commit/51e82574d194e9f8107c4dffe8cd8a1f33b2d430))
+
+### 👷 CI
+
+* **claude:** centralize claude.yml via reusable workflow ([#219](https://github.com/inference-gateway/typescript-sdk/issues/219)) ([6512cb5](https://github.com/inference-gateway/typescript-sdk/commit/6512cb53a5f7f702784003557cca39344e05f594))
+* **deps-dev:** bump @typescript-eslint/eslint-plugin in the npm group ([#216](https://github.com/inference-gateway/typescript-sdk/issues/216)) ([ad3b0b3](https://github.com/inference-gateway/typescript-sdk/commit/ad3b0b3a9a89a3ae589c53680ef586c73435617c))
+* **deps-dev:** bump eslint from 10.8.1 to 10.9.0 in the npm group ([#217](https://github.com/inference-gateway/typescript-sdk/issues/217)) ([6a7a4a9](https://github.com/inference-gateway/typescript-sdk/commit/6a7a4a952063eca179e154adb945d63acb6e629e))
+* **deps-dev:** bump the npm group with 4 updates ([#215](https://github.com/inference-gateway/typescript-sdk/issues/215)) ([52d0ce9](https://github.com/inference-gateway/typescript-sdk/commit/52d0ce951d059b65e3a7168c2473231d948069d6))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump claude-code 2.1.201 -> 2.1.238 ([#218](https://github.com/inference-gateway/typescript-sdk/issues/218)) ([0680e27](https://github.com/inference-gateway/typescript-sdk/commit/0680e27776ad745a0661d092bc71b98f30029185))
+* **deps:** bump infer CLI v0.164.0 -> v0.183.0 ([#220](https://github.com/inference-gateway/typescript-sdk/issues/220)) ([5b272e4](https://github.com/inference-gateway/typescript-sdk/commit/5b272e467e9ac74856a37047f711a06cc9101aeb))
+
 ## [0.21.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.21.0...v0.21.1) (2026-08-07)
 
 ### 🐛 Bug Fixes
