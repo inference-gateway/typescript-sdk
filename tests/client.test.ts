@@ -1201,6 +1201,47 @@ describe('InferenceGatewayClient', () => {
     });
   });
 
+  describe('createSpeech', () => {
+    it('should generate speech audio as binary', async () => {
+      const mockRequest = {
+        model: 'gpt-4o-mini-tts',
+        input: 'Hello world',
+        voice: 'alloy',
+      };
+      const audio = new Blob(['audio-bytes'], { type: 'audio/mpeg' });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        blob: () => Promise.resolve(audio),
+      });
+
+      const result = await client.createSpeech(mockRequest, Provider.openai);
+      expect(result).toBe(audio);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/audio/speech?provider=openai',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify(mockRequest),
+        })
+      );
+    });
+
+    it('should surface not-supported errors', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: () =>
+          Promise.resolve({
+            error: 'The Audio API is not supported by this provider yet.',
+          }),
+      });
+
+      await expect(
+        client.createSpeech({ model: 'tts-1', input: 'Hi', voice: 'alloy' })
+      ).rejects.toThrow('The Audio API is not supported by this provider yet.');
+    });
+  });
+
   describe('streamMessage', () => {
     it('should handle streaming messages with text, tool use and usage', async () => {
       const mockRequest = {

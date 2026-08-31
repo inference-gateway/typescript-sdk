@@ -10,6 +10,7 @@ import type {
   RequestBodyCreateImageEditRequest,
   RequestBodyCreateImageVariationRequest,
   SchemaCreateMessagesRequest,
+  SchemaCreateSpeechRequest,
   SchemaError,
   SchemaImagesResponse,
   SchemaMessagesResponse,
@@ -508,7 +509,8 @@ export class InferenceGatewayClient {
   private async request<T>(
     path: string,
     options: RequestInit = {},
-    query: Record<string, string> = {}
+    query: Record<string, string> = {},
+    binary = false
   ): Promise<T> {
     const headers = new Headers({
       ...(options.body instanceof FormData
@@ -552,6 +554,9 @@ export class InferenceGatewayClient {
         throw new Error(message || `HTTP error! status: ${response.status}`);
       }
 
+      if (binary) {
+        return (await response.blob()) as T;
+      }
       return response.json();
     } finally {
       globalThis.clearTimeout(timeoutId);
@@ -764,6 +769,29 @@ export class InferenceGatewayClient {
         body: JSON.stringify(request),
       },
       query
+    );
+  }
+
+  /**
+   * Generates speech audio from text via the OpenAI-compatible Audio API.
+   * Not every provider supports it; unsupported ones return an error.
+   */
+  async createSpeech(
+    request: SchemaCreateSpeechRequest,
+    provider?: Provider
+  ): Promise<Blob> {
+    const query: Record<string, string> = {};
+    if (provider) {
+      query.provider = provider;
+    }
+    return this.request<Blob>(
+      '/audio/speech',
+      {
+        method: 'POST',
+        body: JSON.stringify(request),
+      },
+      query,
+      true
     );
   }
 

@@ -270,6 +270,34 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/audio/speech': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Generate speech audio from text
+     * @description Generates audio from the provided text using the OpenAI-compatible
+     *     Audio API. Mirrors the OpenAI `POST /v1/audio/speech` request body.
+     *     The response is the synthesized audio as raw binary bytes; the actual
+     *     `Content-Type` header of the response reflects the requested
+     *     `response_format` (e.g. `audio/mpeg` for `mp3`).
+     *
+     *     Not every provider implements the Audio API. Requests routed to a
+     *     provider that does not support it return `400 Bad Request` with an
+     *     explanatory error message; use `/chat/completions` for those providers.
+     */
+    post: operations['createSpeech'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/health': {
     parameters: {
       query?: never;
@@ -354,6 +382,7 @@ export interface components {
       images?: string;
       images_edits?: string;
       images_variations?: string;
+      speech?: string;
     };
     Error: {
       error?: string;
@@ -1010,6 +1039,46 @@ export interface components {
        * @enum {string}
        */
       response_format?: CreateImageRequestResponse_format;
+    };
+    /**
+     * @description Request body for generating speech audio via the OpenAI-compatible
+     *     Audio API.
+     */
+    CreateSpeechRequest: {
+      /** @description Model ID to use for speech synthesis (e.g. `gpt-4o-mini-tts` or `tts-1`). */
+      model: string;
+      /** @description The text to synthesize into audio (4096 characters maximum). */
+      input: string;
+      /** @description Control the voice of your generated audio with additional instructions. Does not work with `tts-1` or `tts-1-hd`. */
+      instructions?: string;
+      /**
+       * @description The voice to use when generating the audio. OpenAI built-in voices
+       *     are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`,
+       *     `nova`, `sage`, `shimmer`, `verse`, `marin`, and `cedar`. Other
+       *     providers accept their own voice identifiers.
+       */
+      voice: string;
+      /**
+       * @description The audio format of the response.
+       * @default mp3
+       * @enum {string}
+       */
+      response_format?: CreateSpeechRequestResponse_format;
+      /**
+       * @description The speed of the generated audio.
+       * @default 1
+       */
+      speed?: number;
+      /**
+       * Format: byte
+       * @description Base64-encoded audio sample for zero-shot voice cloning. The
+       *     generated speech mimics the voice in the sample. Best results with
+       *     a clean mono recording between 1 and 30 seconds; WAV is the safest
+       *     container. Forwarded to the provider as-is - only providers with
+       *     voice-cloning support honor it (e.g. Qwen3-TTS-compatible
+       *     backends); others ignore or reject it. Not supported by OpenAI.
+       */
+      reference_audio?: string;
     };
     /** @description Request body for creating a model response via the Responses API. */
     CreateResponseRequest: {
@@ -1899,6 +1968,24 @@ export interface components {
       };
     };
     /**
+     * @description The selected provider does not implement the Audio API. The
+     *     gateway returns this when a request is routed to a provider without
+     *     speech synthesis support.
+     */
+    SpeechNotSupported: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": "The Audio API is not supported by this provider yet."
+         *     }
+         */
+        'application/json': components['schemas']['Error'];
+      };
+    };
+    /**
      * @description ProviderResponse depends on the specific provider and endpoint being called
      *     If you decide to use this approach, please follow the provider-specific documentations.
      */
@@ -2043,6 +2130,15 @@ export interface components {
         };
       };
     };
+    /**
+     * @description Request payload for the Audio API. Mirrors the OpenAI
+     *     `POST /v1/audio/speech` request body.
+     */
+    CreateSpeechRequest: {
+      content: {
+        'application/json': components['schemas']['CreateSpeechRequest'];
+      };
+    };
   };
   headers: never;
   pathItems: never;
@@ -2113,6 +2209,8 @@ export type SchemaCreateChatCompletionStreamResponse =
   components['schemas']['CreateChatCompletionStreamResponse'];
 export type SchemaCreateImageRequest =
   components['schemas']['CreateImageRequest'];
+export type SchemaCreateSpeechRequest =
+  components['schemas']['CreateSpeechRequest'];
 export type SchemaCreateResponseRequest =
   components['schemas']['CreateResponseRequest'];
 export type SchemaResponseInput = components['schemas']['ResponseInput'];
@@ -2204,6 +2302,8 @@ export type ResponseMessagesNotSupported =
   components['responses']['MessagesNotSupported'];
 export type ResponseImagesNotSupported =
   components['responses']['ImagesNotSupported'];
+export type ResponseSpeechNotSupported =
+  components['responses']['SpeechNotSupported'];
 export type ResponseProviderResponse =
   components['responses']['ProviderResponse'];
 export type RequestBodyProviderRequest =
@@ -2220,6 +2320,8 @@ export type RequestBodyCreateImageEditRequest =
   components['requestBodies']['CreateImageEditRequest'];
 export type RequestBodyCreateImageVariationRequest =
   components['requestBodies']['CreateImageVariationRequest'];
+export type RequestBodyCreateSpeechRequest =
+  components['requestBodies']['CreateSpeechRequest'];
 export type $defs = Record<string, never>;
 export interface operations {
   listModels: {
@@ -2600,6 +2702,35 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  createSpeech: {
+    parameters: {
+      query?: {
+        /** @description Specific provider to use (default determined by model) */
+        provider?: components['schemas']['Provider'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: components['requestBodies']['CreateSpeechRequest'];
+    responses: {
+      /**
+       * @description The synthesized audio as raw binary bytes. The actual `Content-Type`
+       *     header of the response reflects the requested `response_format`.
+       */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/octet-stream': string;
+        };
+      };
+      400: components['responses']['SpeechNotSupported'];
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
+    };
+  };
   healthCheck: {
     parameters: {
       query?: never;
@@ -2736,6 +2867,14 @@ export enum CreateImageRequestQuality {
 export enum CreateImageRequestResponse_format {
   url = 'url',
   b64_json = 'b64_json',
+}
+export enum CreateSpeechRequestResponse_format {
+  mp3 = 'mp3',
+  opus = 'opus',
+  aac = 'aac',
+  flac = 'flac',
+  wav = 'wav',
+  pcm = 'pcm',
 }
 export enum ResponseRole {
   ResponseRoleUser = 'user',
