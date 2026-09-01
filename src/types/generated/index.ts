@@ -564,7 +564,7 @@ export interface components {
      * @enum {string}
      */
     Modality: Modality;
-    /** @description The input and output modalities of a model, mirroring the models.dev dataset shape. Vision models accept `image` in `input`; image-generation models list `image` in `output` — when `output` carries `image` but not `text`, the model only generates images and cannot chat. */
+    /** @description The input and output modalities of a model, mirroring the models.dev dataset shape. Vision models accept `image` in `input`; image-generation models list `image` in `output` - when `output` carries `image` but not `text`, the model only generates images and cannot chat. */
     ModelModalities: {
       input: components['schemas']['Modality'][];
       output: components['schemas']['Modality'][];
@@ -1069,6 +1069,16 @@ export interface components {
        * @default 1
        */
       speed?: number;
+      /**
+       * @description ISO 639-1 code for the language of the generated speech.
+       *     Non-standard extension: OpenAI's speech API has no language field
+       *     (the name matches its transcription API). Forwarded to the
+       *     provider as-is; the gateway's built-in local engine
+       *     (`local/qwen3-tts`) supports `zh`, `en`, `de`, `it`, `pt`, `es`,
+       *     `ja`, `ko`, `fr` and `ru`, and rejects other codes.
+       * @default en
+       */
+      language?: string;
       /**
        * Format: byte
        * @description Base64-encoded audio sample for zero-shot voice cloning. The
