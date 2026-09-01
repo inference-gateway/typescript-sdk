@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.23.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.22.0...v0.23.0) (2026-09-01)
+
+### ✨ Features
+
+* sync generated types with schemas v0.27.1 ([#222](https://github.com/inference-gateway/typescript-sdk/issues/222)) ([7a95002](https://github.com/inference-gateway/typescript-sdk/commit/7a950026632217b69053e4ff39ffb13ecac00156))
+
 ## [0.22.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.21.1...v0.22.0) (2026-08-31)
 
 ### ✨ Features
