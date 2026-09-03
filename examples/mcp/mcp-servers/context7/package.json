@@ -9,7 +9,7 @@
     "dev": "nodemon index.js"
   },
   "dependencies": {
-    "express": "^4.22.2",
+    "express": "^5.2.1",
     "cors": "^2.8.5",
     "@upstash/context7-mcp": "latest",
     "@modelcontextprotocol/sdk": "^1.29.0",
