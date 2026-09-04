@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.23.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.23.0...v0.23.1) (2026-09-04)
+
+### ♻️ Improvements
+
+* change gateway env var ENABLE_IMAGES -> IMAGES_ENABLED ([#233](https://github.com/inference-gateway/typescript-sdk/issues/233)) ([1a2749c](https://github.com/inference-gateway/typescript-sdk/commit/1a2749cb176f013da1b43f07db145d0f819f1d53))
+
+### 👷 CI
+
+* **deps-dev:** bump browserslist from 4.28.2 to 4.28.8 ([#229](https://github.com/inference-gateway/typescript-sdk/issues/229)) ([f249756](https://github.com/inference-gateway/typescript-sdk/commit/f2497568ae65b043f0d67ed42969849bdb26fa03))
+* **deps-dev:** bump the npm group with 5 updates ([#226](https://github.com/inference-gateway/typescript-sdk/issues/226)) ([d9587df](https://github.com/inference-gateway/typescript-sdk/commit/d9587dfc3fa8f068b3a00fee9702c3726ee679e4))
+* **deps:** bump fast-uri in /examples/mcp/mcp-servers/brave-search ([#231](https://github.com/inference-gateway/typescript-sdk/issues/231)) ([4790eb8](https://github.com/inference-gateway/typescript-sdk/commit/4790eb84ee8fef1b6a7513df7e57a6c2863d083e))
+* **deps:** bump fast-uri in /examples/mcp/mcp-servers/memory ([#224](https://github.com/inference-gateway/typescript-sdk/issues/224)) ([3b7e4f1](https://github.com/inference-gateway/typescript-sdk/commit/3b7e4f16e7ae3fabc87837b2fc5509d036b0aef7))
+* **deps:** bump fast-uri in /examples/mcp/mcp-servers/npm ([#228](https://github.com/inference-gateway/typescript-sdk/issues/228)) ([a2543cc](https://github.com/inference-gateway/typescript-sdk/commit/a2543ccacce8cbc2967458af7d359c32fcbe27cc))
+* **deps:** bump fast-uri in /examples/mcp/mcp-servers/web-search ([#223](https://github.com/inference-gateway/typescript-sdk/issues/223)) ([d586982](https://github.com/inference-gateway/typescript-sdk/commit/d586982a5eb9306335290a3b49ac8267b216d5d5))
+* **deps:** bump qs and express in /examples/mcp/mcp-servers/context7 ([#230](https://github.com/inference-gateway/typescript-sdk/issues/230)) ([ed268ee](https://github.com/inference-gateway/typescript-sdk/commit/ed268eeeeabbbd919e0db80df2036ec695ac6fda))
+* **deps:** bump qs and express in /examples/mcp/mcp-servers/memory ([#227](https://github.com/inference-gateway/typescript-sdk/issues/227)) ([600fdf5](https://github.com/inference-gateway/typescript-sdk/commit/600fdf595c36433227f41e8fcd8b7a6fd18824ff))
+* **deps:** bump qs and express in /examples/mcp/mcp-servers/web-search ([#225](https://github.com/inference-gateway/typescript-sdk/issues/225)) ([cec9773](https://github.com/inference-gateway/typescript-sdk/commit/cec9773b306682e474cad724c10cb51cf174cc82))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump claude-code 2.1.238 -> 2.1.245 ([#232](https://github.com/inference-gateway/typescript-sdk/issues/232)) ([8ff8bf4](https://github.com/inference-gateway/typescript-sdk/commit/8ff8bf4d9dfa3e4e570b976c4556e2ae0fcc6056))
+* sync generated types with schemas v0.27.4 ([#234](https://github.com/inference-gateway/typescript-sdk/issues/234)) ([8254027](https://github.com/inference-gateway/typescript-sdk/commit/8254027e25b682789e4bd16ac43b0624b51cf9c4))
+
 ## [0.23.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.22.0...v0.23.0) (2026-09-01)
 
 ### ✨ Features
