@@ -298,6 +298,143 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/audio/sfx': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Generate a sound effect from a text prompt
+     * @description Generates a non-speech audio clip - a sound effect or ambience - from
+     *     a text prompt. Gateway extension: OpenAI has no sound-effects
+     *     endpoint, so this mirrors the shape of `POST /audio/speech` (JSON in,
+     *     raw audio bytes out) rather than an upstream OpenAI operation. The
+     *     response is the generated audio as raw binary bytes; the actual
+     *     `Content-Type` header of the response reflects the requested
+     *     `response_format` (e.g. `audio/mpeg` for `mp3`).
+     *
+     *     Not every provider implements sound-effect generation. Requests routed
+     *     to a provider that does not support it return `400 Bad Request` with an
+     *     explanatory error message.
+     */
+    post: operations['createSFX'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/audio/music': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Compose a music clip from a text prompt
+     * @description Composes a music clip from a text prompt. Gateway extension: OpenAI has
+     *     no music endpoint, so this mirrors `POST /audio/sfx` (JSON in, raw
+     *     audio bytes out) rather than an upstream OpenAI operation. The response
+     *     is the generated audio as raw binary bytes; the actual `Content-Type`
+     *     header of the response reflects the requested `response_format` (e.g.
+     *     `audio/mpeg` for `mp3`).
+     *
+     *     Not every provider implements music generation. Requests routed to a
+     *     provider that does not support it return `400 Bad Request` with an
+     *     explanatory error message.
+     */
+    post: operations['createMusic'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/videos': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create a video generation job
+     * @description Creates a video generation job using the OpenAI-compatible Videos API.
+     *     Mirrors the OpenAI `POST /v1/videos` request body. Video generation is
+     *     asynchronous at every provider: this operation returns a `VideoJob`
+     *     immediately, the client polls `GET /videos/{video_id}` until `status`
+     *     is `completed`, then downloads the bytes from
+     *     `GET /videos/{video_id}/content`.
+     *
+     *     The request is sent as `multipart/form-data` so reference media can be
+     *     uploaded as binary. The non-standard `audio` field drives a
+     *     talking-avatar render: when present, the model lip-syncs
+     *     `input_reference` to the clip and the video lasts as long as the audio.
+     *
+     *     Not every provider implements the Videos API. Requests routed to a
+     *     provider that does not support it return `400 Bad Request` with an
+     *     explanatory error message.
+     */
+    post: operations['createVideo'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/videos/{video_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Retrieve a video generation job
+     * @description Retrieves a video generation job. The gateway keeps no job state, so
+     *     the request is forwarded to the provider that created the job; pass
+     *     `provider` when the job id alone is not enough to route it.
+     */
+    get: operations['retrieveVideo'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/videos/{video_id}/content': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Download the rendered video
+     * @description Downloads the rendered video of a completed job as raw binary bytes.
+     *     Returns `404` while the job is still `queued` or `in_progress`, or if
+     *     it `failed`.
+     */
+    get: operations['downloadVideoContent'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/health': {
     parameters: {
       query?: never;
@@ -383,6 +520,10 @@ export interface components {
       images_edits?: string;
       images_variations?: string;
       speech?: string;
+      music?: string;
+      sfx?: string;
+      videos?: string;
+      videos_retrieve?: string;
     };
     Error: {
       error?: string;
@@ -1055,7 +1196,8 @@ export interface components {
        * @description The voice to use when generating the audio. OpenAI built-in voices
        *     are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`,
        *     `nova`, `sage`, `shimmer`, `verse`, `marin`, and `cedar`. Other
-       *     providers accept their own voice identifiers.
+       *     providers accept their own voice identifiers - for ElevenLabs this
+       *     is a voice id, including the id of a previously cloned voice.
        */
       voice: string;
       /**
@@ -1089,6 +1231,155 @@ export interface components {
        *     backends); others ignore or reject it. Not supported by OpenAI.
        */
       reference_audio?: string;
+    };
+    /**
+     * @description Request body for generating a non-speech audio clip - a sound effect
+     *     or ambience - from a text prompt.
+     */
+    CreateSFXRequest: {
+      /** @description Model ID to use for sound-effect generation (e.g. `elevenlabs/eleven_text_to_sound_v2`). */
+      model: string;
+      /** @description Description of the sound to generate (e.g. `distant thunder rolling over a valley`). */
+      prompt: string;
+      /**
+       * @description Length of the generated clip in seconds. Omit to let the provider
+       *     pick a length that fits the prompt.
+       */
+      duration_seconds?: number;
+      /**
+       * @description How closely the generation follows the prompt. Higher values stay
+       *     closer to the prompt, lower values allow more variation. Omit to
+       *     use the provider default.
+       */
+      prompt_influence?: number;
+      /** @description Whether to generate a clip that loops seamlessly. */
+      loop?: boolean;
+      /**
+       * @description The audio format of the response.
+       * @default mp3
+       * @enum {string}
+       */
+      response_format?: CreateSFXRequestResponse_format;
+    };
+    /** @description Request body for composing a music clip from a text prompt. */
+    CreateMusicRequest: {
+      /** @description Model ID to use for music generation (e.g. `elevenlabs/music_v2_5`). */
+      model: string;
+      /** @description Description of the music to compose - genre, mood, instruments, tempo. */
+      prompt: string;
+      /**
+       * @description Length of the clip in seconds. Omit to let the provider pick a
+       *     length that fits the prompt.
+       */
+      duration_seconds?: number;
+      /**
+       * @description Guarantee the generated clip has no vocals.
+       * @default false
+       */
+      instrumental?: boolean;
+      /**
+       * @description The audio format of the response.
+       * @default mp3
+       * @enum {string}
+       */
+      response_format?: CreateSFXRequestResponse_format;
+    };
+    /**
+     * @description Request body for creating a video generation job via the
+     *     OpenAI-compatible Videos API. Sent as `multipart/form-data`.
+     */
+    CreateVideoRequest: {
+      /** @description Model ID to use for video generation (e.g. `elevenlabs/creatify-aurora`). */
+      model: string;
+      /**
+       * @description Text description of the video to generate. Optional for
+       *     audio-driven avatar models, where the dialogue comes from `audio`
+       *     and the prompt only describes framing, never the spoken words.
+       */
+      prompt?: string;
+      /**
+       * Format: binary
+       * @description Optional image used as the first frame or, for avatar models, the
+       *     portrait to animate.
+       */
+      input_reference?: string;
+      /**
+       * @description Non-standard extension (OpenAI's Videos API has no reference-images
+       *     field): optional reference images of the subject (e.g. the same
+       *     person from several angles), sent as repeated `reference_images`
+       *     parts. Used by providers that keep a character consistent across
+       *     shots (e.g. ElevenLabs `veo-3.1-*`, `bytedance-seedance-v2*`).
+       *     Distinct from `input_reference`, which stays the first frame or,
+       *     for avatar models, the portrait to animate - avatar models ignore
+       *     this field. Providers without reference-image support ignore or
+       *     reject it.
+       */
+      reference_images?: string[];
+      /**
+       * Format: binary
+       * @description Non-standard extension (OpenAI's Videos API has no audio field):
+       *     an audio clip - `audio/wav` or `audio/mpeg` - that drives the
+       *     render. When present, the model lip-syncs `input_reference` to it
+       *     and the generated video lasts as long as the clip, so `seconds` is
+       *     ignored. Forwarded to the provider as-is; only providers with
+       *     talking-avatar support honor it (e.g. ElevenLabs
+       *     `creatify-aurora`), others ignore or reject it.
+       */
+      audio?: string;
+      /**
+       * @description Requested duration of the generated video in seconds, as a string
+       *     (e.g. `4`, `8`, `12`). Providers accept a limited set of values;
+       *     omit to use the provider default. Ignored when `audio` is present.
+       */
+      seconds?: string;
+      /**
+       * @description Requested output resolution as `widthxheight` (e.g. `720x1280`).
+       *     Providers accept a limited set of values - ElevenLabs
+       *     `creatify-aurora` maps to `480p` and `720p`. Omit to use the
+       *     provider default.
+       */
+      size?: string;
+    };
+    /**
+     * @description A video generation job. Returned by `POST /videos` and
+     *     `GET /videos/{video_id}`.
+     */
+    VideoJob: {
+      /**
+       * @description Identifier of the video generation job. Opaque to clients - it may
+       *     encode the provider - and must be sent back verbatim to
+       *     `GET /videos/{video_id}`.
+       */
+      id: string;
+      /**
+       * @description The object type, which is always `video`.
+       * @constant
+       */
+      object: 'video';
+      /** @description The model used to generate the video. */
+      model: string;
+      /**
+       * @description Current status of the job.
+       * @enum {string}
+       */
+      status: VideoJobStatus;
+      /** @description Completion percentage of the render. */
+      progress?: number;
+      /** @description Unix timestamp (in seconds) of when the job was created. */
+      created_at: number;
+      /** @description Unix timestamp (in seconds) of when the job finished, null while it is still running. */
+      completed_at?: number | null;
+      /** @description Duration of the generated video in seconds, as a string. */
+      seconds?: string;
+      /** @description Resolution of the generated video as `widthxheight`. */
+      size?: string;
+      /** @description The error that caused the job to fail, null otherwise. */
+      error?: {
+        /** @description Machine-readable error code. */
+        code?: string;
+        /** @description Human-readable error message. */
+        message?: string;
+      } | null;
     };
     /** @description Request body for creating a model response via the Responses API. */
     CreateResponseRequest: {
@@ -1905,6 +2196,15 @@ export interface components {
         'application/json': components['schemas']['Error'];
       };
     };
+    /** @description Not found */
+    NotFound: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        'application/json': components['schemas']['Error'];
+      };
+    };
     /** @description MCP tools endpoint is not exposed */
     MCPNotExposed: {
       headers: {
@@ -1990,6 +2290,60 @@ export interface components {
         /**
          * @example {
          *       "error": "The Audio API is not supported by this provider yet."
+         *     }
+         */
+        'application/json': components['schemas']['Error'];
+      };
+    };
+    /**
+     * @description The selected provider does not implement sound-effect generation. The
+     *     gateway returns this when a request is routed to a provider without
+     *     text-to-sound-effect support.
+     */
+    SFXNotSupported: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": "Sound effect generation is not supported by this provider yet."
+         *     }
+         */
+        'application/json': components['schemas']['Error'];
+      };
+    };
+    /**
+     * @description The selected provider does not implement music generation. The gateway
+     *     returns this when a request is routed to a provider without
+     *     text-to-music support.
+     */
+    MusicNotSupported: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": "Music generation is not supported by this provider yet."
+         *     }
+         */
+        'application/json': components['schemas']['Error'];
+      };
+    };
+    /**
+     * @description The selected provider does not implement the Videos API. The
+     *     gateway returns this when a request is routed to a provider without
+     *     video generation support.
+     */
+    VideosNotSupported: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": "The Videos API is not supported by this provider yet."
          *     }
          */
         'application/json': components['schemas']['Error'];
@@ -2149,6 +2503,28 @@ export interface components {
         'application/json': components['schemas']['CreateSpeechRequest'];
       };
     };
+    /** @description Request payload for generating a sound effect from a text prompt. */
+    CreateSFXRequest: {
+      content: {
+        'application/json': components['schemas']['CreateSFXRequest'];
+      };
+    };
+    /** @description Request payload for composing a music clip from a text prompt. */
+    CreateMusicRequest: {
+      content: {
+        'application/json': components['schemas']['CreateMusicRequest'];
+      };
+    };
+    /**
+     * @description Request payload for the Videos API. Mirrors the OpenAI
+     *     `POST /v1/videos` request body, sent as `multipart/form-data` with the
+     *     reference media as binary uploads.
+     */
+    CreateVideoRequest: {
+      content: {
+        'multipart/form-data': components['schemas']['CreateVideoRequest'];
+      };
+    };
   };
   headers: never;
   pathItems: never;
@@ -2221,6 +2597,12 @@ export type SchemaCreateImageRequest =
   components['schemas']['CreateImageRequest'];
 export type SchemaCreateSpeechRequest =
   components['schemas']['CreateSpeechRequest'];
+export type SchemaCreateSfxRequest = components['schemas']['CreateSFXRequest'];
+export type SchemaCreateMusicRequest =
+  components['schemas']['CreateMusicRequest'];
+export type SchemaCreateVideoRequest =
+  components['schemas']['CreateVideoRequest'];
+export type SchemaVideoJob = components['schemas']['VideoJob'];
 export type SchemaCreateResponseRequest =
   components['schemas']['CreateResponseRequest'];
 export type SchemaResponseInput = components['schemas']['ResponseInput'];
@@ -2305,6 +2687,7 @@ export type SchemaConfig = components['schemas']['Config'];
 export type ResponseBadRequest = components['responses']['BadRequest'];
 export type ResponseUnauthorized = components['responses']['Unauthorized'];
 export type ResponseInternalError = components['responses']['InternalError'];
+export type ResponseNotFound = components['responses']['NotFound'];
 export type ResponseMcpNotExposed = components['responses']['MCPNotExposed'];
 export type ResponseResponsesNotSupported =
   components['responses']['ResponsesNotSupported'];
@@ -2314,6 +2697,12 @@ export type ResponseImagesNotSupported =
   components['responses']['ImagesNotSupported'];
 export type ResponseSpeechNotSupported =
   components['responses']['SpeechNotSupported'];
+export type ResponseSfxNotSupported =
+  components['responses']['SFXNotSupported'];
+export type ResponseMusicNotSupported =
+  components['responses']['MusicNotSupported'];
+export type ResponseVideosNotSupported =
+  components['responses']['VideosNotSupported'];
 export type ResponseProviderResponse =
   components['responses']['ProviderResponse'];
 export type RequestBodyProviderRequest =
@@ -2332,6 +2721,12 @@ export type RequestBodyCreateImageVariationRequest =
   components['requestBodies']['CreateImageVariationRequest'];
 export type RequestBodyCreateSpeechRequest =
   components['requestBodies']['CreateSpeechRequest'];
+export type RequestBodyCreateSfxRequest =
+  components['requestBodies']['CreateSFXRequest'];
+export type RequestBodyCreateMusicRequest =
+  components['requestBodies']['CreateMusicRequest'];
+export type RequestBodyCreateVideoRequest =
+  components['requestBodies']['CreateVideoRequest'];
 export type $defs = Record<string, never>;
 export interface operations {
   listModels: {
@@ -2741,6 +3136,162 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  createSFX: {
+    parameters: {
+      query?: {
+        /** @description Specific provider to use (default determined by model) */
+        provider?: components['schemas']['Provider'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: components['requestBodies']['CreateSFXRequest'];
+    responses: {
+      /**
+       * @description The generated audio as raw binary bytes. The actual `Content-Type`
+       *     header of the response reflects the requested `response_format`.
+       */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/octet-stream': string;
+        };
+      };
+      400: components['responses']['SFXNotSupported'];
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createMusic: {
+    parameters: {
+      query?: {
+        /** @description Specific provider to use (default determined by model) */
+        provider?: components['schemas']['Provider'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: components['requestBodies']['CreateMusicRequest'];
+    responses: {
+      /**
+       * @description The generated audio as raw binary bytes. The actual `Content-Type`
+       *     header of the response reflects the requested `response_format`.
+       */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/octet-stream': string;
+        };
+      };
+      400: components['responses']['MusicNotSupported'];
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createVideo: {
+    parameters: {
+      query?: {
+        /** @description Specific provider to use (default determined by model) */
+        provider?: components['schemas']['Provider'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: components['requestBodies']['CreateVideoRequest'];
+    responses: {
+      /** @description The created video generation job. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['VideoJob'];
+        };
+      };
+      400: components['responses']['VideosNotSupported'];
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  retrieveVideo: {
+    parameters: {
+      query?: {
+        /** @description Specific provider to use (default determined by the job id) */
+        provider?: components['schemas']['Provider'];
+      };
+      header?: never;
+      path: {
+        /**
+         * @description The id of the video generation job, as returned by
+         *     `POST /videos`. Opaque to clients - it may encode the provider -
+         *     and must be sent back verbatim.
+         */
+        video_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The video generation job. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['VideoJob'];
+        };
+      };
+      400: components['responses']['VideosNotSupported'];
+      401: components['responses']['Unauthorized'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  downloadVideoContent: {
+    parameters: {
+      query?: {
+        /** @description Specific provider to use (default determined by the job id) */
+        provider?: components['schemas']['Provider'];
+      };
+      header?: never;
+      path: {
+        /**
+         * @description The id of the video generation job, as returned by
+         *     `POST /videos`. Opaque to clients - it may encode the provider -
+         *     and must be sent back verbatim.
+         */
+        video_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /**
+       * @description The rendered video as raw binary bytes. The actual `Content-Type`
+       *     header of the response reflects the container produced by the
+       *     provider (e.g. `video/mp4`).
+       */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/octet-stream': string;
+        };
+      };
+      400: components['responses']['VideosNotSupported'];
+      401: components['responses']['Unauthorized'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
   healthCheck: {
     parameters: {
       query?: never;
@@ -2775,6 +3326,7 @@ export enum Provider {
   cohere = 'cohere',
   anthropic = 'anthropic',
   deepseek = 'deepseek',
+  elevenlabs = 'elevenlabs',
   google = 'google',
   mistral = 'mistral',
   minimax = 'minimax',
@@ -2885,6 +3437,19 @@ export enum CreateSpeechRequestResponse_format {
   flac = 'flac',
   wav = 'wav',
   pcm = 'pcm',
+}
+export enum CreateSFXRequestResponse_format {
+  mp3 = 'mp3',
+  opus = 'opus',
+  aac = 'aac',
+  flac = 'flac',
+  pcm = 'pcm',
+}
+export enum VideoJobStatus {
+  queued = 'queued',
+  in_progress = 'in_progress',
+  completed = 'completed',
+  failed = 'failed',
 }
 export enum ResponseRole {
   ResponseRoleUser = 'user',
