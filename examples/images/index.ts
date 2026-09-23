@@ -53,7 +53,7 @@ const main = async () => {
 
     const b64 = response.data[0]?.b64_json;
     if (!b64) {
-      console.log('No b64_json in response; skipping edit/variation steps');
+      console.log('No b64_json in response; skipping edit step');
       return;
     }
     const image = new Blob([Buffer.from(b64, 'base64')], { type: 'image/png' });
@@ -70,13 +70,6 @@ const main = async () => {
     );
     edit.data.forEach((img, i) => {
       console.log(`Edited image ${i + 1}: ${img.url ?? '[base64 b64_json omitted]'}`);
-    });
-
-    console.log('---');
-    console.log('🔀 Creating a variation of the generated image');
-    const variation = await client.createImageVariation({ model, image }, provider);
-    variation.data.forEach((img, i) => {
-      console.log(`Variation ${i + 1}: ${img.url ?? '[base64 b64_json omitted]'}`);
     });
   } catch (error) {
     console.error('Error generating image:', error);

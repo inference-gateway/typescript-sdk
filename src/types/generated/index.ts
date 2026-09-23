@@ -244,32 +244,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/images/variations': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Create an image variation
-     * @description Creates a variation of a given image using the OpenAI-compatible Images
-     *     API. The request is sent as `multipart/form-data` with the image file
-     *     as a binary upload.
-     *
-     *     Not every provider implements the Images API. Requests routed to a
-     *     provider that does not support it return `400 Bad Request` with an
-     *     explanatory error message; use `/chat/completions` for those providers.
-     */
-    post: operations['createImageVariation'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/audio/speech': {
     parameters: {
       query?: never;
@@ -518,7 +492,6 @@ export interface components {
       responses?: string;
       images?: string;
       images_edits?: string;
-      images_variations?: string;
       speech?: string;
       music?: string;
       sfx?: string;
@@ -2465,36 +2438,6 @@ export interface components {
       };
     };
     /**
-     * @description Request payload for the Images Variations API. Mirrors the OpenAI
-     *     `POST /v1/images/variations` request body. Sent as `multipart/form-data`
-     *     with the image file as a binary upload.
-     */
-    CreateImageVariationRequest: {
-      content: {
-        'multipart/form-data': {
-          /**
-           * Format: binary
-           * @description The image to use as the basis for the variation. For the GPT image models, a `png`, `webp`, or `jpg` file up to 50MB; for `dall-e-2`, a square PNG under 4MB.
-           */
-          image: string;
-          /** @description Model ID to use for image variation. */
-          model?: string;
-          /**
-           * @description Number of images to generate.
-           * @default 1
-           */
-          n?: number;
-          size?: components['schemas']['ImageSize'];
-          /**
-           * @description The format in which the generated images are returned.
-           * @default url
-           * @enum {string}
-           */
-          response_format?: CreateImageRequestResponse_format;
-        };
-      };
-    };
-    /**
      * @description Request payload for the Audio API. Mirrors the OpenAI
      *     `POST /v1/audio/speech` request body.
      */
@@ -2717,8 +2660,6 @@ export type RequestBodyCreateImageRequest =
   components['requestBodies']['CreateImageRequest'];
 export type RequestBodyCreateImageEditRequest =
   components['requestBodies']['CreateImageEditRequest'];
-export type RequestBodyCreateImageVariationRequest =
-  components['requestBodies']['CreateImageVariationRequest'];
 export type RequestBodyCreateSpeechRequest =
   components['requestBodies']['CreateSpeechRequest'];
 export type RequestBodyCreateSFXRequest =
@@ -3066,32 +3007,6 @@ export interface operations {
       cookie?: never;
     };
     requestBody: components['requestBodies']['CreateImageEditRequest'];
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ImagesResponse'];
-        };
-      };
-      400: components['responses']['ImagesNotSupported'];
-      401: components['responses']['Unauthorized'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  createImageVariation: {
-    parameters: {
-      query?: {
-        /** @description Specific provider to use (default determined by model) */
-        provider?: components['schemas']['Provider'];
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: components['requestBodies']['CreateImageVariationRequest'];
     responses: {
       /** @description Successful response */
       200: {

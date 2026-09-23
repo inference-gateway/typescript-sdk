@@ -2,7 +2,7 @@
 
 This example demonstrates the OpenAI-compatible Images API with the Inference
 Gateway SDK: it generates an image with `createImage`, then edits it with
-`createImageEdit` and creates a variation with `createImageVariation`.
+`createImageEdit`.
 
 ## Getting Started
 
@@ -31,10 +31,9 @@ Gateway SDK: it generates an image with `createImage`, then edits it with
 
 ## Notes
 
-- Not every provider or model supports image generation, edits, or
-  variations; unsupported combinations return an error.
+- Not every provider or model supports image generation or edits;
+  unsupported combinations return an error.
 - `response_format` defaults to `url`. The example requests `b64_json` so it
-  can feed the generated image bytes into the edit and variation calls as a
-  `Blob`.
+  can feed the generated image bytes into the edit call as a `Blob`.
 - `createImageEdit` accepts an optional `mask` Blob whose transparent areas
   indicate where the image should be edited.
