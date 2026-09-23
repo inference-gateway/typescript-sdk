@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.24.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.23.1...v0.24.0) (2026-09-23)
+
+### ✨ Features
+
+* add createSFX and createMusic (schemas v0.31.0) ([#242](https://github.com/inference-gateway/typescript-sdk/issues/242)) ([07177d7](https://github.com/inference-gateway/typescript-sdk/commit/07177d7e33d1d6445a832dbdbf740f600c09cd3e))
+
+### 👷 CI
+
+* **deps-dev:** bump the npm group with 3 updates ([#241](https://github.com/inference-gateway/typescript-sdk/issues/241)) ([14c13e9](https://github.com/inference-gateway/typescript-sdk/commit/14c13e9a7c790d89ded11c20e93f03e4cf026da4))
+* **deps-dev:** bump the npm group with 5 updates ([#237](https://github.com/inference-gateway/typescript-sdk/issues/237)) ([d6b0918](https://github.com/inference-gateway/typescript-sdk/commit/d6b09184ca7c31afbd8927baff2484c7f69ad895))
+* **deps:** bump hono in /examples/mcp/mcp-servers/brave-search ([#235](https://github.com/inference-gateway/typescript-sdk/issues/235)) ([4dff1a8](https://github.com/inference-gateway/typescript-sdk/commit/4dff1a8790509b5532f766a4b55c231acc2ce5b9))
+* **deps:** bump hono in /examples/mcp/mcp-servers/npm ([#236](https://github.com/inference-gateway/typescript-sdk/issues/236)) ([c6f5058](https://github.com/inference-gateway/typescript-sdk/commit/c6f505889c8f023ffcc2e3627b563ef78b32e64e))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump claude-code 2.1.245 -> 2.1.266 ([#239](https://github.com/inference-gateway/typescript-sdk/issues/239)) ([3c675eb](https://github.com/inference-gateway/typescript-sdk/commit/3c675eb29b54fd25cb590301d3556fb182fc8ee9))
+* **deps:** bump claude-code 2.1.266 -> 2.1.278 ([#246](https://github.com/inference-gateway/typescript-sdk/issues/246)) ([3554eb9](https://github.com/inference-gateway/typescript-sdk/commit/3554eb9c77757cb00d5cebca29580a60ab22333b))
+* **deps:** bump infer CLI v0.183.0 -> v0.192.0 ([#240](https://github.com/inference-gateway/typescript-sdk/issues/240)) ([96cb0c7](https://github.com/inference-gateway/typescript-sdk/commit/96cb0c79a7b5551695766aef1aec1dba32bf259d))
+* sync generated types with schemas v0.28.0 ([#238](https://github.com/inference-gateway/typescript-sdk/issues/238)) ([6a20735](https://github.com/inference-gateway/typescript-sdk/commit/6a20735e8c2cd41307e8f15e56f7e6919ee3b0d0))
+
 ## [0.23.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.23.0...v0.23.1) (2026-09-04)
 
 ### ♻️ Improvements
