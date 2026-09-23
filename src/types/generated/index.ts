@@ -2597,7 +2597,7 @@ export type SchemaCreateImageRequest =
   components['schemas']['CreateImageRequest'];
 export type SchemaCreateSpeechRequest =
   components['schemas']['CreateSpeechRequest'];
-export type SchemaCreateSfxRequest = components['schemas']['CreateSFXRequest'];
+export type SchemaCreateSFXRequest = components['schemas']['CreateSFXRequest'];
 export type SchemaCreateMusicRequest =
   components['schemas']['CreateMusicRequest'];
 export type SchemaCreateVideoRequest =
@@ -2697,7 +2697,7 @@ export type ResponseImagesNotSupported =
   components['responses']['ImagesNotSupported'];
 export type ResponseSpeechNotSupported =
   components['responses']['SpeechNotSupported'];
-export type ResponseSfxNotSupported =
+export type ResponseSFXNotSupported =
   components['responses']['SFXNotSupported'];
 export type ResponseMusicNotSupported =
   components['responses']['MusicNotSupported'];
@@ -2721,7 +2721,7 @@ export type RequestBodyCreateImageVariationRequest =
   components['requestBodies']['CreateImageVariationRequest'];
 export type RequestBodyCreateSpeechRequest =
   components['requestBodies']['CreateSpeechRequest'];
-export type RequestBodyCreateSfxRequest =
+export type RequestBodyCreateSFXRequest =
   components['requestBodies']['CreateSFXRequest'];
 export type RequestBodyCreateMusicRequest =
   components['requestBodies']['CreateMusicRequest'];

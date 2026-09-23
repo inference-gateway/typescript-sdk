@@ -33,4 +33,6 @@ tasks:
     desc: Generate TypeScript types from OpenAPI specification
     cmds:
       - npx openapi-typescript@7.13.0 openapi.yaml --enum --enum-values --dedupe-enums=true --root-types --default-non-nullable false -o src/types/generated/index.ts
+      # --root-types pascal-cases schema names, which lowercases acronyms (SFX -> Sfx). Restore them.
+      - sed -i 's/Sfx/SFX/g' src/types/generated/index.ts
       - npx prettier --write src/types/generated/index.ts

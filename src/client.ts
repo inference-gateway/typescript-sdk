@@ -11,7 +11,7 @@ import type {
   RequestBodyCreateImageVariationRequest,
   SchemaCreateMessagesRequest,
   SchemaCreateMusicRequest,
-  SchemaCreateSfxRequest,
+  SchemaCreateSFXRequest,
   SchemaCreateSpeechRequest,
   SchemaError,
   SchemaImagesResponse,
@@ -802,7 +802,7 @@ export class InferenceGatewayClient {
    * Not every provider supports it; unsupported ones return an error.
    */
   async createSFX(
-    request: SchemaCreateSfxRequest,
+    request: SchemaCreateSFXRequest,
     provider?: Provider
   ): Promise<Blob> {
     const query: Record<string, string> = {};
