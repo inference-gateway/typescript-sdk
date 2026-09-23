@@ -10,6 +10,8 @@ import type {
   RequestBodyCreateImageEditRequest,
   RequestBodyCreateImageVariationRequest,
   SchemaCreateMessagesRequest,
+  SchemaCreateMusicRequest,
+  SchemaCreateSfxRequest,
   SchemaCreateSpeechRequest,
   SchemaError,
   SchemaImagesResponse,
@@ -786,6 +788,52 @@ export class InferenceGatewayClient {
     }
     return this.request<Blob>(
       '/audio/speech',
+      {
+        method: 'POST',
+        body: JSON.stringify(request),
+      },
+      query,
+      true
+    );
+  }
+
+  /**
+   * Generates a sound effect or ambience clip from a text prompt.
+   * Not every provider supports it; unsupported ones return an error.
+   */
+  async createSFX(
+    request: SchemaCreateSfxRequest,
+    provider?: Provider
+  ): Promise<Blob> {
+    const query: Record<string, string> = {};
+    if (provider) {
+      query.provider = provider;
+    }
+    return this.request<Blob>(
+      '/audio/sfx',
+      {
+        method: 'POST',
+        body: JSON.stringify(request),
+      },
+      query,
+      true
+    );
+  }
+
+  /**
+   * Composes a music clip from a text prompt.
+   * Not every provider supports it; unsupported ones return an error.
+   */
+  async createMusic(
+    request: SchemaCreateMusicRequest,
+    provider?: Provider
+  ): Promise<Blob> {
+    const query: Record<string, string> = {};
+    if (provider) {
+      query.provider = provider;
+    }
+    return this.request<Blob>(
+      '/audio/music',
       {
         method: 'POST',
         body: JSON.stringify(request),
