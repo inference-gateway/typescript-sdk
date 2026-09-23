@@ -1162,45 +1162,6 @@ describe('InferenceGatewayClient', () => {
     });
   });
 
-  describe('createImageVariation', () => {
-    it('should create an image variation via multipart form data', async () => {
-      const mockResponse = {
-        created: 1_700_000_000,
-        data: [{ url: 'https://example.com/variation.png' }],
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const result = await client.createImageVariation({
-        image: new Blob(['png-bytes'], { type: 'image/png' }),
-      });
-
-      expect(result).toEqual(mockResponse);
-      const [url, options] = mockFetch.mock.calls[0];
-      expect(url).toBe('http://localhost:8080/v1/images/variations');
-      const form = options.body as FormData;
-      expect(form.get('image')).toBeInstanceOf(Blob);
-    });
-
-    it('should surface not-supported errors', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        json: () =>
-          Promise.resolve({
-            error: 'Image variations are not supported by this provider.',
-          }),
-      });
-
-      await expect(
-        client.createImageVariation({ image: new Blob(['x']) })
-      ).rejects.toThrow('Image variations are not supported by this provider.');
-    });
-  });
-
   describe('createSpeech', () => {
     it('should generate speech audio as binary', async () => {
       const mockRequest = {

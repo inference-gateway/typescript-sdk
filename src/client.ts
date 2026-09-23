@@ -8,7 +8,6 @@ import type {
   SchemaCreateChatCompletionStreamResponse,
   SchemaCreateImageRequest,
   RequestBodyCreateImageEditRequest,
-  RequestBodyCreateImageVariationRequest,
   SchemaCreateMessagesRequest,
   SchemaCreateMusicRequest,
   SchemaCreateSFXRequest,
@@ -456,15 +455,6 @@ export type CreateImageEditParams = Omit<
   'image' | 'mask'
 > & { image: Blob; mask?: Blob };
 
-/**
- * Request for `createImageVariation`. Matches the generated multipart schema,
- * with the binary field typed as Blob for upload.
- */
-export type CreateImageVariationParams = Omit<
-  RequestBodyCreateImageVariationRequest['content']['multipart/form-data'],
-  'image'
-> & { image: Blob };
-
 export interface ClientOptions {
   baseURL?: string;
   apiKey?: string;
@@ -852,17 +842,6 @@ export class InferenceGatewayClient {
     provider?: Provider
   ): Promise<SchemaImagesResponse> {
     return this.requestImageForm('/images/edits', request, provider);
-  }
-
-  /**
-   * Creates a variation of a given image via the OpenAI-compatible Images API.
-   * Sent as `multipart/form-data`. Not every provider supports it.
-   */
-  async createImageVariation(
-    request: CreateImageVariationParams,
-    provider?: Provider
-  ): Promise<SchemaImagesResponse> {
-    return this.requestImageForm('/images/variations', request, provider);
   }
 
   private requestImageForm(
