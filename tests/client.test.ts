@@ -1242,6 +1242,93 @@ describe('InferenceGatewayClient', () => {
     });
   });
 
+  describe('createSFX', () => {
+    it('should generate sound effect audio as binary', async () => {
+      const mockRequest = {
+        model: 'elevenlabs/eleven_text_to_sound_v2',
+        prompt: 'distant thunder rolling over a valley',
+        duration_seconds: 5,
+      };
+      const audio = new Blob(['sfx-bytes'], { type: 'audio/mpeg' });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        blob: () => Promise.resolve(audio),
+      });
+
+      const result = await client.createSFX(mockRequest, Provider.elevenlabs);
+      expect(result).toBe(audio);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/audio/sfx?provider=elevenlabs',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify(mockRequest),
+        })
+      );
+    });
+
+    it('should surface not-supported errors', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: () =>
+          Promise.resolve({
+            error:
+              'Sound effect generation is not supported by this provider yet.',
+          }),
+      });
+
+      await expect(
+        client.createSFX({ model: 'tts-1', prompt: 'thunder' })
+      ).rejects.toThrow(
+        'Sound effect generation is not supported by this provider yet.'
+      );
+    });
+  });
+
+  describe('createMusic', () => {
+    it('should generate music audio as binary', async () => {
+      const mockRequest = {
+        model: 'elevenlabs/music_v2_5',
+        prompt: 'upbeat synthwave with a driving bassline',
+        instrumental: true,
+      };
+      const audio = new Blob(['music-bytes'], { type: 'audio/mpeg' });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        blob: () => Promise.resolve(audio),
+      });
+
+      const result = await client.createMusic(mockRequest, Provider.elevenlabs);
+      expect(result).toBe(audio);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/audio/music?provider=elevenlabs',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify(mockRequest),
+        })
+      );
+    });
+
+    it('should surface not-supported errors', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: () =>
+          Promise.resolve({
+            error: 'Music generation is not supported by this provider yet.',
+          }),
+      });
+
+      await expect(
+        client.createMusic({ model: 'tts-1', prompt: 'lofi beat' })
+      ).rejects.toThrow(
+        'Music generation is not supported by this provider yet.'
+      );
+    });
+  });
+
   describe('streamMessage', () => {
     it('should handle streaming messages with text, tool use and usage', async () => {
       const mockRequest = {
