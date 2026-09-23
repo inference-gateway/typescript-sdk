@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.24.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.24.0...v0.24.1) (2026-09-23)
+
+### ♻️ Improvements
+
+* drop createImageVariation removed in schemas v0.31.1 ([#247](https://github.com/inference-gateway/typescript-sdk/issues/247)) ([5d0c63f](https://github.com/inference-gateway/typescript-sdk/commit/5d0c63f106c8f2ab963f10210de5b492d296d089))
+
 ## [0.24.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.23.1...v0.24.0) (2026-09-23)
 
 ### ✨ Features
