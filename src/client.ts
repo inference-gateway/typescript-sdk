@@ -20,9 +20,25 @@ import type {
   SchemaMessagesUsage,
   SchemaListModelsResponse,
   SchemaListToolsResponse,
+  SchemaMcpjsonrpcRequest,
+  SchemaMcpjsonrpcResponse,
+  SchemaOAuthProtectedResourceMetadata,
   SchemaToolCallExtraContent,
 } from './types/generated';
-import { ChatCompletionToolType } from './types/generated';
+import {
+  ChatCompletionToolType,
+  MCPJSONRPCRequestMethod,
+} from './types/generated';
+
+/** The only MCP protocol version the gateway's `/mcp` endpoint speaks. */
+export const MCP_PROTOCOL_VERSION = '2026-07-28';
+
+// ponytail: clientInfo.version is informational metadata for the gateway's
+// logs, so a stale value is harmless; bump it by hand if it ever matters.
+const MCP_CLIENT_INFO = { name: '@inference-gateway/sdk', version: '0.24.1' };
+
+/** Statuses on which `/mcp` still answers with a JSON-RPC error envelope. */
+const MCP_JSONRPC_ERROR_STATUSES = new Set([400, 404]);
 
 export interface ChatCompletionStreamCallbacks {
   onOpen?: () => void;
@@ -504,6 +520,27 @@ export class InferenceGatewayClient {
     query: Record<string, string> = {},
     binary = false
   ): Promise<T> {
+    const response = await this.fetchWithTimeout(path, options, query);
+
+    if (!response.ok) {
+      await this.throwHttpError(response);
+    }
+
+    if (binary) {
+      return (await response.blob()) as T;
+    }
+    return response.json();
+  }
+
+  /**
+   * Fetches `baseURL + path` with the client's headers, query and timeout.
+   */
+  private async fetchWithTimeout(
+    path: string,
+    options: RequestInit = {},
+    query: Record<string, string> = {},
+    baseURL: string = this.baseURL
+  ): Promise<Response> {
     const headers = new Headers({
       ...(options.body instanceof FormData
         ? {}
@@ -523,7 +560,7 @@ export class InferenceGatewayClient {
     });
 
     const queryString = queryParams.toString();
-    const url = `${this.baseURL}${path}${queryString ? `?${queryString}` : ''}`;
+    const url = `${baseURL}${path}${queryString ? `?${queryString}` : ''}`;
 
     const controller = new AbortController();
     const timeoutId = globalThis.setTimeout(
@@ -532,27 +569,25 @@ export class InferenceGatewayClient {
     );
 
     try {
-      const response = await this.fetchFn(url, {
+      return await this.fetchFn(url, {
         ...options,
         headers,
         signal: controller.signal,
       });
-
-      if (!response.ok) {
-        const error: { error?: string | { message?: string } } =
-          await response.json();
-        const message =
-          typeof error.error === 'string' ? error.error : error.error?.message;
-        throw new Error(message || `HTTP error! status: ${response.status}`);
-      }
-
-      if (binary) {
-        return (await response.blob()) as T;
-      }
-      return response.json();
     } finally {
       globalThis.clearTimeout(timeoutId);
     }
+  }
+
+  /**
+   * Turns an error response into a thrown Error carrying the API's message.
+   */
+  private async throwHttpError(response: Response): Promise<never> {
+    const error: { error?: string | { message?: string } } =
+      await response.json();
+    const message =
+      typeof error.error === 'string' ? error.error : error.error?.message;
+    throw new Error(message || `HTTP error! status: ${response.status}`);
   }
 
   /**
@@ -578,12 +613,99 @@ export class InferenceGatewayClient {
 
   /**
    * Lists the currently available MCP tools.
-   * Only accessible when EXPOSE_MCP is enabled.
+   * Only accessible when MCP_EXPOSE is enabled.
    */
   async listTools(): Promise<SchemaListToolsResponse> {
     return this.request<SchemaListToolsResponse>('/mcp/tools', {
       method: 'GET',
     });
+  }
+
+  /**
+   * Calls the gateway's own MCP server: a JSON-RPC 2.0 endpoint that
+   * aggregates every configured MCP server. It lives at the root `/mcp`, not
+   * under `/v1`, so the `/v1` suffix is stripped from the baseURL.
+   * Only accessible when MCP_EXPOSE is enabled.
+   *
+   * The `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers the
+   * endpoint requires are derived from the request, and the `params._meta`
+   * entries it requires are defaulted for whatever the caller left out.
+   *
+   * JSON-RPC errors come back as an `error` envelope whatever the HTTP status;
+   * only non-JSON-RPC failures (401, 403, 500) throw. Notifications (a request
+   * without `id`) are not supported - this protocol version defines none.
+   */
+  async mcpJsonRpc(
+    request: SchemaMcpjsonrpcRequest
+  ): Promise<SchemaMcpjsonrpcResponse> {
+    const meta = (request.params?._meta ?? {}) as Record<string, unknown>;
+    const params = {
+      ...request.params,
+      _meta: {
+        'io.modelcontextprotocol/protocolVersion': MCP_PROTOCOL_VERSION,
+        'io.modelcontextprotocol/clientInfo': MCP_CLIENT_INFO,
+        'io.modelcontextprotocol/clientCapabilities': {},
+        ...meta,
+      },
+    };
+
+    const headers: Record<string, string> = {
+      'MCP-Protocol-Version': String(
+        params._meta['io.modelcontextprotocol/protocolVersion']
+      ),
+      'Mcp-Method': request.method,
+    };
+    if (
+      request.method === MCPJSONRPCRequestMethod.tools_call &&
+      typeof request.params?.name === 'string'
+    ) {
+      headers['Mcp-Name'] = request.params.name;
+    }
+
+    const response = await this.fetchWithTimeout(
+      '/mcp',
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ ...request, params }),
+      },
+      {},
+      this.rootURL
+    );
+
+    if (!response.ok && !MCP_JSONRPC_ERROR_STATUSES.has(response.status)) {
+      await this.throwHttpError(response);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Fetches the OAuth 2.0 Protected Resource Metadata (RFC 9728) advertised
+   * for the MCP endpoint, which points at the authorization servers that mint
+   * tokens for it. Served without a token; returns 404 unless auth is enabled
+   * and the MCP endpoint is exposed.
+   */
+  async getMCPProtectedResourceMetadata(): Promise<SchemaOAuthProtectedResourceMetadata> {
+    const response = await this.fetchWithTimeout(
+      '/.well-known/oauth-protected-resource/mcp',
+      { method: 'GET' },
+      {},
+      this.rootURL
+    );
+
+    if (!response.ok) {
+      await this.throwHttpError(response);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * The gateway root, for the endpoints that live outside the `/v1` prefix.
+   */
+  private get rootURL(): string {
+    return this.baseURL.replace('/v1', '');
   }
 
   /**
@@ -957,7 +1079,7 @@ export class InferenceGatewayClient {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      await this.fetchFn(`${this.baseURL.replace('/v1', '')}/health`);
+      await this.fetchFn(`${this.rootURL}/health`);
       return true;
     } catch {
       return false;

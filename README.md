@@ -8,6 +8,7 @@ An SDK written in TypeScript for the [Inference Gateway](https://github.com/eden
     - [Creating a Client](#creating-a-client)
     - [Listing Models](#listing-models)
     - [Listing MCP Tools](#listing-mcp-tools)
+    - [Calling the MCP Endpoint](#calling-the-mcp-endpoint)
     - [Creating Chat Completions](#creating-chat-completions)
     - [Streaming Chat Completions](#streaming-chat-completions)
     - [Tool Calls](#tool-calls)
@@ -63,7 +64,7 @@ try {
 ### Listing MCP Tools
 
 To list available Model Context Protocol (MCP) tools (only available when
-EXPOSE_MCP is enabled):
+MCP_EXPOSE is enabled):
 
 ```typescript
 import { InferenceGatewayClient } from '@inference-gateway/sdk';
@@ -85,6 +86,54 @@ try {
 } catch (error) {
   console.error('Error:', error);
 }
+```
+
+### Calling the MCP Endpoint
+
+The gateway also exposes itself as an MCP server: a JSON-RPC 2.0 endpoint at
+the root `/mcp` that aggregates every configured MCP server. The `/v1` suffix
+is stripped from the baseURL, the headers the endpoint requires are derived
+from the request, and the required `params._meta` entries are defaulted:
+
+```typescript
+import {
+  InferenceGatewayClient,
+  MCPJSONRPCRequestMethod,
+} from '@inference-gateway/sdk';
+
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
+
+const tools = await client.mcpJsonRpc({
+  jsonrpc: '2.0',
+  id: 1,
+  method: MCPJSONRPCRequestMethod.tools_list,
+});
+console.log(tools.result);
+
+const call = await client.mcpJsonRpc({
+  jsonrpc: '2.0',
+  id: 2,
+  method: MCPJSONRPCRequestMethod.tools_call,
+  params: {
+    name: 'mcp_deepwiki_ask_question',
+    arguments: { question: 'How is MCP wired up?' },
+  },
+});
+
+// JSON-RPC failures come back as an error envelope, not an exception
+if (call.error) {
+  console.error(call.error.code, call.error.message);
+}
+```
+
+When the gateway requires authentication, the authorization servers that mint
+tokens for the MCP endpoint are discoverable without a token:
+
+```typescript
+const metadata = await client.getMCPProtectedResourceMetadata();
+console.log(metadata.resource, metadata.authorization_servers);
 ```
 
 ### Creating Chat Completions

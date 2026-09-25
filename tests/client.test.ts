@@ -1,9 +1,11 @@
-import { InferenceGatewayClient } from '@/client';
+import { InferenceGatewayClient, MCP_PROTOCOL_VERSION } from '@/client';
 import type {
   SchemaCreateChatCompletionRequest,
   SchemaCreateChatCompletionResponse,
   SchemaListModelsResponse,
   SchemaListToolsResponse,
+  SchemaMcpjsonrpcResponse,
+  SchemaOAuthProtectedResourceMetadata,
 } from '@/types/generated';
 import {
   ChatCompletionToolChoiceOptionOneOf0,
@@ -11,6 +13,7 @@ import {
   ContextWindowSource,
   CreateChatCompletionRequestReasoning_effort,
   FinishReason,
+  MCPJSONRPCRequestMethod,
   MessageRole,
   MessagesMessageRole,
   PathsModelsGetParametersQueryInclude,
@@ -216,6 +219,173 @@ describe('InferenceGatewayClient', () => {
       });
 
       await expect(client.listTools()).rejects.toThrow(errorMessage);
+    });
+  });
+
+  describe('mcpJsonRpc', () => {
+    const okResponse = (body: unknown) => ({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(body),
+    });
+
+    it('should post to the root /mcp with derived headers', async () => {
+      const mockResponse: SchemaMcpjsonrpcResponse = {
+        jsonrpc: '2.0',
+        id: 1,
+        result: { content: [{ type: 'text', text: 'hi' }] },
+      };
+      mockFetch.mockResolvedValueOnce(okResponse(mockResponse));
+
+      const result = await client.mcpJsonRpc({
+        jsonrpc: '2.0',
+        id: 1,
+        method: MCPJSONRPCRequestMethod.tools_call,
+        params: {
+          name: 'mcp_deepwiki_ask_question',
+          arguments: { question: 'How is MCP wired up?' },
+        },
+      });
+
+      expect(result).toEqual(mockResponse);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('http://localhost:8080/mcp');
+      expect(options.method).toBe('POST');
+      expect(options.headers.get('Mcp-Method')).toBe('tools/call');
+      expect(options.headers.get('Mcp-Name')).toBe('mcp_deepwiki_ask_question');
+      expect(options.headers.get('MCP-Protocol-Version')).toBe(
+        MCP_PROTOCOL_VERSION
+      );
+
+      const body = JSON.parse(options.body);
+      expect(body.params._meta).toEqual({
+        'io.modelcontextprotocol/protocolVersion': MCP_PROTOCOL_VERSION,
+        'io.modelcontextprotocol/clientInfo': {
+          name: '@inference-gateway/sdk',
+          version: expect.any(String),
+        },
+        'io.modelcontextprotocol/clientCapabilities': {},
+      });
+    });
+
+    it('should not set Mcp-Name for methods other than tools/call', async () => {
+      mockFetch.mockResolvedValueOnce(
+        okResponse({ jsonrpc: '2.0', id: 1, result: { tools: [] } })
+      );
+
+      await client.mcpJsonRpc({
+        jsonrpc: '2.0',
+        id: 1,
+        method: MCPJSONRPCRequestMethod.tools_list,
+      });
+
+      const options = mockFetch.mock.calls[0][1];
+      expect(options.headers.has('Mcp-Name')).toBe(false);
+      expect(options.headers.get('Mcp-Method')).toBe('tools/list');
+    });
+
+    it('should keep a caller-provided _meta', async () => {
+      mockFetch.mockResolvedValueOnce(
+        okResponse({ jsonrpc: '2.0', id: 1, result: {} })
+      );
+
+      await client.mcpJsonRpc({
+        jsonrpc: '2.0',
+        id: 1,
+        method: MCPJSONRPCRequestMethod.server_discover,
+        params: {
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+            'io.modelcontextprotocol/clientInfo': {
+              name: 'opencode',
+              version: '1.0.0',
+            },
+          },
+        },
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.params._meta['io.modelcontextprotocol/clientInfo']).toEqual({
+        name: 'opencode',
+        version: '1.0.0',
+      });
+    });
+
+    it('should return the error envelope for JSON-RPC error statuses', async () => {
+      const mockResponse: SchemaMcpjsonrpcResponse = {
+        jsonrpc: '2.0',
+        id: 1,
+        error: {
+          code: -32022,
+          message: 'unsupported protocol version',
+          data: { requested: '2025-03-26', supported: ['2026-07-28'] },
+        },
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await client.mcpJsonRpc({
+        jsonrpc: '2.0',
+        id: 1,
+        method: MCPJSONRPCRequestMethod.tools_list,
+      });
+      expect(result.error?.code).toBe(-32022);
+    });
+
+    it('should throw when the MCP endpoint is not exposed', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: () =>
+          Promise.resolve({
+            error:
+              'MCP endpoint is not exposed. Set MCP_EXPOSE=true to enable.',
+          }),
+      });
+
+      await expect(
+        client.mcpJsonRpc({
+          jsonrpc: '2.0',
+          id: 1,
+          method: MCPJSONRPCRequestMethod.tools_list,
+        })
+      ).rejects.toThrow('MCP endpoint is not exposed');
+    });
+  });
+
+  describe('getMCPProtectedResourceMetadata', () => {
+    it('should fetch the metadata from the root well-known path', async () => {
+      const mockResponse: SchemaOAuthProtectedResourceMetadata = {
+        resource: 'https://gateway.example.com/mcp',
+        authorization_servers: ['https://keycloak.example.com/realms/ig'],
+        bearer_methods_supported: ['header'],
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await client.getMCPProtectedResourceMetadata();
+      expect(result).toEqual(mockResponse);
+      expect(mockFetch.mock.calls[0][0]).toBe(
+        'http://localhost:8080/.well-known/oauth-protected-resource/mcp'
+      );
+    });
+
+    it('should throw when the metadata is not published', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: () => Promise.resolve({ error: 'Not found' }),
+      });
+
+      await expect(client.getMCPProtectedResourceMetadata()).rejects.toThrow(
+        'Not found'
+      );
     });
   });
 
