@@ -182,26 +182,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/mcp/tools': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Lists the currently available MCP tools
-     * @description Lists the currently available MCP tools. Only accessible when EXPOSE_MCP is enabled.
-     */
-    get: operations['listTools'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/.well-known/oauth-protected-resource/mcp': {
     parameters: {
       query?: never;
@@ -923,19 +903,6 @@ export interface components {
       /** @description Optional additional error detail */
       data?: unknown;
     };
-    /** @description Response structure for listing MCP tools */
-    ListToolsResponse: {
-      /**
-       * @description Always "list"
-       * @example list
-       */
-      object: string;
-      /**
-       * @description Array of available MCP tools
-       * @default []
-       */
-      data: components['schemas']['MCPTool'][];
-    };
     /**
      * @description OAuth 2.0 Protected Resource Metadata (RFC 9728) for the gateway's MCP
      *     endpoint. Only the fields a client needs to find the authorization
@@ -961,42 +928,6 @@ export interface components {
        *     ]
        */
       bearer_methods_supported: string[];
-    };
-    /** @description An MCP tool definition */
-    MCPTool: {
-      /**
-       * @description The name of the tool
-       * @example read_file
-       */
-      name: string;
-      /**
-       * @description A description of what the tool does
-       * @example Read content from a file
-       */
-      description: string;
-      /**
-       * @description The MCP server that provides this tool
-       * @example http://mcp-filesystem-server:8083/mcp
-       */
-      server: string;
-      /**
-       * @description JSON schema for the tool's input parameters
-       * @example {
-       *       "type": "object",
-       *       "properties": {
-       *         "file_path": {
-       *           "type": "string",
-       *           "description": "Path to the file to read"
-       *         }
-       *       },
-       *       "required": [
-       *         "file_path"
-       *       ]
-       *     }
-       */
-      input_schema?: {
-        [key: string]: unknown;
-      };
     };
     FunctionObject: {
       /** @description A description of what the function does, used by the model to choose when and how to call the function. */
@@ -2758,11 +2689,8 @@ export type SchemaMcpjsonrpcRequest =
 export type SchemaMcpjsonrpcResponse =
   components['schemas']['MCPJSONRPCResponse'];
 export type SchemaMcpjsonrpcError = components['schemas']['MCPJSONRPCError'];
-export type SchemaListToolsResponse =
-  components['schemas']['ListToolsResponse'];
 export type SchemaOAuthProtectedResourceMetadata =
   components['schemas']['OAuthProtectedResourceMetadata'];
-export type SchemaMcpTool = components['schemas']['MCPTool'];
 export type SchemaFunctionObject = components['schemas']['FunctionObject'];
 export type SchemaChatCompletionTool =
   components['schemas']['ChatCompletionTool'];
@@ -3134,29 +3062,6 @@ export interface operations {
           'application/json': components['schemas']['MCPJSONRPCResponse'];
         };
       };
-      500: components['responses']['InternalError'];
-    };
-  };
-  listTools: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ListToolsResponse'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['MCPNotExposed'];
       500: components['responses']['InternalError'];
     };
   };

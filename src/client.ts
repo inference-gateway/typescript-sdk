@@ -19,7 +19,6 @@ import type {
   SchemaMessagesToolUseBlock,
   SchemaMessagesUsage,
   SchemaListModelsResponse,
-  SchemaListToolsResponse,
   SchemaMcpjsonrpcRequest,
   SchemaMcpjsonrpcResponse,
   SchemaOAuthProtectedResourceMetadata,
@@ -616,16 +615,6 @@ export class InferenceGatewayClient {
       { method: 'GET' },
       query
     );
-  }
-
-  /**
-   * Lists the currently available MCP tools.
-   * Only accessible when MCP_EXPOSE is enabled.
-   */
-  async listTools(): Promise<SchemaListToolsResponse> {
-    return this.request<SchemaListToolsResponse>('/mcp/tools', {
-      method: 'GET',
-    });
   }
 
   /**

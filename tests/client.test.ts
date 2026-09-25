@@ -5,7 +5,6 @@ import type {
   SchemaCreateChatCompletionRequest,
   SchemaCreateChatCompletionResponse,
   SchemaListModelsResponse,
-  SchemaListToolsResponse,
   SchemaMcpjsonrpcResponse,
   SchemaOAuthProtectedResourceMetadata,
 } from '@/types/generated';
@@ -164,63 +163,6 @@ describe('InferenceGatewayClient', () => {
       await expect(client.listModels(Provider.openai)).rejects.toThrow(
         errorMessage
       );
-    });
-  });
-
-  describe('listTools', () => {
-    it('should fetch available MCP tools', async () => {
-      const mockResponse: SchemaListToolsResponse = {
-        object: 'list',
-        data: [
-          {
-            name: 'read_file',
-            description: 'Read content from a file',
-            server: 'http://mcp-filesystem-server:8083/mcp',
-          },
-          {
-            name: 'write_file',
-            description: 'Write content to a file',
-            server: 'http://mcp-filesystem-server:8083/mcp',
-          },
-        ],
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const result = await client.listTools();
-      expect(result).toEqual(mockResponse);
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:8080/v1/mcp/tools',
-        expect.objectContaining({
-          method: 'GET',
-          headers: expect.any(Headers),
-        })
-      );
-    });
-
-    it('should throw error when MCP is not exposed', async () => {
-      const errorMessage = 'MCP not exposed';
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 403,
-        json: () => Promise.resolve({ error: errorMessage }),
-      });
-
-      await expect(client.listTools()).rejects.toThrow(errorMessage);
-    });
-
-    it('should throw error when unauthorized', async () => {
-      const errorMessage = 'Unauthorized';
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        json: () => Promise.resolve({ error: errorMessage }),
-      });
-
-      await expect(client.listTools()).rejects.toThrow(errorMessage);
     });
   });
 
