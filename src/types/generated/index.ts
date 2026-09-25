@@ -100,6 +100,88 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/mcp': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * JSON-RPC 2.0 endpoint for the gateway's MCP server
+     * @description JSON-RPC 2.0 endpoint exposing the gateway itself as an MCP server. It
+     *     aggregates every server configured in `MCP_SERVERS` behind one URL, so
+     *     MCP clients (opencode, `infer`, IDE assistants) configure a single entry
+     *     and get the whole fleet, with the gateway's auth, metrics and guardrails
+     *     applied to every tool call.
+     *
+     *     The endpoint lives at the root, not under `/v1` - `/v1/*` is the
+     *     OpenAI-compatible surface, MCP is its own protocol and clients expect a
+     *     plain `/mcp`.
+     *
+     *     Gated by `MCP_EXPOSE=true` (and `MCP_ENABLED=true`); otherwise the
+     *     gateway answers `403`. Gateway auth is global, so when `AUTH_ENABLE=true`
+     *     this endpoint requires a bearer token like every other route except
+     *     `/health`.
+     *
+     *     The endpoint speaks MCP protocol version `2026-07-28` only, over the
+     *     stateless Streamable HTTP transport with `application/json` responses.
+     *     There is no `initialize` handshake and no session: every request carries
+     *     its protocol version in `params._meta["io.modelcontextprotocol/protocolVersion"]`
+     *     (alongside the required `io.modelcontextprotocol/clientInfo` and
+     *     `io.modelcontextprotocol/clientCapabilities`), mirrored in the
+     *     `MCP-Protocol-Version`, `Mcp-Method` and, for `tools/call`, `Mcp-Name`
+     *     headers. `Mcp-Name` may use the `=?base64?<value>?=` encoding.
+     *
+     *     Supported methods:
+     *
+     *     | Method | Params | Result |
+     *     | --- | --- | --- |
+     *     | `server/discover` | `_meta` only | `DiscoverResult` - `supportedVersions` (`["2026-07-28"]`), `capabilities` (`tools`) |
+     *     | `tools/list` | optional `cursor` | `ListToolsResult` - the aggregated, namespaced tools of every healthy MCP server |
+     *     | `tools/call` | `CallToolRequestParams` (`name`, `arguments`) | `CallToolResult` |
+     *
+     *     Every result carries `resultType: "complete"` and identifies the gateway
+     *     in `_meta["io.modelcontextprotocol/serverInfo"]`.
+     *
+     *     Param and result shapes are the vendored MCP spec types in
+     *     [`mcp/mcp-schema.yaml`](https://github.com/inference-gateway/schemas/blob/main/mcp/mcp-schema.yaml)
+     *     (`RequestMetaObject`, `DiscoverResult`, `ServerCapabilities`,
+     *     `ListToolsResult`, `CallToolRequestParams`, `CallToolResult`); this spec
+     *     only describes the JSON-RPC envelopes the gateway puts them in.
+     *
+     *     `tools/list` tolerates partial availability: when one of the configured
+     *     MCP servers is unreachable its tools are omitted and the healthy servers'
+     *     tools are still returned, rather than failing the whole call. A
+     *     `tools/call` routed to an unavailable server fails with JSON-RPC error
+     *     code `-32603`.
+     *
+     *     Errors use JSON-RPC error envelopes:
+     *
+     *     | Code | Meaning | HTTP status |
+     *     | --- | --- | --- |
+     *     | `-32020` | header mismatch - a required header is missing, malformed or disagrees with the body; a legacy `initialize` request lands here | `400` |
+     *     | `-32022` | unsupported protocol version; `data` carries `requested` and `supported` | `400` |
+     *     | `-32601` | method not found | `404` |
+     *     | `-32700` | parse error | `200` |
+     *     | `-32600` | invalid request | `200` |
+     *     | `-32602` | invalid params (unknown tool name, bad arguments) | `200` |
+     *     | `-32603` | internal error (upstream MCP server failure) | `200` |
+     *
+     *     A request carrying an `Origin` header is rejected with `403`: MCP
+     *     clients are not browsers, and this blocks DNS-rebinding attacks. `GET`
+     *     and `DELETE` answer `405` - there is no standalone stream and no session
+     *     to terminate.
+     */
+    post: operations['mcpJsonRpc'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/mcp/tools': {
     parameters: {
       query?: never;
@@ -112,6 +194,47 @@ export interface paths {
      * @description Lists the currently available MCP tools. Only accessible when EXPOSE_MCP is enabled.
      */
     get: operations['listTools'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/.well-known/oauth-protected-resource/mcp': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * OAuth 2.0 Protected Resource Metadata for the MCP endpoint
+     * @description OAuth 2.0 Protected Resource Metadata ([RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728))
+     *     for `POST /mcp`, which MCP `2026-07-28` requires every protected MCP
+     *     server to publish so a client can discover the authorization server on
+     *     its own instead of being handed a pre-configured token.
+     *
+     *     Served without a token - it is the one route besides `/health` that
+     *     skips gateway auth, since a client fetches it precisely because it has
+     *     no credentials yet. Every `401` from `POST /mcp` points here through the
+     *     `resource_metadata` parameter of its `WWW-Authenticate` challenge.
+     *
+     *     Returns `404` unless `AUTH_ENABLED=true` and the MCP endpoint is exposed
+     *     (`MCP_ENABLED=true` and `MCP_EXPOSE=true`): with no authorization server
+     *     there is nothing to advertise.
+     *
+     *     `resource` is `MCP_RESOURCE_URL` when set, and otherwise the request
+     *     scheme (honouring `X-Forwarded-Proto`) and `Host` with `/mcp` appended.
+     *     Behind an ingress that rewrites either, set `MCP_RESOURCE_URL` to the
+     *     canonical public URL clients use.
+     *
+     *     Tokens must be issued for that resource (RFC 8707): when the IdP stamps
+     *     the resource indicator into `aud`, list the same value in
+     *     `AUTH_OIDC_AUDIENCE`.
+     */
+    get: operations['getMCPProtectedResourceMetadata'];
     put?: never;
     post?: never;
     delete?: never;
@@ -690,6 +813,116 @@ export interface components {
       /** @default [] */
       data: components['schemas']['Model'][];
     };
+    /**
+     * @description A JSON-RPC 2.0 request sent to `POST /mcp`, MCP protocol version
+     *     `2026-07-28`. A message without `id` is a notification; this protocol
+     *     version defines none over HTTP, so the gateway acknowledges it with `202`
+     *     and ignores it.
+     *
+     *     `params` and the corresponding `result` follow the vendored MCP spec
+     *     types in `mcp/mcp-schema.yaml`. Every request's `params._meta` is a
+     *     `RequestMetaObject` (`io.modelcontextprotocol/protocolVersion`,
+     *     `io.modelcontextprotocol/clientInfo`,
+     *     `io.modelcontextprotocol/clientCapabilities`); `server/discover` takes
+     *     nothing else, `tools/list` takes an optional `cursor` and `tools/call`
+     *     takes `CallToolRequestParams`.
+     *
+     *     Tool names are namespaced `mcp_<server alias>_<tool name>`, e.g.
+     *     `mcp_deepwiki_ask_question`. The alias comes from the `alias=url` syntax
+     *     in `MCP_SERVERS` and is derived from the URL host when omitted; it must
+     *     match `^[a-z0-9_-]+$` so the resulting tool name stays valid across all
+     *     LLM providers. The same namespacing applies to the tools injected into
+     *     `/v1/chat/completions`. `mcp_tools_get` and `mcp_tools_execute` are
+     *     reserved for the gateway's own selector meta-tools and cannot be used by
+     *     a configured server.
+     */
+    MCPJSONRPCRequest: {
+      /**
+       * @description JSON-RPC protocol version, always "2.0"
+       * @example 2.0
+       * @constant
+       */
+      jsonrpc: '2.0';
+      /**
+       * @description Request identifier echoed back in the response. Absent for
+       *     notifications.
+       * @example 1
+       */
+      id?: string | number;
+      /**
+       * @description The MCP method to invoke
+       * @example tools/call
+       * @enum {string}
+       */
+      method: MCPJSONRPCRequestMethod;
+      /**
+       * @description Method parameters, as defined by the MCP specification
+       * @example {
+       *       "name": "mcp_deepwiki_ask_question",
+       *       "arguments": {
+       *         "repoName": "inference-gateway/inference-gateway",
+       *         "question": "How is MCP wired up?"
+       *       },
+       *       "_meta": {
+       *         "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+       *         "io.modelcontextprotocol/clientInfo": {
+       *           "name": "opencode",
+       *           "version": "1.0.0"
+       *         },
+       *         "io.modelcontextprotocol/clientCapabilities": {}
+       *       }
+       *     }
+       */
+      params?: {
+        [key: string]: unknown;
+      };
+    };
+    /**
+     * @description A JSON-RPC 2.0 response envelope. Exactly one of `result` or `error` is
+     *     present. `result` carries the MCP result type for the requested method
+     *     (`DiscoverResult` for `server/discover`, `ListToolsResult` for
+     *     `tools/list`, `CallToolResult` for `tools/call`) as defined in
+     *     `mcp/mcp-schema.yaml`.
+     */
+    MCPJSONRPCResponse: {
+      /**
+       * @description JSON-RPC protocol version, always "2.0"
+       * @example 2.0
+       * @constant
+       */
+      jsonrpc: '2.0';
+      /**
+       * @description The `id` of the request this responds to
+       * @example 1
+       */
+      id: string | number;
+      /** @description The method result, present on success */
+      result?: {
+        [key: string]: unknown;
+      };
+      error?: components['schemas']['MCPJSONRPCError'];
+    };
+    /** @description A JSON-RPC 2.0 error object */
+    MCPJSONRPCError: {
+      /**
+       * @description JSON-RPC error code: `-32700` parse error, `-32600` invalid request,
+       *     `-32601` method not found, `-32602` invalid params, `-32603` internal
+       *     error (including upstream MCP server failures), `-32001` request
+       *     blocked by guardrails at any phase (`pre_call`, `tool_args`,
+       *     `tool_output`), answered with HTTP `403` and the policy message,
+       *     `-32020` header mismatch, `-32022` unsupported protocol version
+       *     (`data` carries `requested` and `supported`).
+       * @example -32602
+       */
+      code: number;
+      /**
+       * @description Short description of the error
+       * @example unknown tool: mcp_deepwiki_missing_tool
+       */
+      message: string;
+      /** @description Optional additional error detail */
+      data?: unknown;
+    };
     /** @description Response structure for listing MCP tools */
     ListToolsResponse: {
       /**
@@ -702,6 +935,32 @@ export interface components {
        * @default []
        */
       data: components['schemas']['MCPTool'][];
+    };
+    /**
+     * @description OAuth 2.0 Protected Resource Metadata (RFC 9728) for the gateway's MCP
+     *     endpoint. Only the fields a client needs to find the authorization
+     *     server are published.
+     */
+    OAuthProtectedResourceMetadata: {
+      /**
+       * @description The canonical public URL of the protected resource
+       * @example https://gateway.example.com/mcp
+       */
+      resource: string;
+      /**
+       * @description Issuer identifiers of the authorization servers that mint tokens for this resource
+       * @example [
+       *       "https://keycloak.example.com/realms/inference-gateway-realm"
+       *     ]
+       */
+      authorization_servers: string[];
+      /**
+       * @description How a bearer token may be sent; the gateway reads the Authorization header only
+       * @example [
+       *       "header"
+       *     ]
+       */
+      bearer_methods_supported: string[];
     };
     /** @description An MCP tool definition */
     MCPTool: {
@@ -2178,7 +2437,10 @@ export interface components {
         'application/json': components['schemas']['Error'];
       };
     };
-    /** @description MCP tools endpoint is not exposed */
+    /**
+     * @description The MCP surface is not exposed. Both `MCP_ENABLED=true` and
+     *     `MCP_EXPOSE=true` are required.
+     */
     MCPNotExposed: {
       headers: {
         [name: string]: unknown;
@@ -2186,7 +2448,7 @@ export interface components {
       content: {
         /**
          * @example {
-         *       "error": "MCP tools endpoint is not exposed. Set EXPOSE_MCP=true to enable."
+         *       "error": "MCP endpoint is not exposed. Set MCP_EXPOSE=true to enable."
          *     }
          */
         'application/json': components['schemas']['Error'];
@@ -2491,8 +2753,15 @@ export type SchemaModel = components['schemas']['Model'];
 export type SchemaModelModalities = components['schemas']['ModelModalities'];
 export type SchemaListModelsResponse =
   components['schemas']['ListModelsResponse'];
+export type SchemaMcpjsonrpcRequest =
+  components['schemas']['MCPJSONRPCRequest'];
+export type SchemaMcpjsonrpcResponse =
+  components['schemas']['MCPJSONRPCResponse'];
+export type SchemaMcpjsonrpcError = components['schemas']['MCPJSONRPCError'];
 export type SchemaListToolsResponse =
   components['schemas']['ListToolsResponse'];
+export type SchemaOAuthProtectedResourceMetadata =
+  components['schemas']['OAuthProtectedResourceMetadata'];
 export type SchemaMcpTool = components['schemas']['MCPTool'];
 export type SchemaFunctionObject = components['schemas']['FunctionObject'];
 export type SchemaChatCompletionTool =
@@ -2802,6 +3071,72 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  mcpJsonRpc: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description Must equal `params._meta["io.modelcontextprotocol/protocolVersion"]`. */
+        'MCP-Protocol-Version': string;
+        /** @description Must equal the JSON-RPC `method`. */
+        'Mcp-Method': string;
+        /**
+         * @description Required for `tools/call`; must equal `params.name`. Values that are
+         *     not plain ASCII are sent as `=?base64?<value>?=`.
+         */
+        'Mcp-Name'?: string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    /** @description A single JSON-RPC 2.0 request or notification */
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MCPJSONRPCRequest'];
+      };
+    };
+    responses: {
+      /** @description JSON-RPC response envelope, carrying either a `result` or an `error`. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MCPJSONRPCResponse'];
+        };
+      };
+      /** @description Notification accepted; no response body */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /**
+       * @description Header mismatch (`-32020`) or unsupported protocol version
+       *     (`-32022`), as a JSON-RPC error envelope.
+       */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MCPJSONRPCResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['MCPNotExposed'];
+      /** @description Method not found (`-32601`), as a JSON-RPC error envelope. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MCPJSONRPCResponse'];
+        };
+      };
+      500: components['responses']['InternalError'];
+    };
+  };
   listTools: {
     parameters: {
       query?: never;
@@ -2823,6 +3158,38 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['MCPNotExposed'];
       500: components['responses']['InternalError'];
+    };
+  };
+  getMCPProtectedResourceMetadata: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The Protected Resource Metadata document */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "resource": "https://gateway.example.com/mcp",
+           *       "authorization_servers": [
+           *         "https://keycloak.example.com/realms/inference-gateway-realm"
+           *       ],
+           *       "bearer_methods_supported": [
+           *         "header"
+           *       ]
+           *     }
+           */
+          'application/json': components['schemas']['OAuthProtectedResourceMetadata'];
+        };
+      };
+      404: components['responses']['NotFound'];
     };
   };
   pushMetrics: {
@@ -3305,6 +3672,11 @@ export enum Modality {
   image = 'image',
   audio = 'audio',
   video = 'video',
+}
+export enum MCPJSONRPCRequestMethod {
+  server_discover = 'server/discover',
+  tools_list = 'tools/list',
+  tools_call = 'tools/call',
 }
 export enum ChatCompletionToolType {
   function = 'function',

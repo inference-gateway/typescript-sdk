@@ -51,7 +51,8 @@
     "test:coverage": "jest --coverage",
     "lint": "eslint src/ tests/",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "prepare": "husky"
+    "prepare": "husky",
+    "version": "node -e \"const fs=require('fs'),f='src/client.ts';fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace(/(SDK_VERSION = ')[^']*/,(m,p)=>p+require('./package.json').version))\""
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
