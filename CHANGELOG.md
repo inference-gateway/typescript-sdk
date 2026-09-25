@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.25.0...v0.25.1) (2026-09-25)
+
+### ♻️ Improvements
+
+* drop listTools removed in schemas v0.34.2 ([#253](https://github.com/inference-gateway/typescript-sdk/issues/253)) ([7549123](https://github.com/inference-gateway/typescript-sdk/commit/75491238b102f0ed4f76265cfe344dc424e48b22))
+
 ## [0.25.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.24.1...v0.25.0) (2026-09-25)
 
 ### ✨ Features
