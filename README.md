@@ -1,6 +1,6 @@
 # Inference Gateway TypeScript SDK
 
-An SDK written in TypeScript for the [Inference Gateway](https://github.com/edenreich/inference-gateway).
+An SDK written in TypeScript for the [Inference Gateway](https://github.com/inference-gateway/inference-gateway).
 
 - [Inference Gateway TypeScript SDK](#inference-gateway-typescript-sdk)
   - [Installation](#installation)
@@ -194,6 +194,7 @@ To use tool calls with models that support them:
 
 ```typescript
 import {
+  ChatCompletionToolType,
   InferenceGatewayClient,
   MessageRole,
   Provider,
@@ -215,7 +216,7 @@ try {
       ],
       tools: [
         {
-          type: 'function',
+          type: ChatCompletionToolType.function,
           function: {
             name: 'get_weather',
             parameters: {
