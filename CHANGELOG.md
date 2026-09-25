@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.24.1...v0.25.0) (2026-09-25)
+
+### ✨ Features
+
+* sync schemas v0.34.0 and add MCP JSON-RPC client methods ([#252](https://github.com/inference-gateway/typescript-sdk/issues/252)) ([8416e88](https://github.com/inference-gateway/typescript-sdk/commit/8416e88a9e6056c58e7c6619861ef41f38e8fea4))
+
+### 🐛 Bug Fixes
+
+* **deps:** bump hono, qs, fast-uri in mcp example lockfiles ([#251](https://github.com/inference-gateway/typescript-sdk/issues/251)) ([b263ebf](https://github.com/inference-gateway/typescript-sdk/commit/b263ebf9dfaf747173832dbff1006a33769c7fe1))
+
+### 👷 CI
+
+* **claude:** centralize claude.yml via reusable workflow ([#249](https://github.com/inference-gateway/typescript-sdk/issues/249)) ([a123466](https://github.com/inference-gateway/typescript-sdk/commit/a12346646ad7cf2e585ee3154e7aeaf3107a43fb))
+* **deps-dev:** bump the npm group with 4 updates ([#250](https://github.com/inference-gateway/typescript-sdk/issues/250)) ([af8caff](https://github.com/inference-gateway/typescript-sdk/commit/af8caff0543d786508f60dd8033a64383fb1a3dc))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump infer CLI v0.192.0 -> v0.205.3 ([#248](https://github.com/inference-gateway/typescript-sdk/issues/248)) ([2cdc880](https://github.com/inference-gateway/typescript-sdk/commit/2cdc880722c9af4923522e8bb708288d8ab52a52))
+
 ## [0.24.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.24.0...v0.24.1) (2026-09-23)
 
 ### ♻️ Improvements
