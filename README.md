@@ -374,13 +374,14 @@ const client = new InferenceGatewayClient({
   baseURL: 'http://localhost:8080',
 });
 
-try {
-  const isHealthy = await client.healthCheck();
-  console.log('API is healthy:', isHealthy);
-} catch (error) {
-  console.error('Error:', error);
-}
+const isHealthy = await client.healthCheck();
+console.log('API is healthy:', isHealthy);
 ```
+
+`healthCheck()` never throws. It resolves to `true` on a 2xx response - the gateway returns 200 when
+healthy - and to `false` for any non-2xx status (for example a 502 or 503 from an ingress or load
+balancer in front of a stopped gateway, or a 404 from a misconfigured baseURL) or when the request
+fails at the network level.
 
 ### Creating a Client with Custom Options
 
