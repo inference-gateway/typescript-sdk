@@ -7,7 +7,6 @@ An SDK written in TypeScript for the [Inference Gateway](https://github.com/eden
   - [Usage](#usage)
     - [Creating a Client](#creating-a-client)
     - [Listing Models](#listing-models)
-    - [Listing MCP Tools](#listing-mcp-tools)
     - [Calling the MCP Endpoint](#calling-the-mcp-endpoint)
     - [Creating Chat Completions](#creating-chat-completions)
     - [Streaming Chat Completions](#streaming-chat-completions)
@@ -56,33 +55,6 @@ try {
   // List models from a specific provider
   const openaiModels = await client.listModels(Provider.openai);
   console.log('OpenAI models:', openaiModels);
-} catch (error) {
-  console.error('Error:', error);
-}
-```
-
-### Listing MCP Tools
-
-To list available Model Context Protocol (MCP) tools (only available when
-MCP_EXPOSE is enabled):
-
-```typescript
-import { InferenceGatewayClient } from '@inference-gateway/sdk';
-
-const client = new InferenceGatewayClient({
-  baseURL: 'http://localhost:8080/v1',
-});
-
-try {
-  const tools = await client.listTools();
-  console.log('Available MCP tools:', tools.data);
-
-  // Each tool has: name, description, server, and optional input_schema
-  tools.data.forEach((tool) => {
-    console.log(`Tool: ${tool.name}`);
-    console.log(`Description: ${tool.description}`);
-    console.log(`Server: ${tool.server}`);
-  });
 } catch (error) {
   console.error('Error:', error);
 }
