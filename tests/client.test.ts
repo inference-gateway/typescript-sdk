@@ -1142,6 +1142,13 @@ describe('InferenceGatewayClient', () => {
       const result = await client.healthCheck();
       expect(result).toBe(false);
     });
+
+    it('should return false when API answers with an HTTP error status', async () => {
+      mockFetch.mockResolvedValueOnce(new Response(null, { status: 503 }));
+
+      const result = await client.healthCheck();
+      expect(result).toBe(false);
+    });
   });
 
   describe('createMessage', () => {

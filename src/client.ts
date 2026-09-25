@@ -1075,8 +1075,8 @@ export class InferenceGatewayClient {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      await this.fetchFn(`${this.rootURL}/health`);
-      return true;
+      const response = await this.fetchFn(`${this.rootURL}/health`);
+      return response.ok;
     } catch {
       return false;
     }
