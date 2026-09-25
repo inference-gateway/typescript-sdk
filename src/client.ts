@@ -33,9 +33,16 @@ import {
 /** The only MCP protocol version the gateway's `/mcp` endpoint speaks. */
 export const MCP_PROTOCOL_VERSION = '2026-07-28';
 
-// ponytail: clientInfo.version is informational metadata for the gateway's
-// logs, so a stale value is harmless; bump it by hand if it ever matters.
-const MCP_CLIENT_INFO = { name: '@inference-gateway/sdk', version: '0.24.1' };
+/**
+ * Kept in sync with `package.json` by the `version` npm script that
+ * `npm version` (and so semantic-release) runs; a test pins the two together.
+ */
+const SDK_VERSION = '0.24.1';
+
+const MCP_CLIENT_INFO = {
+  name: '@inference-gateway/sdk',
+  version: SDK_VERSION,
+};
 
 /** Statuses on which `/mcp` still answers with a JSON-RPC error envelope. */
 const MCP_JSONRPC_ERROR_STATUSES = new Set([400, 404]);

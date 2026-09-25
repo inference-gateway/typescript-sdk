@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { InferenceGatewayClient, MCP_PROTOCOL_VERSION } from '@/client';
 import type {
   SchemaCreateChatCompletionRequest,
@@ -265,6 +267,27 @@ describe('InferenceGatewayClient', () => {
           version: expect.any(String),
         },
         'io.modelcontextprotocol/clientCapabilities': {},
+      });
+    });
+
+    it('should report the package version as the client version', async () => {
+      mockFetch.mockResolvedValueOnce(
+        okResponse({ jsonrpc: '2.0', id: 1, result: { tools: [] } })
+      );
+
+      await client.mcpJsonRpc({
+        jsonrpc: '2.0',
+        id: 1,
+        method: MCPJSONRPCRequestMethod.tools_list,
+      });
+
+      const { version } = JSON.parse(
+        readFileSync(join(__dirname, '../package.json'), 'utf8')
+      );
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.params._meta['io.modelcontextprotocol/clientInfo']).toEqual({
+        name: '@inference-gateway/sdk',
+        version,
       });
     });
 
