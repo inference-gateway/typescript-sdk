@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.2](https://github.com/inference-gateway/typescript-sdk/compare/v0.25.1...v0.25.2) (2026-09-26)
+
+### 🐛 Bug Fixes
+
+* **client:** return false from healthCheck on non-2xx responses ([#258](https://github.com/inference-gateway/typescript-sdk/issues/258)) ([b2eefa7](https://github.com/inference-gateway/typescript-sdk/commit/b2eefa7d1cd823a2aefd2e12290fd48efda99786))
+
+### 📚 Documentation
+
+* **readme:** document healthCheck false on non-2xx and network failures ([#260](https://github.com/inference-gateway/typescript-sdk/issues/260)) ([2970b20](https://github.com/inference-gateway/typescript-sdk/commit/2970b2051ebcffc7d12b1c52f3ac70c27063b29e))
+* **readme:** fix Tool Calls example typing and gateway intro link ([#259](https://github.com/inference-gateway/typescript-sdk/issues/259)) ([e3d38f0](https://github.com/inference-gateway/typescript-sdk/commit/e3d38f085c2dea34b70c90ea5238447b352dccd6))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump claude-code 2.1.278 -> 2.1.280 ([#254](https://github.com/inference-gateway/typescript-sdk/issues/254)) ([a3c5aaa](https://github.com/inference-gateway/typescript-sdk/commit/a3c5aaa93cb1af563062824e77970254a7ef4988))
+* **deps:** bump infer CLI v0.205.3 -> v0.208.0 ([#255](https://github.com/inference-gateway/typescript-sdk/issues/255)) ([f2314da](https://github.com/inference-gateway/typescript-sdk/commit/f2314da1cac3130af13dfdc1be3f212283950b1f))
+
 ## [0.25.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.25.0...v0.25.1) (2026-09-25)
 
 ### ♻️ Improvements

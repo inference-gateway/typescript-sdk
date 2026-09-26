@@ -36,7 +36,7 @@ export const MCP_PROTOCOL_VERSION = '2026-07-28';
  * Kept in sync with `package.json` by the `version` npm script that
  * `npm version` (and so semantic-release) runs; a test pins the two together.
  */
-const SDK_VERSION = '0.25.1';
+const SDK_VERSION = '0.25.2';
 
 const MCP_CLIENT_INFO = {
   name: '@inference-gateway/sdk',
