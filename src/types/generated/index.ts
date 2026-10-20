@@ -2875,6 +2875,8 @@ export interface operations {
         /**
          * @description Comma-separated list of metadata keys to include in the response.
          *     Supported values: `pricing`, `context_window`, `modalities`.
+         *     `deprecated` lists models the community tables mark as deprecated,
+         *     which are hidden by default, and adds no field.
          *     When omitted, the response remains unchanged (backward compatible).
          */
         include?: PathsModelsGetParametersQueryInclude[];
@@ -3502,6 +3504,7 @@ export enum PathsModelsGetParametersQueryInclude {
   context_window = 'context_window',
   modalities = 'modalities',
   pricing = 'pricing',
+  deprecated = 'deprecated',
 }
 export enum Provider {
   ollama = 'ollama',
