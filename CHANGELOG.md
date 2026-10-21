@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.27.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.27.0...v0.27.1) (2026-10-21)
+
+### 👷 CI
+
+* **deps:** bump @modelcontextprotocol/sdk ([#307](https://github.com/inference-gateway/typescript-sdk/issues/307)) ([04c2a66](https://github.com/inference-gateway/typescript-sdk/commit/04c2a66009ecada67c8535152fabbd23ede9be45))
+* **deps:** bump @modelcontextprotocol/sdk ([#310](https://github.com/inference-gateway/typescript-sdk/issues/310)) ([dd8206a](https://github.com/inference-gateway/typescript-sdk/commit/dd8206a2930b43bab6624d3f3ad6198b7738fe4e))
+* **deps:** bump follow-redirects in /examples/mcp/mcp-servers/web-search ([#308](https://github.com/inference-gateway/typescript-sdk/issues/308)) ([b93852c](https://github.com/inference-gateway/typescript-sdk/commit/b93852c09319638ec84d6586a55f498385bce33c))
+* **deps:** bump hono in /examples/mcp/mcp-servers/npm ([#311](https://github.com/inference-gateway/typescript-sdk/issues/311)) ([c9c6a01](https://github.com/inference-gateway/typescript-sdk/commit/c9c6a01f898808c1387e0ef0bbdd7d487d80fa4e))
+* **deps:** bump hono in /examples/mcp/mcp-servers/web-search ([#309](https://github.com/inference-gateway/typescript-sdk/issues/309)) ([3ac7940](https://github.com/inference-gateway/typescript-sdk/commit/3ac7940dfdb097192d146b2fe0d3c0a8fe137f6f))
+
 ## [0.27.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.26.0...v0.27.0) (2026-10-21)
 
 ### ✨ Features
