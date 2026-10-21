@@ -3523,6 +3523,7 @@ export enum Provider {
   moonshot = 'moonshot',
   nvidia = 'nvidia',
   zai = 'zai',
+  webwright = 'webwright',
 }
 export enum ProviderAuthType {
   bearer = 'bearer',
