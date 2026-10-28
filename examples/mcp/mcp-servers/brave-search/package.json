@@ -12,12 +12,12 @@
     "test": "jest"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "axios": "^1.20.0",
     "cors": "^2.8.5",
     "express": "^4.22.2",
     "winston": "^3.17.0",
-    "zod": "^3.22.0"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
