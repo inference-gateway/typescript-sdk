@@ -9,11 +9,11 @@
     "dev": "node --watch index.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "cors": "^2.8.5",
     "express": "^5.2.1",
     "winston": "^3.17.0",
-    "zod": "^3.22.0"
+    "zod": "4.6.7"
   },
   "engines": {
     "node": ">=18.0.0"
