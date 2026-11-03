@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.28.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.27.2...v0.28.0) (2026-11-03)
+
+### ✨ Features
+
+* **client:** add createDecision for the OpenAI Decisions API (schemas v1.7.0) ([#332](https://github.com/inference-gateway/typescript-sdk/issues/332)) ([8fa268b](https://github.com/inference-gateway/typescript-sdk/commit/8fa268bb25d22e26b85b48c98c4c1a4a58491a77))
+
+### 👷 CI
+
+* **deps:** bump follow-redirects in /examples/mcp/mcp-servers/web-search ([#331](https://github.com/inference-gateway/typescript-sdk/issues/331)) ([23aa3af](https://github.com/inference-gateway/typescript-sdk/commit/23aa3af22da0203ebf6b1e56a3010dd1b0998808))
+
 ## [0.27.2](https://github.com/inference-gateway/typescript-sdk/compare/v0.27.1...v0.27.2) (2026-11-01)
 
 ### 🐛 Bug Fixes
