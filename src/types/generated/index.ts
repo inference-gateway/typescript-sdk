@@ -1695,7 +1695,8 @@ export interface components {
     ResponseRole: ResponseRole;
     /** @description Text or multimodal content for an input message. Either a string or a list of content parts. */
     ResponseInputMessageContent:
-      string | components['schemas']['ResponseInputContentPart'][];
+      | string
+      | components['schemas']['ResponseInputContentPart'][];
     /** @description A content part within an input message. */
     ResponseInputContentPart:
       | components['schemas']['ResponseInputText']

@@ -6,12 +6,14 @@ import type {
   SchemaCreateChatCompletionRequest,
   SchemaCreateChatCompletionResponse,
   SchemaCreateChatCompletionStreamResponse,
+  SchemaCreateDecisionRequest,
   SchemaCreateImageRequest,
   RequestBodyCreateImageEditRequest,
   SchemaCreateMessagesRequest,
   SchemaCreateMusicRequest,
   SchemaCreateSFXRequest,
   SchemaCreateSpeechRequest,
+  SchemaDecision,
   SchemaError,
   SchemaImagesResponse,
   SchemaMessagesResponse,
@@ -874,6 +876,28 @@ export class InferenceGatewayClient {
     }
     return this.request<SchemaImagesResponse>(
       '/images/generations',
+      {
+        method: 'POST',
+        body: JSON.stringify(request),
+      },
+      query
+    );
+  }
+
+  /**
+   * Creates a decision via the OpenAI Decisions API relay.
+   * Only OpenAI supports it; other providers reject with the gateway error.
+   */
+  async createDecision(
+    request: SchemaCreateDecisionRequest,
+    provider?: Provider
+  ): Promise<SchemaDecision> {
+    const query: Record<string, string> = {};
+    if (provider) {
+      query.provider = provider;
+    }
+    return this.request<SchemaDecision>(
+      '/decisions',
       {
         method: 'POST',
         body: JSON.stringify(request),
