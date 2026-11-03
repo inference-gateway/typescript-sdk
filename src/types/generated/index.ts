@@ -295,6 +295,32 @@ export interface paths {
     patch: operations['proxyPatch'];
     trace?: never;
   };
+  '/decisions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create a decision
+     * @description Answers a batch of predicate, choice and score questions over shared
+     *     evidence using the OpenAI Decisions API. The request body is relayed
+     *     byte-for-byte to the provider (only the `model` prefix is stripped).
+     *
+     *     Not every provider implements the Decisions API. Requests routed to a
+     *     provider that does not support it return `400 Bad Request` with an
+     *     explanatory error message.
+     */
+    post: operations['createDecision'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/images/generations': {
     parameters: {
       query?: never;
@@ -593,6 +619,7 @@ export interface components {
       models: string;
       chat: string;
       responses?: string;
+      decisions?: string;
       images?: string;
       images_edits?: string;
       speech?: string;
@@ -600,6 +627,56 @@ export interface components {
       sfx?: string;
       videos?: string;
       videos_retrieve?: string;
+    };
+    /** @description Request body for the OpenAI Decisions API, relayed unchanged. */
+    CreateDecisionRequest: {
+      /** @description Model to use, optionally prefixed with the provider (`openai/gpt-6-luna`). */
+      model: string;
+      /** @description Shared evidence, a string or an ordered array of message and tool items. */
+      input:
+        | string
+        | {
+            [key: string]: unknown;
+          }[];
+      questions: components['schemas']['DecisionQuestion'][];
+      prompt_cache_key?: string;
+      prompt_cache_breakpoint?: string;
+      prompt_cache_options?: {
+        mode?: string;
+      };
+    } & {
+      [key: string]: unknown;
+    };
+    DecisionQuestion: {
+      /** @enum {string} */
+      type: DecisionQuestionType;
+      name: string;
+      instructions: string;
+      choices?: {
+        value?: string;
+        description?: string;
+      }[];
+      levels?: {
+        label?: string;
+        description?: string;
+      }[];
+    } & {
+      [key: string]: unknown;
+    };
+    /** @description Response of the OpenAI Decisions API, relayed unchanged. */
+    Decision: {
+      answers?: {
+        [key: string]: unknown;
+      }[];
+      usage?: {
+        input_tokens?: number;
+        input_tokens_details?: {
+          cached_tokens?: number;
+          cache_write_tokens?: number;
+        };
+      };
+    } & {
+      [key: string]: unknown;
     };
     Error: {
       error?: string;
@@ -2404,6 +2481,24 @@ export interface components {
       };
     };
     /**
+     * @description The selected provider does not implement the Decisions API. The
+     *     gateway returns this when a request is routed to a provider without
+     *     Decisions support.
+     */
+    DecisionsNotSupported: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": "The Decisions API is not supported by this provider yet."
+         *     }
+         */
+        'application/json': components['schemas']['Error'];
+      };
+    };
+    /**
      * @description The selected provider does not implement the Messages API. The
      *     gateway returns this when a request is routed to a provider without
      *     Messages support.
@@ -2669,6 +2764,10 @@ export type SchemaProviderSpecificResponse =
   components['schemas']['ProviderSpecificResponse'];
 export type SchemaSsEvent = components['schemas']['SSEvent'];
 export type SchemaEndpoints = components['schemas']['Endpoints'];
+export type SchemaCreateDecisionRequest =
+  components['schemas']['CreateDecisionRequest'];
+export type SchemaDecisionQuestion = components['schemas']['DecisionQuestion'];
+export type SchemaDecision = components['schemas']['Decision'];
 export type SchemaError = components['schemas']['Error'];
 export type SchemaMessage = components['schemas']['Message'];
 export type SchemaMessageContent = components['schemas']['MessageContent'];
@@ -2831,6 +2930,8 @@ export type ResponseNotFound = components['responses']['NotFound'];
 export type ResponseMcpNotExposed = components['responses']['MCPNotExposed'];
 export type ResponseResponsesNotSupported =
   components['responses']['ResponsesNotSupported'];
+export type ResponseDecisionsNotSupported =
+  components['responses']['DecisionsNotSupported'];
 export type ResponseMessagesNotSupported =
   components['responses']['MessagesNotSupported'];
 export type ResponseImagesNotSupported =
@@ -3244,6 +3345,36 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  createDecision: {
+    parameters: {
+      query?: {
+        /** @description Specific provider to use (default determined by model) */
+        provider?: components['schemas']['Provider'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateDecisionRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Decision'];
+        };
+      };
+      400: components['responses']['DecisionsNotSupported'];
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
+    };
+  };
   createImage: {
     parameters: {
       query?: {
@@ -3539,6 +3670,11 @@ export enum SSEventEvent {
   content_end = 'content-end',
   message_end = 'message-end',
   stream_end = 'stream-end',
+}
+export enum DecisionQuestionType {
+  predicate = 'predicate',
+  choice = 'choice',
+  score = 'score',
 }
 export enum MessageRole {
   System = 'system',
