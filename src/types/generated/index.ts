@@ -858,7 +858,7 @@ export interface components {
      * @enum {string}
      */
     Modality: Modality;
-    /** @description The input and output modalities of a model, mirroring the models.dev dataset shape. Vision models accept `image` in `input`; image-generation models list `image` in `output` - when `output` carries `image` but not `text`, the model only generates images and cannot chat. */
+    /** @description The input and output modalities of a model, mirroring the models.dev dataset shape. Vision models accept `image` in `input`; image-generation models list `image` in `output` - when `output` carries `image` but not `text`, the model only generates images and cannot chat. Decision models list `decisions` in `output`: they answer the Decisions API (`POST /decisions`) with typed, probability-weighted answers, the same value llama.cpp advertises as `output_modalities` on its models listing. */
     ModelModalities: {
       input: components['schemas']['Modality'][];
       output: components['schemas']['Modality'][];
@@ -3717,6 +3717,7 @@ export enum Modality {
   image = 'image',
   audio = 'audio',
   video = 'video',
+  decisions = 'decisions',
 }
 export enum MCPJSONRPCRequestMethod {
   server_discover = 'server/discover',
