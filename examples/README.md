@@ -34,6 +34,8 @@ all the tools you might need.
      streaming events and tool use.
    - [Images](./images): Shows image generation via the OpenAI-compatible
      Images API using `createImage`.
+   - [Decisions](./decisions): Shows the OpenAI Decisions API relay using
+     `createDecision`.
    - [MCP](./mcp): Illustrates Model Context Protocol integration with file
      operations, web scraping, and multi-tool conversations using Docker
      Compose.
@@ -92,6 +94,17 @@ interaction patterns
 - Handling `url` vs `b64_json` responses
 
 **Best for**: Applications that generate images through the gateway
+
+### [Decisions Example](./decisions)
+
+**Purpose**: Ask structured questions about an input via the OpenAI Decisions API
+
+**Features**:
+
+- Predicate questions with `createDecision`
+- Reading structured `answers` and `usage`
+
+**Best for**: Classification and moderation style checks through the gateway
 
 ### [MCP Example](./mcp)
 

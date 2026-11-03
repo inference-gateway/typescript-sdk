@@ -13,6 +13,7 @@ import {
   ChatCompletionToolType,
   ContextWindowSource,
   CreateChatCompletionRequestReasoning_effort,
+  DecisionQuestionType,
   FinishReason,
   MCPJSONRPCRequestMethod,
   MessageRole,
@@ -1263,6 +1264,62 @@ describe('InferenceGatewayClient', () => {
 
       await expect(client.createImage({ prompt: 'A cat' })).rejects.toThrow(
         'Image generation is not supported by this provider.'
+      );
+    });
+  });
+
+  describe('createDecision', () => {
+    it('should create a decision', async () => {
+      const mockRequest = {
+        model: 'gpt-6-luna',
+        input: 'Buy now!!!',
+        questions: [
+          {
+            type: DecisionQuestionType.predicate,
+            name: 'is_spam',
+            instructions: 'Is this message spam?',
+          },
+        ],
+      };
+      const mockResponse = {
+        answers: [{ name: 'is_spam', value: true }],
+        usage: { input_tokens: 12 },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await client.createDecision(mockRequest, Provider.openai);
+      expect(result).toEqual(mockResponse);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/decisions?provider=openai',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify(mockRequest),
+        })
+      );
+    });
+
+    it('should surface not-supported errors', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: () =>
+          Promise.resolve({
+            error: 'The Decisions API is not supported by this provider yet.',
+          }),
+      });
+
+      await expect(
+        client.createDecision({
+          model: 'gpt-6-luna',
+          input: 'Buy now!!!',
+          questions: [],
+        })
+      ).rejects.toThrow(
+        'The Decisions API is not supported by this provider yet.'
       );
     });
   });
