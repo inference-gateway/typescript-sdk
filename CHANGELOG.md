@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.29.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.29.0...v0.29.1) (2026-11-10)
+
+### 👷 CI
+
+* **deps-dev:** bump the npm group with 4 updates ([#334](https://github.com/inference-gateway/typescript-sdk/issues/334)) ([2fe96ea](https://github.com/inference-gateway/typescript-sdk/commit/2fe96ea97a7f22b13bf0b4d834fb36fdef78513f))
+
 ## [0.29.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.28.0...v0.29.0) (2026-11-03)
 
 ### ✨ Features
