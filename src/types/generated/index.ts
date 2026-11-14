@@ -365,6 +365,13 @@ export interface paths {
      *     Not every provider implements the Images API. Requests routed to a
      *     provider that does not support it return `400 Bad Request` with an
      *     explanatory error message; use `/chat/completions` for those providers.
+     *
+     *     ElevenLabs has no OpenAI-shaped Images API, so the gateway translates
+     *     the request into an ElevenLabs image generation and waits for it to
+     *     finish. `image`, `mask`, `prompt`, `size`, `quality` and
+     *     `response_format` are honored. A generation yields one image, so `n`
+     *     above 1 is rejected, and `size` has to be `auto` or one of the aspect
+     *     ratios the model accepts.
      */
     post: operations['createImageEdit'];
     delete?: never;
@@ -411,17 +418,26 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Generate a sound effect from a text prompt
+     * Generate a sound effect from a text prompt or a video
      * @description Generates a non-speech audio clip - a sound effect or ambience - from
-     *     a text prompt. Gateway extension: OpenAI has no sound-effects
-     *     endpoint, so this mirrors the shape of `POST /audio/speech` (JSON in,
-     *     raw audio bytes out) rather than an upstream OpenAI operation. The
-     *     response is the generated audio as raw binary bytes; the actual
-     *     `Content-Type` header of the response reflects the requested
-     *     `response_format` (e.g. `audio/mpeg` for `mp3`).
+     *     a text prompt, or scores a video with the sound it shows. Gateway
+     *     extension: OpenAI has no sound-effects endpoint, so this mirrors the
+     *     shape of `POST /audio/speech` (raw audio bytes out) rather than an
+     *     upstream OpenAI operation. The response is the generated audio as raw
+     *     binary bytes; the actual `Content-Type` header of the response
+     *     reflects the requested `response_format` (e.g. `audio/mpeg` for
+     *     `mp3`).
      *
-     *     Not every provider implements sound-effect generation. Requests routed
-     *     to a provider that does not support it return `400 Bad Request` with an
+     *     A JSON body is text-to-sfx. A `multipart/form-data` body carrying a
+     *     `video` part is video-to-sfx: the provider watches the clip and
+     *     generates the sound that fits it, optionally keeping or separating the
+     *     speech already in the clip. The request stays open until the audio is
+     *     ready, and a video larger than the gateway's request body limit
+     *     returns `413`.
+     *
+     *     Not every provider implements sound-effect generation, and fewer
+     *     implement video-to-sfx. Requests routed to a provider that does not
+     *     support the requested form return `400 Bad Request` with an
      *     explanatory error message.
      */
     post: operations['createSFX'];
@@ -471,8 +487,9 @@ export interface paths {
     put?: never;
     /**
      * Create a video generation job
-     * @description Creates a video generation job using the OpenAI-compatible Videos API.
-     *     Mirrors the OpenAI `POST /v1/videos` request body. Video generation is
+     * @description Creates a video generation job. The request and the `VideoJob` keep the
+     *     shape of the Videos API OpenAI retired in September 2026, which stays
+     *     the gateway's contract for every provider. Video generation is
      *     asynchronous at every provider: this operation returns a `VideoJob`
      *     immediately, the client polls `GET /videos/{video_id}` until `status`
      *     is `completed`, then downloads the bytes from
@@ -482,6 +499,8 @@ export interface paths {
      *     uploaded as binary. The non-standard `audio` field drives a
      *     talking-avatar render: when present, the model lip-syncs
      *     `input_reference` to the clip and the video lasts as long as the audio.
+     *     A model known to render from a prompt takes no `audio` and the request
+     *     returns `400 Bad Request`.
      *
      *     Not every provider implements the Videos API. Requests routed to a
      *     provider that does not support it return `400 Bad Request` with an
@@ -622,11 +641,16 @@ export interface components {
       decisions?: string;
       images?: string;
       images_edits?: string;
+      images_retrieve?: string;
       speech?: string;
       music?: string;
       sfx?: string;
+      sfx_video?: string;
+      assets?: string;
       videos?: string;
       videos_retrieve?: string;
+      voices?: string;
+      voices_create?: string;
     };
     /** @description Request body for the OpenAI Decisions API, relayed unchanged. */
     CreateDecisionRequest: {
@@ -1469,6 +1493,9 @@ export interface components {
        *     container. Forwarded to the provider as-is - only providers with
        *     voice-cloning support honor it (e.g. Qwen3-TTS-compatible
        *     backends); others ignore or reject it. Not supported by OpenAI.
+       *     ElevenLabs has no per-request sample, so the gateway adds the
+       *     sample to the account of the API key as an instant voice clone,
+       *     once per sample, and speaks in that voice instead of `voice`.
        */
       reference_audio?: string;
     };
@@ -1477,7 +1504,7 @@ export interface components {
      *     or ambience - from a text prompt.
      */
     CreateSFXRequest: {
-      /** @description Model ID to use for sound-effect generation (e.g. `elevenlabs/eleven_text_to_sound_v2`). */
+      /** @description Model ID to use for sound-effect generation (e.g. `elevenlabs/eleven_text_to_sound_v2`, `mirelo/sfx-2.0`). */
       model: string;
       /** @description Description of the sound to generate (e.g. `distant thunder rolling over a valley`). */
       prompt: string;
@@ -1494,6 +1521,53 @@ export interface components {
       prompt_influence?: number;
       /** @description Whether to generate a clip that loops seamlessly. */
       loop?: boolean;
+      /**
+       * @description The audio format of the response.
+       * @default mp3
+       * @enum {string}
+       */
+      response_format?: CreateSFXRequestResponse_format;
+    };
+    /**
+     * @description Multipart request body for scoring a video: the provider watches the
+     *     clip and generates the sound that fits it. Speech already in the clip
+     *     can be kept under the new sound or returned on its own.
+     */
+    CreateSFXFromVideoRequest: {
+      /** @description Model ID to use for video-to-sfx (e.g. `mirelo/sfx-2.0`). */
+      model: string;
+      /**
+       * Format: binary
+       * @description The video to score. Its container type is passed on to the provider.
+       */
+      video: string;
+      /** @description Optional guidance on the sound to generate. The video itself drives the result. */
+      prompt?: string;
+      /**
+       * @description Length of the scored window in seconds, counted from
+       *     `start_offset_seconds`. Omit to score the rest of the clip, up to
+       *     the provider's ceiling.
+       */
+      duration_seconds?: number;
+      /**
+       * @description Where in the clip the scored window starts, in seconds.
+       * @default 0
+       */
+      start_offset_seconds?: number;
+      /**
+       * @description Keep the speech already in the clip under the generated sound.
+       *     Omit to use the provider default.
+       */
+      preserve_speech?: boolean;
+      /**
+       * @description Which track to return. `mix` is the generated sound with any
+       *     preserved speech, `sfx` is the generated sound alone and `speech`
+       *     is the clip's own speech separated out. A clip without speech has
+       *     no `speech` track.
+       * @default mix
+       * @enum {string}
+       */
+      output?: CreateSFXFromVideoRequestOutput;
       /**
        * @description The audio format of the response.
        * @default mp3
@@ -1525,8 +1599,8 @@ export interface components {
       response_format?: CreateSFXRequestResponse_format;
     };
     /**
-     * @description Request body for creating a video generation job via the
-     *     OpenAI-compatible Videos API. Sent as `multipart/form-data`.
+     * @description Request body for creating a video generation job, shaped like the
+     *     Videos API OpenAI retired. Sent as `multipart/form-data`.
      */
     CreateVideoRequest: {
       /** @description Model ID to use for video generation (e.g. `elevenlabs/creatify-aurora`). */
@@ -1561,9 +1635,9 @@ export interface components {
        *     an audio clip - `audio/wav` or `audio/mpeg` - that drives the
        *     render. When present, the model lip-syncs `input_reference` to it
        *     and the generated video lasts as long as the clip, so `seconds` is
-       *     ignored. Forwarded to the provider as-is; only providers with
-       *     talking-avatar support honor it (e.g. ElevenLabs
-       *     `creatify-aurora`), others ignore or reject it.
+       *     ignored. Only models with talking-avatar support honor it (e.g.
+       *     ElevenLabs `creatify-aurora`). A model known to render from a
+       *     prompt is refused with `400 Bad Request`.
        */
       audio?: string;
       /**
@@ -2734,10 +2808,15 @@ export interface components {
         'application/json': components['schemas']['CreateSpeechRequest'];
       };
     };
-    /** @description Request payload for generating a sound effect from a text prompt. */
+    /**
+     * @description Request payload for generating a sound effect. JSON describes the
+     *     sound in a text prompt. `multipart/form-data` uploads a video to score
+     *     instead.
+     */
     CreateSFXRequest: {
       content: {
         'application/json': components['schemas']['CreateSFXRequest'];
+        'multipart/form-data': components['schemas']['CreateSFXFromVideoRequest'];
       };
     };
     /** @description Request payload for composing a music clip from a text prompt. */
@@ -2837,6 +2916,8 @@ export type SchemaCreateImageRequest =
 export type SchemaCreateSpeechRequest =
   components['schemas']['CreateSpeechRequest'];
 export type SchemaCreateSFXRequest = components['schemas']['CreateSFXRequest'];
+export type SchemaCreateSFXFromVideoRequest =
+  components['schemas']['CreateSFXFromVideoRequest'];
 export type SchemaCreateMusicRequest =
   components['schemas']['CreateMusicRequest'];
 export type SchemaCreateVideoRequest =
@@ -3482,6 +3563,15 @@ export interface operations {
       };
       400: components['responses']['SFXNotSupported'];
       401: components['responses']['Unauthorized'];
+      /** @description The uploaded video exceeds the gateway's request body limit. */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Error'];
+        };
+      };
       500: components['responses']['InternalError'];
     };
   };
@@ -3655,6 +3745,7 @@ export enum Provider {
   nvidia = 'nvidia',
   zai = 'zai',
   webwright = 'webwright',
+  mirelo = 'mirelo',
 }
 export enum ProviderAuthType {
   bearer = 'bearer',
@@ -3777,6 +3868,11 @@ export enum CreateSFXRequestResponse_format {
   aac = 'aac',
   flac = 'flac',
   pcm = 'pcm',
+}
+export enum CreateSFXFromVideoRequestOutput {
+  mix = 'mix',
+  sfx = 'sfx',
+  speech = 'speech',
 }
 export enum VideoJobStatus {
   queued = 'queued',
