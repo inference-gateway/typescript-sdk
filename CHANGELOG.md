@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.30.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.29.1...v0.30.0) (2026-11-15)
+
+### ✨ Features
+
+* sync schemas v1.14.0 and score a video with createSFX ([#341](https://github.com/inference-gateway/typescript-sdk/issues/341)) ([64d6208](https://github.com/inference-gateway/typescript-sdk/commit/64d62089a98e1eb9abfb9bb5bab436d35f6f4b03))
+
+### 👷 CI
+
+* **deps:** bump @hono/node-server in /examples/mcp/mcp-servers/context7 ([#337](https://github.com/inference-gateway/typescript-sdk/issues/337)) ([176645b](https://github.com/inference-gateway/typescript-sdk/commit/176645b19c240e31b243da6b26a75715787d611c))
+* **deps:** bump @hono/node-server in /examples/mcp/mcp-servers/npm ([#336](https://github.com/inference-gateway/typescript-sdk/issues/336)) ([cdfac7a](https://github.com/inference-gateway/typescript-sdk/commit/cdfac7a194cce61e45f92bb52db59fc49f076c8b))
+* **deps:** bump @hono/node-server in /examples/mcp/mcp-servers/web-search ([#338](https://github.com/inference-gateway/typescript-sdk/issues/338)) ([ecb7fe9](https://github.com/inference-gateway/typescript-sdk/commit/ecb7fe92227b05546f73b7b5199b92a21cd133fe))
+* **deps:** bump hono in /examples/mcp/mcp-servers/filesystem ([#340](https://github.com/inference-gateway/typescript-sdk/issues/340)) ([85c72a4](https://github.com/inference-gateway/typescript-sdk/commit/85c72a4ee7cb0ce1eb6be76996c1003fe2a46bcf))
+* **deps:** bump hono in /examples/mcp/mcp-servers/npm ([#339](https://github.com/inference-gateway/typescript-sdk/issues/339)) ([8bda62a](https://github.com/inference-gateway/typescript-sdk/commit/8bda62a6eb040eee43638969588abd7751ee2ab0))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump claude-code 2.1.308 -> 2.1.318 ([#335](https://github.com/inference-gateway/typescript-sdk/issues/335)) ([5ae2b8d](https://github.com/inference-gateway/typescript-sdk/commit/5ae2b8daba1a8a56f8ca7bd6338654e6925124b1))
+
 ## [0.29.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.29.0...v0.29.1) (2026-11-10)
 
 ### 👷 CI
