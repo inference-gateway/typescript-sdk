@@ -930,8 +930,10 @@ export class InferenceGatewayClient {
   }
 
   /**
-   * Generates a sound effect or ambience clip from a text prompt.
-   * Not every provider supports it; unsupported ones return an error.
+   * Generates a sound effect or ambience clip from a text prompt, or scores
+   * a video when `request.video` is set to an https URL or a base64 data URI.
+   * `prompt` is required unless `video` is given. Not every provider supports
+   * it, and unsupported providers or fields return an error.
    */
   async createSFX(
     request: SchemaCreateSFXRequest,

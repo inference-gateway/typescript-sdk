@@ -13,6 +13,7 @@ import {
   ChatCompletionToolType,
   ContextWindowSource,
   CreateChatCompletionRequestReasoning_effort,
+  CreateSFXRequestOutput,
   DecisionQuestionType,
   FinishReason,
   MCPJSONRPCRequestMethod,
@@ -1423,6 +1424,30 @@ describe('InferenceGatewayClient', () => {
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify(mockRequest),
+        })
+      );
+    });
+
+    it('should score a video from a URL without a prompt', async () => {
+      const request = {
+        model: 'mirelo/sfx-2.0',
+        video: 'https://cdn.example.com/scene.mov',
+        output: CreateSFXRequestOutput.CreateSFXRequestOutputSFX,
+      };
+      const audio = new Blob(['scored-bytes'], { type: 'audio/mpeg' });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        blob: () => Promise.resolve(audio),
+      });
+
+      const result = await client.createSFX(request, Provider.mirelo);
+      expect(result).toBe(audio);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/v1/audio/sfx?provider=mirelo',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify(request),
         })
       );
     });
