@@ -122,7 +122,7 @@ const main = async () => {
     // Add assistant response to conversation
     conversation.push({
       role: MessageRole.Assistant,
-      content: firstResponse.choices[0].message.content || '',
+      content: (firstResponse.choices[0].message.content || '') as string,
     });
 
     // Add follow-up question
