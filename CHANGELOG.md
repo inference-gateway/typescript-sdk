@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.31.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.30.0...v0.31.0) (2026-11-17)
+
+### ✨ Features
+
+* sync generated types with schemas v1.14.1 ([#357](https://github.com/inference-gateway/typescript-sdk/issues/357)) ([c1ac248](https://github.com/inference-gateway/typescript-sdk/commit/c1ac2487a0f56f7fc0dc1bd529f5d4c6772e90c1))
+
+### 🐛 Bug Fixes
+
+* **examples:** align gateway env vars with the openapi x-config spec ([#352](https://github.com/inference-gateway/typescript-sdk/issues/352)) ([ad88612](https://github.com/inference-gateway/typescript-sdk/commit/ad88612b2180498ae14927ae8b04163de544df49))
+* **examples:** migrate examples from removed listTools to mcpJsonRpc ([#355](https://github.com/inference-gateway/typescript-sdk/issues/355)) ([d3fb472](https://github.com/inference-gateway/typescript-sdk/commit/d3fb472e6426c9e63237c881d905dd9b167f4fef)), references [#347](https://github.com/inference-gateway/typescript-sdk/issues/347)
+
+### 👷 CI
+
+* align Dependabot schedule and grouping ([#344](https://github.com/inference-gateway/typescript-sdk/issues/344)) ([c4e6a3e](https://github.com/inference-gateway/typescript-sdk/commit/c4e6a3ea812bbd9ff79acb14b4e6605db19aee7b))
+* **deps-dev:** bump the npm group with 3 updates ([#345](https://github.com/inference-gateway/typescript-sdk/issues/345)) ([2882a46](https://github.com/inference-gateway/typescript-sdk/commit/2882a465ad396596d123c653e1446309b5a5f80b))
+* set up orchestrators from repos.yaml ([#346](https://github.com/inference-gateway/typescript-sdk/issues/346)) ([53394ea](https://github.com/inference-gateway/typescript-sdk/commit/53394eaf85521599e5e271ef10797998f6851b88))
+
+### 📚 Documentation
+
+* **examples:** add audio examples for createSpeech, createSFX and createMusic ([#354](https://github.com/inference-gateway/typescript-sdk/issues/354)) ([479cfb7](https://github.com/inference-gateway/typescript-sdk/commit/479cfb72043c60e447460a9fbc363fc1083c286b))
+* **examples:** fix run instructions referencing missing files, scripts and services ([#353](https://github.com/inference-gateway/typescript-sdk/issues/353)) ([87f9d8d](https://github.com/inference-gateway/typescript-sdk/commit/87f9d8df705dfd1666bc6c88633faf3e012af7df))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump flox dependencies to latest ([#342](https://github.com/inference-gateway/typescript-sdk/issues/342)) ([60b715d](https://github.com/inference-gateway/typescript-sdk/commit/60b715d112f33f121034d1ff6a207c6c6581b20c))
+* **deps:** bump flox dependencies to latest ([#343](https://github.com/inference-gateway/typescript-sdk/issues/343)) ([cf43b42](https://github.com/inference-gateway/typescript-sdk/commit/cf43b426f3c601a778a98e697b235d2c183f28a2))
+* **examples:** raise example SDK pins to the current release line ([#356](https://github.com/inference-gateway/typescript-sdk/issues/356)) ([d2d81c3](https://github.com/inference-gateway/typescript-sdk/commit/d2d81c352a073c69b1eda9505d665de554812d50))
+
 ## [0.30.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.29.1...v0.30.0) (2026-11-15)
 
 ### ✨ Features
