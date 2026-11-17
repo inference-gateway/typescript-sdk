@@ -248,16 +248,19 @@ If a Vite project exists:
           name: string;
           description?: string;
         }>;
+        const toolsNamed = (...names: string[]) =>
+          tools.filter((tool) =>
+            names.some((name) => tool.name.endsWith(name))
+          );
 
-        const realContext7Tools = tools.filter((tool) =>
-          ['c41_resolve-library-id', 'c41_get-library-docs'].includes(tool.name)
+        const realContext7Tools = toolsNamed(
+          'resolve-library-id',
+          'get-library-docs'
         );
-        const mockContext7Tools = tools.filter((tool) =>
-          [
-            'search_libraries',
-            'get_library_details',
-            'get_documentation',
-          ].includes(tool.name)
+        const mockContext7Tools = toolsNamed(
+          'search_libraries',
+          'get_library_details',
+          'get_documentation'
         );
 
         const context7Tools = [...realContext7Tools, ...mockContext7Tools];

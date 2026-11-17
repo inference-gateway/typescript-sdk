@@ -392,20 +392,25 @@ WORKFLOW: 1) Clarify requirements 2) Use Context7 for K8s docs 3) Create manifes
           name: string;
           description?: string;
         }>;
+        const toolsNamed = (...names: string[]) =>
+          tools.filter((tool) =>
+            names.some((name) => tool.name.endsWith(name))
+          );
 
-        const realContext7Tools = tools.filter((tool) =>
-          ['c41_resolve-library-id', 'c41_get-library-docs'].includes(tool.name)
+        const realContext7Tools = toolsNamed(
+          'resolve-library-id',
+          'get-library-docs'
         );
-        const mockContext7Tools = tools.filter((tool) =>
-          [
-            'search_libraries',
-            'get_library_details',
-            'get_documentation',
-          ].includes(tool.name)
+        const mockContext7Tools = toolsNamed(
+          'search_libraries',
+          'get_library_details',
+          'get_documentation'
         );
 
-        const memoryTools = tools.filter((tool) =>
-          ['save-state', 'restore-state', 'list-sessions'].includes(tool.name)
+        const memoryTools = toolsNamed(
+          'save-state',
+          'restore-state',
+          'list-sessions'
         );
 
         if (memoryTools.length > 0) {

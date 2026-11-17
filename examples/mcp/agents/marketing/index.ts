@@ -324,31 +324,35 @@ Always provide structured, actionable marketing insights with clear next steps.`
           name: string;
           description?: string;
         }>;
+        const toolsNamed = (...names: string[]) =>
+          tools.filter((tool) =>
+            names.some((name) => tool.name.endsWith(name))
+          );
 
-        const braveSearchTools = tools.filter((tool) =>
-          [
-            'brave_web_search',
-            'brave_news_search',
-            'marketing_research',
-          ].includes(tool.name)
+        const braveSearchTools = toolsNamed(
+          'brave_web_search',
+          'brave_news_search',
+          'marketing_research'
         );
 
-        const context7Tools = tools.filter((tool) =>
-          [
-            'c41_resolve-library-id',
-            'c41_get-library-docs',
-            'search_libraries',
-            'get_library_details',
-            'get_documentation',
-          ].includes(tool.name)
+        const context7Tools = toolsNamed(
+          'resolve-library-id',
+          'get-library-docs',
+          'search_libraries',
+          'get_library_details',
+          'get_documentation'
         );
 
-        const memoryTools = tools.filter((tool) =>
-          ['save-state', 'restore-state', 'list-sessions'].includes(tool.name)
+        const memoryTools = toolsNamed(
+          'save-state',
+          'restore-state',
+          'list-sessions'
         );
 
-        const filesystemTools = tools.filter((tool) =>
-          ['write_file', 'read_file', 'list_directory'].includes(tool.name)
+        const filesystemTools = toolsNamed(
+          'write_file',
+          'read_file',
+          'list_directory'
         );
 
         if (braveSearchTools.length === 0) {

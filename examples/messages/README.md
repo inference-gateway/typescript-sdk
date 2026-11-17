@@ -43,5 +43,6 @@ streaming responses, and tool use using the TypeScript SDK.
 - The tool use example simulates tool execution - in a real application, you
   would run the tool and send the result back as a `tool_result` content block
   in a follow-up message.
-- Requires `@inference-gateway/sdk` >= 0.15.0 (the first release with
-  `createMessage` / `streamMessage`).
+- Requires `@inference-gateway/sdk` >= 0.30.0, matching the range pinned in
+  package.json (the current release line, which still has `createMessage` /
+  `streamMessage`).
