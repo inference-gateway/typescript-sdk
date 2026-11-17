@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
-    "@upstash/context7-mcp": "4.4.4",
+    "@upstash/context7-mcp": "4.7.3",
     "cors": "^2.8.5",
     "express": "^5.2.1",
     "winston": "^3.17.0",
