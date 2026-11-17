@@ -8,7 +8,8 @@ responses using the TypeScript SDK.
 
 1. **List All Models** - Retrieve all available models across providers
 2. **List Provider-Specific Models** - Filter models by provider
-3. **List MCP Tools** - Discover available Model Context Protocol tools
+3. **List MCP Tools** - Discover MCP tools through the gateway's MCP JSON-RPC
+   endpoint (`mcpJsonRpc`)
 4. **Health Check** - Verify gateway connectivity
 
 ## Getting Started
@@ -41,7 +42,7 @@ The example will show:
 
 - Complete list of models grouped by provider
 - Provider-specific model details (if PROVIDER is set)
-- Available MCP tools (if EXPOSE_MCP is enabled)
+- Available MCP tools (if MCP_ENABLED and MCP_EXPOSE are enabled)
 - Gateway health status
 
 ## MCP Tools
@@ -49,12 +50,12 @@ The example will show:
 To see MCP tools in action, ensure the gateway is started with:
 
 ```bash
-EXPOSE_MCP=true docker run --rm -p 8080:8080 --env-file .env ghcr.io/inference-gateway/inference-gateway:latest
+docker run --rm -p 8080:8080 -e MCP_ENABLED=true -e MCP_EXPOSE=true --env-file .env ghcr.io/inference-gateway/inference-gateway:latest
 ```
 
 ## Supported Operations
 
 - **Model Discovery** - Find all available models
 - **Provider Filtering** - Get models from specific providers
-- **Tool Discovery** - List available MCP tools and their schemas
+- **Tool Discovery** - List MCP tools and their schemas through the MCP JSON-RPC endpoint
 - **Health Monitoring** - Check gateway status
