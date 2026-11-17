@@ -34,6 +34,9 @@ all the tools you might need.
      streaming events and tool use.
    - [Images](./images): Shows image generation via the OpenAI-compatible
      Images API using `createImage`.
+   - [Audio](./audio): Shows text to speech, sound effect generation, video
+     scoring and music composition using `createSpeech`, `createSFX` and
+     `createMusic`.
    - [Decisions](./decisions): Shows the OpenAI Decisions API relay using
      `createDecision`.
    - [MCP](./mcp): Illustrates Model Context Protocol integration with file
@@ -92,6 +95,21 @@ interaction patterns
 - Handling `url` vs `b64_json` responses
 
 **Best for**: Applications that generate images through the gateway
+
+### [Audio Example](./audio)
+
+**Purpose**: Generate audio via the gateway's audio endpoints
+
+**Features**:
+
+- Text to speech with `createSpeech` and a built-in voice
+- Sound effect generation with `createSFX` from a text prompt
+- Video scoring with the `video` field and `output` track selection
+- Music composition with `createMusic`
+- Writing the returned `Blob`s to audio files
+
+**Best for**: Applications that synthesize speech, effects or soundtracks
+through the gateway
 
 ### [Decisions Example](./decisions)
 
