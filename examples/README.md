@@ -26,8 +26,8 @@ all the tools you might need.
 
 4. Review the different examples in the specific directories:
 
-   - [List](./list): Demonstrates listing models, MCP tools, health checks,
-     and provider proxy functionality.
+   - [List](./list): Demonstrates listing models, MCP tools, and health
+     checks.
    - [Chat](./chat): Shows chat completions, streaming responses, multi-turn
      conversations, and function calling.
    - [Messages](./messages): Shows the Anthropic-compatible Messages API with
@@ -53,9 +53,8 @@ all the tools you might need.
 
 - List all available models across providers
 - Filter models by specific provider
-- Discover MCP tools and their schemas
+- Discover MCP tools and their schemas via `client.mcpJsonRpc` (`tools/list`)
 - Health check validation
-- Direct provider API access via proxy
 
 **Best for**: Understanding what's available in your Inference Gateway setup
 
@@ -69,7 +68,6 @@ all the tools you might need.
 - Real-time streaming responses
 - Multi-turn conversation handling
 - Function/tool calling with AI models
-- Temperature comparison examples
 
 **Best for**: Building chat applications and understanding different
 interaction patterns
@@ -143,8 +141,8 @@ through the gateway
 Each example can be run independently:
 
 ```bash
-# Navigate to any example directory
-cd list  # or chat, or mcp
+# Navigate to any npm-runnable example directory
+cd list  # or chat, messages, images, or decisions
 
 # Install dependencies
 npm install
@@ -152,6 +150,10 @@ npm install
 # Run the example
 npm start
 ```
+
+The [MCP example](./mcp) is a Docker Compose stack rather than an npm package
+
+- see [its README](./mcp/README.md) for run instructions.
 
 ## Environment Variables
 
