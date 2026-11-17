@@ -39,8 +39,11 @@ docker run --rm -p 8080:8080 --env-file .env ghcr.io/inference-gateway/inference
 
 ```bash
 cd mcp
-npm run compose:up
+docker compose -f docker-compose.yml up --build
 ```
+
+The Compose file reads provider API keys from a `.env` file next to it - copy
+`examples/mcp/.env.example` to `examples/mcp/.env` and fill in your keys.
 
 ## 3. Test the Examples
 
@@ -64,13 +67,15 @@ npm start
 
 ### MCP Example (requires Docker Compose setup)
 
+The MCP example is a Docker Compose stack, not an npm package. With the stack
+running, start one of the interactive agents from the `mcp` directory:
+
 ```bash
 cd mcp
-export PROVIDER=groq
-export LLM=meta-llama/llama-3.3-70b-versatile
-npm install
-npm start
+docker compose -f docker-compose-agents.yml run --rm -it --build vite-agent
 ```
+
+See the [MCP example README](./mcp/README.md) for the other agents.
 
 ## 4. Popular Provider/Model Combinations
 
