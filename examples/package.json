@@ -4,7 +4,7 @@
   "description": "Examples for the Inference Gateway TypeScript SDK",
   "private": true,
   "scripts": {
-    "install-all": "npm install && cd list && npm install && cd ../chat && npm install && cd ../messages && npm install && cd ../mcp && npm install",
+    "install-all": "npm install && cd list && npm install && cd ../chat && npm install && cd ../messages && npm install && cd ../images && npm install && cd ../decisions && npm install && cd ../mcp && npm install",
     "start:list": "cd list && npm start",
     "start:chat": "cd chat && npm start",
     "start:messages": "cd messages && npm start",
