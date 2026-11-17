@@ -120,9 +120,10 @@ const main = async () => {
     console.log('Tutor:', firstResponse.choices[0].message.content);
 
     // Add assistant response to conversation
+    const tutorReply = firstResponse.choices[0].message.content;
     conversation.push({
       role: MessageRole.Assistant,
-      content: firstResponse.choices[0].message.content || '',
+      content: typeof tutorReply === 'string' ? tutorReply : '',
     });
 
     // Add follow-up question

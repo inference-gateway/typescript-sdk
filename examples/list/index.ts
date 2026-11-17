@@ -1,5 +1,6 @@
 import {
   InferenceGatewayClient,
+  MCPJSONRPCRequestMethod,
   PathsModelsGetParametersQueryInclude,
   Provider,
 } from '@inference-gateway/sdk';
@@ -78,29 +79,37 @@ const main = async () => {
     // Example 3: List MCP tools (if available)
     console.log('🛠️  Example 3: List MCP Tools');
     try {
-      const tools = await client.listTools();
-      console.log(`Found ${tools.data.length} MCP tools:`);
+      const response = await client.mcpJsonRpc({
+        jsonrpc: '2.0',
+        id: 1,
+        method: MCPJSONRPCRequestMethod.tools_list,
+      });
+      const tools = (response.result?.tools ?? []) as Array<{
+        name: string;
+        description?: string;
+        inputSchema?: unknown;
+      }>;
+      console.log(`Found ${tools.length} MCP tools:`);
 
-      if (tools.data.length === 0) {
+      if (tools.length === 0) {
         console.log(
-          '  No MCP tools available. Make sure EXPOSE_MCP=true on the gateway.'
+          '  No MCP tools available. Make sure MCP_ENABLED=true and MCP_EXPOSE=true on the gateway.'
         );
       } else {
-        tools.data.forEach((tool) => {
+        tools.forEach((tool) => {
           console.log(`\n  🔧 ${tool.name}`);
           console.log(`     Description: ${tool.description}`);
-          console.log(`     Server: ${tool.server}`);
 
-          if (tool.input_schema) {
+          if (tool.inputSchema) {
             console.log(
-              `     Input schema: ${JSON.stringify(tool.input_schema, null, 2).substring(0, 100)}...`
+              `     Input schema: ${JSON.stringify(tool.inputSchema, null, 2).substring(0, 100)}...`
             );
           }
         });
       }
     } catch (error) {
       console.log(
-        '  ❌ MCP tools not available (EXPOSE_MCP might be disabled)'
+        '  ❌ MCP tools not available (MCP_ENABLED or MCP_EXPOSE might be disabled)'
       );
       console.log(
         `     Error: ${error instanceof Error ? error.message : 'Unknown error'}`

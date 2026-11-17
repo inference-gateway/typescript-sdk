@@ -7,6 +7,7 @@
 
 import {
   InferenceGatewayClient,
+  MCPJSONRPCRequestMethod,
   MessageRole,
   Provider,
   SchemaChatCompletionMessageToolCall,
@@ -314,32 +315,44 @@ Always provide structured, actionable marketing insights with clear next steps.`
           process.exit(1);
         }
 
-        const tools = await this.config.client.listTools();
+        const response = await this.config.client.mcpJsonRpc({
+          jsonrpc: '2.0',
+          id: 1,
+          method: MCPJSONRPCRequestMethod.tools_list,
+        });
+        const tools = (response.result?.tools ?? []) as Array<{
+          name: string;
+          description?: string;
+        }>;
+        const toolsNamed = (...names: string[]) =>
+          tools.filter((tool) =>
+            names.some((name) => tool.name.endsWith(name))
+          );
 
-        const braveSearchTools = tools.data.filter((tool) =>
-          [
-            'brave_web_search',
-            'brave_news_search',
-            'marketing_research',
-          ].includes(tool.name)
+        const braveSearchTools = toolsNamed(
+          'brave_web_search',
+          'brave_news_search',
+          'marketing_research'
         );
 
-        const context7Tools = tools.data.filter((tool) =>
-          [
-            'c41_resolve-library-id',
-            'c41_get-library-docs',
-            'search_libraries',
-            'get_library_details',
-            'get_documentation',
-          ].includes(tool.name)
+        const context7Tools = toolsNamed(
+          'resolve-library-id',
+          'get-library-docs',
+          'search_libraries',
+          'get_library_details',
+          'get_documentation'
         );
 
-        const memoryTools = tools.data.filter((tool) =>
-          ['save-state', 'restore-state', 'list-sessions'].includes(tool.name)
+        const memoryTools = toolsNamed(
+          'save-state',
+          'restore-state',
+          'list-sessions'
         );
 
-        const filesystemTools = tools.data.filter((tool) =>
-          ['write_file', 'read_file', 'list_directory'].includes(tool.name)
+        const filesystemTools = toolsNamed(
+          'write_file',
+          'read_file',
+          'list_directory'
         );
 
         if (braveSearchTools.length === 0) {
