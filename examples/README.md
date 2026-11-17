@@ -50,7 +50,7 @@ all the tools you might need.
 
 - List all available models across providers
 - Filter models by specific provider
-- Discover MCP tools and their schemas
+- Discover MCP tools and their schemas via `client.mcpJsonRpc` (`tools/list`)
 - Health check validation
 - Direct provider API access via proxy
 

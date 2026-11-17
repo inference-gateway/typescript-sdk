@@ -7,6 +7,7 @@
 
 import {
   InferenceGatewayClient,
+  MCPJSONRPCRequestMethod,
   MessageRole,
   Provider,
 } from '@inference-gateway/sdk';
@@ -238,11 +239,20 @@ If a Vite project exists:
           process.exit(1);
         }
 
-        const tools = await this.config.client.listTools();
-        const realContext7Tools = tools.data.filter((tool) =>
+        const response = await this.config.client.mcpJsonRpc({
+          jsonrpc: '2.0',
+          id: 1,
+          method: MCPJSONRPCRequestMethod.tools_list,
+        });
+        const tools = (response.result?.tools ?? []) as Array<{
+          name: string;
+          description?: string;
+        }>;
+
+        const realContext7Tools = tools.filter((tool) =>
           ['c41_resolve-library-id', 'c41_get-library-docs'].includes(tool.name)
         );
-        const mockContext7Tools = tools.data.filter((tool) =>
+        const mockContext7Tools = tools.filter((tool) =>
           [
             'search_libraries',
             'get_library_details',
