@@ -8,7 +8,7 @@ services:
       ENVIRONMENT: production
 
       # Enable MCP support
-      MCP_ENABLE: 'true'
+      MCP_ENABLED: 'true'
       MCP_EXPOSE: 'true'
       MCP_SERVERS: 'http://mcp-filesystem:3000/mcp,http://mcp-context7:3002/mcp,http://mcp-npm:3003/mcp,http://mcp-memory:3004/mcp,http://mcp-brave-search:3005/mcp'
 
