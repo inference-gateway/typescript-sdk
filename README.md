@@ -14,6 +14,7 @@ An SDK written in TypeScript for the [Inference Gateway](https://github.com/infe
     - [Proxying Requests](#proxying-requests)
     - [Health Check](#health-check)
     - [Creating a Client with Custom Options](#creating-a-client-with-custom-options)
+    - [Generating Audio](#generating-audio)
     - [Examples](#examples)
   - [Contributing](#contributing)
   - [License](#license)
@@ -402,6 +403,33 @@ const clientWithHeaders = client.withOptions({
   timeout: 60000, // 60 seconds
 });
 ```
+
+### Generating Audio
+
+The audio methods `createSpeech`, `createSFX` and `createMusic` return a
+`Blob` instead of JSON. Write it to a file with the standard `fs` API:
+
+```typescript
+import { writeFile } from 'node:fs/promises';
+import { CreateSpeechRequestResponse_format } from '@inference-gateway/sdk';
+
+const speech = await client.createSpeech(
+  {
+    model: 'gpt-4o-mini-tts',
+    input: 'Hello from the Inference Gateway!',
+    voice: 'alloy',
+    response_format: CreateSpeechRequestResponse_format.mp3,
+  },
+  'openai'
+);
+
+await writeFile('speech.mp3', Buffer.from(await speech.arrayBuffer()));
+```
+
+`createSFX` generates a sound effect from a text prompt, or scores a video
+when you pass it an https URL or a base64 data URI in its `video` field, and
+`createMusic` composes a music clip - both also return a `Blob`. A runnable
+version lives in [examples/audio](./examples/audio).
 
 ### Examples
 

@@ -1,0 +1,19 @@
+{
+  "name": "audio",
+  "version": "1.0.0",
+  "description": "This example demonstrates how to generate audio with the Inference Gateway SDK using the createSpeech, createSFX and createMusic methods.",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "start": "tsx index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@inference-gateway/sdk": "^0.30.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.22.4"
+  }
+}
