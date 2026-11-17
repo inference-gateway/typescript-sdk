@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.31.1](https://github.com/inference-gateway/typescript-sdk/compare/v0.31.0...v0.31.1) (2026-11-17)
+
+### 🐛 Bug Fixes
+
+* **deps:** resolve open dependabot security alerts ([#358](https://github.com/inference-gateway/typescript-sdk/issues/358)) ([b2370d7](https://github.com/inference-gateway/typescript-sdk/commit/b2370d7f51a591492d1be4dfae568503d67477aa))
+
 ## [0.31.0](https://github.com/inference-gateway/typescript-sdk/compare/v0.30.0...v0.31.0) (2026-11-17)
 
 ### ✨ Features
