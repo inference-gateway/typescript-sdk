@@ -290,7 +290,7 @@ class StreamProcessor {
     }
   }
 
-  private handleFinishReason(choice: { finish_reason?: string }): void {
+  private handleFinishReason(choice: { finish_reason?: string | null }): void {
     const finishReason = choice.finish_reason;
     if (finishReason === 'tool_calls' && this.incompleteToolCalls.size > 0) {
       this.finalizeIncompleteToolCalls();
