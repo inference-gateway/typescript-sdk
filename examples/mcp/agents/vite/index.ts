@@ -38,7 +38,7 @@ class ViteAgent {
   constructor() {
     this.config = {
       client: new InferenceGatewayClient({
-        baseURL: 'http://localhost:8080/v1',
+        baseURL: 'http://inference-gateway:8080/v1',
       }),
       provider: (process.env.PROVIDER as Provider) || Provider.groq,
       model: process.env.LLM || 'llama-3.3-70b-versatile',

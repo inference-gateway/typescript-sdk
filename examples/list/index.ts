@@ -84,33 +84,34 @@ const main = async () => {
         id: 1,
         method: MCPJSONRPCRequestMethod.tools_list,
       });
-      const tools = (response.result?.tools ?? []) as Array<{
-        name: string;
-        description?: string;
-        inputSchema?: unknown;
-      }>;
-      console.log(`Found ${tools.length} MCP tools:`);
 
-      if (tools.length === 0) {
-        if (response.error) {
-          console.log(
-              `  ❌ MCP JSON-RPC error ${response.error.code}: ${response.error.message}`
-          );
-        }
+      if (response.error) {
         console.log(
-          '  No MCP tools available. Make sure MCP_ENABLED=true and MCP_EXPOSE=true on the gateway.'
+          '  ❌ MCP tools not available (MCP_ENABLED or MCP_EXPOSE might be disabled)'
+        );
+        console.log(
+          `     Error: ${response.error.message} (code ${response.error.code})`
         );
       } else {
-        tools.forEach((tool) => {
-          console.log(`\n  🔧 ${tool.name}`);
-          console.log(`     Description: ${tool.description}`);
+        const tools = (response.result?.tools ?? []) as Array<{
+          name: string;
+          description?: string;
+        }>;
 
-          if (tool.inputSchema) {
-            console.log(
-              `     Input schema: ${JSON.stringify(tool.inputSchema, null, 2).substring(0, 100)}...`
-            );
-          }
-        });
+        console.log(`Found ${tools.length} MCP tools:`);
+
+        if (tools.length === 0) {
+          console.log(
+            '  No MCP tools available. Make sure MCP_ENABLED=true and MCP_EXPOSE=true on the gateway.'
+          );
+        } else {
+          tools.forEach((tool) => {
+            console.log(`\n  🔧 ${tool.name}`);
+            if (tool.description) {
+              console.log(`     Description: ${tool.description}`);
+            }
+          });
+        }
       }
     } catch (error) {
       console.log(
