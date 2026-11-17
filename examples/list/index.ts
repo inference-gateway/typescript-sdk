@@ -92,6 +92,11 @@ const main = async () => {
       console.log(`Found ${tools.length} MCP tools:`);
 
       if (tools.length === 0) {
+        if (response.error) {
+          console.log(
+              `  ❌ MCP JSON-RPC error ${response.error.code}: ${response.error.message}`
+          );
+        }
         console.log(
           '  No MCP tools available. Make sure MCP_ENABLED=true and MCP_EXPOSE=true on the gateway.'
         );
