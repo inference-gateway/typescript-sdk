@@ -32,16 +32,14 @@ analysis.
 3. **Start the services**
 
    ```bash
-   docker-compose up --build
+   docker compose -f docker-compose.yml up --build
    ```
 
 4. **Run the marketing agent**
 
    ```bash
-   # In a new terminal
-   cd agents/marketing
-   npm install
-   npm start
+   # The agent reaches the gateway only inside the Compose network
+   docker compose -f docker-compose-agents.yml run --rm -it --build marketing-agent
    ```
 
 ## Features

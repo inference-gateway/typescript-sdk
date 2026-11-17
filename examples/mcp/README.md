@@ -66,57 +66,9 @@ All agents (Next.js, Vite, and Kubernetes) now include memory recovery capabilit
 All agents will automatically use these tools when encountering HTTP errors,
 ensuring robust error recovery and task continuation.
 
-## 🔍 MCP Inspector
+## Troubleshooting
 
-The **MCP Inspector** is a visual debugging tool that allows you to inspect
-and test your MCP servers interactively. It provides a web-based interface to:
-
-- Connect to and inspect MCP servers
-- View available tools and their schemas
-- Test tool execution with custom parameters
-- Debug server responses and error messages
-- Monitor real-time server communication
-
-### Accessing the Inspector
-
-The MCP Inspector is available at: **<http://localhost:6274>**
-
-You can connect to any of the running MCP servers:
-
-- **Filesystem Server**: `http://mcp-filesystem:3000/mcp`
-- **Web Search Server**: `http://mcp-web-search:3001/mcp`
-- **Context7 Server**: `http://mcp-context7:3002/mcp`
-- **NPM Server**: `http://mcp-npm:3003/mcp`
-- **Memory Server**: `http://mcp-memory:3004/mcp`
-
-### Quick Inspector URLs
-
-For convenience, you can use these pre-configured URLs:
-
-```bash
-# Connect to Filesystem server
-http://localhost:6274/?transport=streamable-http&serverUrl=http://mcp-filesystem:3000/mcp
-
-# Connect to Web Search server
-http://localhost:6274/?transport=streamable-http&serverUrl=http://mcp-web-search:3001/mcp
-
-# Connect to NPM server
-http://localhost:6274/?transport=streamable-http&serverUrl=http://mcp-npm:3003/mcp
-```
-
-### Using the Inspector
-
-1. **Start the services**: `docker compose up --build`
-1. **Open the inspector**: Navigate to <http://localhost:6274>
-1. **Connect to a server**: Enter an MCP server URL
-   (e.g., `http://mcp-filesystem:3000/mcp`)
-1. **Explore tools**: Browse available tools and their parameters
-1. **Test execution**: Run tools with custom parameters and view results
-
-### Troubleshooting
-
-If you have to debug an MCP server, you can either use the MCP Inspector or
-standard curl commands.
+If you have to debug an MCP server, you can use standard curl commands.
 
 1. First go inside the a container that is attached to the same inference
    gateway network:
@@ -125,15 +77,15 @@ standard curl commands.
 docker run -it --rm alpine:latest sh -c "apk add --no-cache curl && sh"
 ```
 
-1. For example let's check if mcp-web-search works as expected. We will get
-   into the container:
+1. For example let's check if mcp-brave-search works as expected. We will
+   get into the container:
 
 ```sh
-docker compose exec mcp-web-search sh
+docker compose exec mcp-brave-search sh
 
 export SERVER_URL="http://127.0.0.1"
-export SERVER_PORT=""
-export TOOL_NAME=""
+export SERVER_PORT="3005"
+export TOOL_NAME="brave_web_search"
 ```
 
 1. Fetch a session ID by initializing the MCP server:
@@ -173,7 +125,7 @@ curl -v -X POST "${SERVER_URL}:${SERVER_PORT}/mcp" \
   }'
 ```
 
-1. Call a specific tool, for example, `search_web` to search the web:
+1. Call a specific tool, for example, `brave_web_search`, to search the web:
 
 ```sh
 curl -X POST "${SERVER_URL}:${SERVER_PORT}/mcp" \
